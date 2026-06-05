@@ -15,7 +15,15 @@
       "PowerShell($env:ESP_IDF_EXPORT_DEBUG=\"1\"; & \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\export.ps1\" 2>&1 | Select-Object -Last 30)",
       "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.espressif\" -Directory -ErrorAction SilentlyContinue | Select-Object FullName)",
       "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; idf.py --version)",
-      "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; $env:IDF_PYTHON_ENV_PATH=\"C:\\\\Espressif\\\\tools\\\\python\\\\v6.0\\\\venv\"; idf.py build 2>&1 | Select-Object -Last 60)"
+      "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; $env:IDF_PYTHON_ENV_PATH=\"C:\\\\Espressif\\\\tools\\\\python\\\\v6.0\\\\venv\"; idf.py build 2>&1 | Select-Object -Last 60)",
+      "Bash(cd /c/Projects/ble-mesh/ble-mesh-tag-tracking && ls)",
+      "Read(//c/Projects/ble-mesh/ble-mesh-tag-tracking/**)",
+      "Bash(ls /c/Projects/ble-mesh-reference/)",
+      "Read(//c/Projects/ble-mesh-reference//**)",
+      "Bash(echo \"EXIT=$?\")",
+      "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; $env:IDF_PYTHON_ENV_PATH=\"C:\\\\Espressif\\\\tools\\\\python\\\\v6.0\\\\venv\"; idf.py build 2>&1 | Select-Object -Last 30)",
+      "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; $env:IDF_PYTHON_ENV_PATH=\"C:\\\\Espressif\\\\tools\\\\python\\\\v6.0\\\\venv\"; idf.py fullclean 2>&1 | Select-Object -Last 5; idf.py build 2>&1 | Select-Object -Last 30)",
+      "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; $env:IDF_PYTHON_ENV_PATH=\"C:\\\\Espressif\\\\tools\\\\python\\\\v6.0\\\\venv\"; idf.py fullclean 2>&1 | Select-Object -Last 3; idf.py build 2>&1 | Select-Object -Last 15)"
     ]
   }
 }

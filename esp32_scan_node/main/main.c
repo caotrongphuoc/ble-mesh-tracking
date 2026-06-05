@@ -503,6 +503,7 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
     case ESP_BLE_MESH_NODE_PROV_RESET_EVT:
         ESP_LOGI(TAG, "Node reset -> unprovisioned");
         g_node_addr = 0x0000; g_net_idx = 0xFFFF; g_app_idx = 0xFFFF;
+        xEventGroupClearBits(g_mesh_event_group, PROV_COMPLETE_BIT);
         esp_ble_mesh_node_prov_enable(ESP_BLE_MESH_PROV_ADV | ESP_BLE_MESH_PROV_GATT);
         break;
 
@@ -796,16 +797,15 @@ static void uart_cmd_task(void *arg)
         switch (ch) {
         case 'r':
         case 'R':
-            printf("\n[UART] Resetting mesh provision...\n");
-            printf("[UART] Scanner se ve unprovisioned va broadcast beacon moi\n");
-            printf("[UART] Gateway can scan lai de provision\n\n");
-            /* Reset mesh: xóa NVS provision, trở về unprovisioned state
-             * Sau khi gọi hàm này → NODE_PROV_RESET_EVT fires
-             * → mesh_prov_cb enable lại provisioning beacon */
+            printf("\n[UART] Resetting mesh provision + REBOOT...\n");
+            printf("[UART] Scanner se ve unprovisioned va broadcast beacon moi\n\n");
             esp_ble_mesh_node_local_reset();
-            g_node_addr = 0x0000;
-            g_net_idx   = 0xFFFF;
-            g_app_idx   = 0xFFFF;
+            /* Reboot sau reset: radio_manager_task đang chạy GAP scan cycle sau khi
+             * provision lần trước. Reset mesh KHÔNG dừng task này → radio bận khi
+             * Gateway re-provision → PB-ADV PDU bị drop → "Timeout, giving up transaction".
+             * Reboot là cách sạch nhất để re-init toàn bộ state. */
+            vTaskDelay(pdMS_TO_TICKS(500));
+            esp_restart();
             break;
 
         case '1':

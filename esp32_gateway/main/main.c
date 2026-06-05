@@ -642,10 +642,30 @@ static void uart_cmd_task(void *arg)
             print_status();
             break;
         case '0':
-            printf("\n[UART] Clearing NVS...\n");
+            printf("\n[UART] Clearing NVS + REBOOT...\n");
+            /* Quan trọng: phải xóa nodes khỏi mesh stack state (NVS riêng) trước,
+             * không chỉ xóa g_nodes app-level. Nếu không, mesh stack vẫn nhớ
+             * UUID cũ đã gắn với unicast addr → re-provision cùng node sẽ
+             * "Timeout, giving up transaction" vì state conflict.
+             * Dùng get_node_table_entry để duyệt nodes trong mesh stack — g_nodes
+             * có thể đã bị clear từ lần trước nhưng mesh stack vẫn còn state. */
+            {
+                const esp_ble_mesh_node_t **entry = esp_ble_mesh_provisioner_get_node_table_entry();
+                if (entry) {
+                    int erased = 0;
+                    for (int i = 0; i < CONFIG_BLE_MESH_MAX_PROV_NODES; i++) {
+                        if (entry[i]) {
+                            esp_ble_mesh_provisioner_delete_node_with_uuid(entry[i]->dev_uuid);
+                            erased++;
+                        }
+                    }
+                    printf("[UART] Erased %d node(s) from mesh stack\n", erased);
+                }
+            }
             nvs_clear_nodes();
             memset(g_nodes, 0, sizeof(g_nodes));
-            printf("[UART] Done. Restart to re-provision.\n");
+            vTaskDelay(pdMS_TO_TICKS(500));
+            esp_restart();
             break;
         default:
             printf("\n[UART] Unknown: %c\n", ch);
