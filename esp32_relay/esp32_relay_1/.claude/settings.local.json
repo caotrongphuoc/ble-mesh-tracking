@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:IDF_PATH; if \\($env:IDF_PATH\\) { Test-Path \"$env:IDF_PATH\\\\examples\\\\common_components\\\\ble_mesh\\\\ble_mesh_example_init\" })",
+      "PowerShell(\\(Get-Command idf.py -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell($paths = @\\(\"$env:USERPROFILE\\\\esp\", \"$env:USERPROFILE\\\\.espressif\", \"C:\\\\esp\", \"C:\\\\Espressif\", \"C:\\\\Users\\\\caotr\\\\esp\", \"C:\\\\Users\\\\caotr\\\\.espressif\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\"; Get-ChildItem $p -Directory -ErrorAction SilentlyContinue | Select-Object -First 10 | ForEach-Object { Write-Output \"  - $\\($_.Name\\)\" } } })",
+      "PowerShell(Get-ChildItem \"C:\\\\esp\\\\v6.0\" -Directory | Select-Object -First 10 | ForEach-Object { Write-Output $_.Name })",
+      "PowerShell(Get-ChildItem \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\examples\\\\common_components\" -Directory -ErrorAction SilentlyContinue | ForEach-Object { Write-Output $_.Name })",
+      "PowerShell(Get-ChildItem \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\examples\\\\bluetooth\" -Directory -ErrorAction SilentlyContinue | ForEach-Object { Write-Output $_.Name })",
+      "PowerShell(Get-ChildItem \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\examples\\\\bluetooth\\\\esp_ble_mesh\" -Directory | ForEach-Object { Write-Output $_.Name })",
+      "PowerShell(Get-ChildItem \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\examples\\\\bluetooth\\\\esp_ble_mesh\\\\common_components\" -Directory | ForEach-Object { Write-Output $_.Name })",
+      "PowerShell(Grep -Path \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\components\" -Pattern \"temprature_sens_read\" 2>$null)",
+      "PowerShell(& \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\tools\\\\idf.py\" --version 2>&1)",
+      "PowerShell(& \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\export.ps1\" 2>&1)",
+      "PowerShell($env:ESP_IDF_EXPORT_DEBUG=\"1\"; & \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\export.ps1\" 2>&1 | Select-Object -Last 30)",
+      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.espressif\" -Directory -ErrorAction SilentlyContinue | Select-Object FullName)",
+      "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; idf.py --version)",
+      "PowerShell(. \"C:\\\\Espressif\\\\tools\\\\Microsoft.v6.0.PowerShell_profile.ps1\"; $env:IDF_PATH=\"C:\\\\esp\\\\v6.0\\\\esp-idf\"; $env:IDF_PYTHON_ENV_PATH=\"C:\\\\Espressif\\\\tools\\\\python\\\\v6.0\\\\venv\"; idf.py build 2>&1 | Select-Object -Last 60)"
+    ]
+  }
+}

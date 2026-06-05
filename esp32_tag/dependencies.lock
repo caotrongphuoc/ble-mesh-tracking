@@ -1,0 +1,17 @@
+dependencies:
+  example_init:
+    dependencies: []
+    source:
+      path: ..\..\esp\v6.0\esp-idf\examples\bluetooth\esp_ble_mesh\common_components\example_init
+      type: local
+    version: '*'
+  idf:
+    source:
+      type: idf
+    version: 6.0.0
+direct_dependencies:
+- example_init
+- idf
+manifest_hash: 19c5bb1b9ebaf4bad9f3b3fc791ce6c7c9af8e3a56411681b468dadda4f022fa
+target: esp32
+version: 3.0.0

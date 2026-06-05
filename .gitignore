@@ -1,0 +1,10 @@
+# Bỏ qua thư mục build
+build/
+*/build/
+*/*/build/
+
+# Bỏ qua các file cấu hình máy cá nhân
+sdkconfig.old
+
+# Bỏ qua thư mục ẩn của VS Code (tuỳ chọn)
+.vscode/
