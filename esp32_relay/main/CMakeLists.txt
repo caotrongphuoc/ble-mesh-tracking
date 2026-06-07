@@ -1,15 +1,9 @@
-set(srcs 
-    "main.c"
-   
-)
-
 idf_component_register(
-    SRCS "${srcs}"
+    SRCS "main.c"
     INCLUDE_DIRS "."
-    REQUIRES 
-        driver 
+    REQUIRES
         nvs_flash
         bt
-        esp_system
+        example_init
         esp_driver_uart
 )

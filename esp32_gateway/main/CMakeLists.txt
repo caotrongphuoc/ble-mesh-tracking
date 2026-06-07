@@ -10,4 +10,5 @@ idf_component_register(
         mqtt
         esp_driver_uart
         example_init
+       
 )

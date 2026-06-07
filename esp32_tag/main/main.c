@@ -1,179 +1,230 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
 
 #include "esp_log.h"
 #include "esp_err.h"
+#include "nvs_flash.h"
+#include "esp_random.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/timers.h"
+
+#include "driver/uart.h"
+
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_gap_ble_api.h"
-#include "esp_random.h"
-#include "esp_mac.h"
-#include "nvs_flash.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+
+/* ==========================================================================
+ * TAG — BLE BEACON
+ *
+ * Payload format (24 bytes) so sánh với iBeacon:
+ *
+ *   iBeacon (Apple CID 0x004C):
+ *     CID(2) + 0215(2) + UUID(16) + Major(2) + Minor(2) + TXPwr(1) = 25B
+ *
+ *   Custom (Espressif CID 0x02E5):
+ *     CID(2) + UUID(16) + Major(2) + Minor(2) + TXPwr(1) + Seq(1) + CRC(2) = 26B
+ *
+ *   Bỏ "02 15" marker (chỉ cần cho iOS CLBeaconRegion, không cần với scanner)
+ *   → tiết kiệm 2B → có chỗ cho Seq + CRC, tổng ADV = 31B (vừa khít)
+ *
+ * iPhone dùng RNF Beacon Toolkit:
+ *   Set UUID = AB000000-..., Major = 1 (PERSON), Minor = tag_id
+ *   Scanner detect qua CID 0x004C → không có Seq/CRC → loss = 0%
+ * ========================================================================== */
 
 #define TAG "BLE_TAG"
 
-/* ========================================================================== 
- * TỰ BUILD — TAG CONFIG
+/* ==========================================================================
+ * USER CONFIG — ĐỔI CHO TỪNG TAG
  * ========================================================================== */
-#define TAG_MAGIC               0xAB
-#define TAG_TYPE_PERSON         0x01
-#define TAG_TYPE_ASSET          0x02
 
-#define TAG_PERSON_001          0x0001
-#define TAG_PERSON_002          0x0002
-#define TAG_PERSON_003          0x0003
-#define TAG_ASSET_001           0x0100
-#define TAG_ASSET_002           0x0101
+/* System UUID — GIỐNG NHAU trên tất cả tag (ESP32 + iPhone)
+ * Scanner check 4 bytes đầu (AB 00 00 00) để nhận ra "tag của hệ thống" */
+static const uint8_t SYSTEM_UUID[16] = {
+    0xAB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 
-/* TX Power tại 1m — placeholder -59dBm (chuẩn iBeacon)
- * Phải đo thực tế: đặt tag cách scanner 1m
- * đo RSSI 100 lần, lấy trung bình → ghi vào đây */
-#define TAG_TX_POWER            -59
+/* Major: loại tag
+ * 0x0001 = PERSON (người đeo)
+ * 0x0002 = ASSET  (tài sản gắn thiết bị) */
+#define TAG_MAJOR        0x0001   /* ← đổi cho từng loại */
 
-/* ADV Interval range (ms)
- * Random trong khoảng 450-550ms mỗi lần phát
- * Tránh collision khi nhiều tag cùng phát */
-#define ADV_INTERVAL_MIN_MS     450
-#define ADV_INTERVAL_MAX_MS     550
-#define ADV_INTERVAL_UNITS      800   /* 500ms = (450+550)/2 */
+/* Minor: ID thiết bị trong hệ thống
+ * Tag ESP32 #1 = 0x0001, #2 = 0x0002...
+ * iPhone RNF: set cùng Minor tương ứng */
+#define TAG_MINOR        0x0001   /* ← đổi cho từng thiết bị */
 
-/* ========================================================================== 
- * TỰ BUILD — PAYLOAD STRUCT (8 bytes)
+/* TX Power reference: RSSI đo được tại đúng 1m (giá trị calibrate)
+ * KHÔNG phải radio TX power thực — đây là "Measured Power" như iBeacon
+ * Mặc định -59 (iBeacon standard), cần đo thực tế để chỉnh lại */
+#define TAG_TX_POWER     (-53)    /* ← calibrate: đo RSSI tại 1m rồi điền */
+
+/* Radio TX power thực (ảnh hưởng range + pin)
+ * ESP_PWR_LVL_N0 = 0 dBm → range ~10-15m indoor, phù hợp cho hệ thống này */
+#define TAG_RADIO_PWR    ESP_PWR_LVL_N0
+
+/* ADV interval random trong range này để tránh collision nhiều tag */
+#define ADV_INTERVAL_MIN_MS  450
+#define ADV_INTERVAL_MAX_MS  550
+
+/* ==========================================================================
+ * PAYLOAD STRUCT
  * ========================================================================== */
 #pragma pack(1)
 typedef struct {
-    uint8_t  magic;     /* 0xAB — chữ ký hệ thống */
-    uint8_t  tag_type;  /* 0x01=PERSON, 0x02=ASSET */
-    uint16_t tag_id;    /* ID unique (big endian) */
-    int8_t   tx_power;  /* công suất phát tại 1m */
-    uint8_t  sequence;  /* tăng mỗi lần phát */
-    uint16_t crc16;     /* CRC-16 CCITT từ 6 bytes đầu */
-} tag_payload_t;        /* tổng 8 bytes */
+    uint8_t  uuid[16];   /* 16B: system UUID (AB000000-...) */
+    uint16_t major;      /*  2B: PERSON=0x0001, ASSET=0x0002 */
+    uint16_t minor;      /*  2B: tag ID trong hệ thống */
+    int8_t   tx_power;   /*  1B: measured power tại 1m (calibrate) */
+    uint8_t  sequence;   /*  1B: 0–255, wraps → Scanner tính loss rate */
+    uint16_t crc16;      /*  2B: CRC-16 CCITT của 22 bytes trước */
+} tag_adv_payload_t;     /* = 24 bytes */
 #pragma pack()
 
-/* ========================================================================== 
+/* ==========================================================================
  * GLOBALS
  * ========================================================================== */
-static tag_payload_t g_tag;
-static uint8_t       g_adv_raw[31];
-static uint8_t       g_adv_len  = 0;
-static uint8_t       g_mac[6]   = {0};  /* MAC address của ESP32 này */
+static uint8_t       g_sequence   = 0;
+static TimerHandle_t g_seq_timer  = NULL;
+static bool          g_adv_active = false;
 
-/* ========================================================================== 
- * DÙNG API — ADV PARAMS
- * ========================================================================== */
-static esp_ble_adv_params_t g_adv_params = {
-    .adv_int_min       = ADV_INTERVAL_UNITS,
-    .adv_int_max       = ADV_INTERVAL_UNITS,
-    .adv_type          = ADV_TYPE_NONCONN_IND,
-    .own_addr_type     = BLE_ADDR_TYPE_PUBLIC,
-    .channel_map       = ADV_CHNL_ALL,
-    .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+/* Raw ADV buffer — 31 bytes (maximum BLE ADV payload)
+ *
+ * Layout:
+ *   [0..2]   Flags:   02 01 06
+ *   [3]      Mfr len: 0x1B = 27 (= 1 type + 2 CID + 24 payload)
+ *   [4]      Type:    0xFF (Manufacturer Specific)
+ *   [5..6]   CID:     E5 02 (Espressif, little-endian)
+ *   [7..30]  Payload: tag_adv_payload_t (24 bytes)
+ */
+#define ADV_RAW_LEN     31
+#define ADV_PAYLOAD_OFF  7
+
+static uint8_t g_adv_raw[ADV_RAW_LEN] = {
+    /* Flags */
+    0x02, 0x01, 0x06,
+    /* Manufacturer Specific Data header */
+    0x1B, 0xFF, 0xE5, 0x02,
+    /* 24 bytes payload (filled by build_adv_data) */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-/* ========================================================================== 
- * TỰ BUILD — CRC-16 CCITT
+/* ==========================================================================
+ * CRC-16 CCITT
  * ========================================================================== */
-static uint16_t crc16_ccitt(uint8_t *data, int len)
+static uint16_t crc16_ccitt(const uint8_t *data, int len)
 {
     uint16_t crc = 0xFFFF;
     for (int i = 0; i < len; i++) {
         crc ^= (uint16_t)data[i] << 8;
-        for (int j = 0; j < 8; j++) {
-            if (crc & 0x8000)
-                crc = (crc << 1) ^ 0x1021;
-            else
-                crc <<= 1;
-        }
+        for (int j = 0; j < 8; j++)
+            crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : (crc << 1);
     }
     return crc;
 }
 
-/* ========================================================================== 
- * TỰ BUILD — BUILD ADV PACKET
- * Format: [Flags: 3B][Manufacturer Specific: 12B]
- * Tổng: 15 bytes (< 31 bytes BLE spec limit)
+/* ==========================================================================
+ * BUILD ADV DATA
  * ========================================================================== */
 static void build_adv_data(void)
 {
-    uint8_t idx = 0;
+    tag_adv_payload_t p;
 
-    /* AD1: Flags */
-    g_adv_raw[idx++] = 0x02;
-    g_adv_raw[idx++] = 0x01;
-    g_adv_raw[idx++] = 0x06;
+    memcpy(p.uuid,  SYSTEM_UUID, 16);
+    p.major    = TAG_MAJOR;
+    p.minor    = TAG_MINOR;
+    p.tx_power = TAG_TX_POWER;
+    p.sequence = g_sequence;
+    p.crc16    = 0;   /* bắt buộc = 0 trước khi tính CRC */
 
-    /* Build 8-byte payload */
-    uint8_t payload[8];
-    payload[0] = g_tag.magic;
-    payload[1] = g_tag.tag_type;
-    payload[2] = (g_tag.tag_id >> 8) & 0xFF;
-    payload[3] = g_tag.tag_id & 0xFF;
-    payload[4] = (uint8_t)g_tag.tx_power;
-    payload[5] = g_tag.sequence;
+    /* CRC-16 tính trên tất cả fields trừ 2 bytes crc16 cuối */
+    p.crc16 = crc16_ccitt((uint8_t *)&p,
+                           sizeof(p) - sizeof(p.crc16));
 
-    uint16_t crc = crc16_ccitt(payload, 6);
-    payload[6]   = (crc >> 8) & 0xFF;
-    payload[7]   = crc & 0xFF;
-
-    /* AD2: Manufacturer Specific */
-    g_adv_raw[idx++] = 0x0B;
-    g_adv_raw[idx++] = 0xFF;
-    g_adv_raw[idx++] = 0xE5;
-    g_adv_raw[idx++] = 0x02;
-    memcpy(&g_adv_raw[idx], payload, sizeof(payload));
-    idx += sizeof(payload);
-
-    g_adv_len = idx;
+    memcpy(g_adv_raw + ADV_PAYLOAD_OFF, &p, sizeof(p));
 }
 
-/* ========================================================================== 
- * PRINT HELPERS
+/* ==========================================================================
+ * ADV PARAMS & START
  * ========================================================================== */
-static void print_tag_info(const char *title)
+static esp_ble_adv_params_t g_adv_params = {
+    .adv_int_min       = 0,
+    .adv_int_max       = 0,
+    .adv_type          = ADV_TYPE_NONCONN_IND,
+    .own_addr_type     = BLE_ADDR_TYPE_PUBLIC,
+    .peer_addr_type    = BLE_ADDR_TYPE_PUBLIC,
+    .channel_map       = ADV_CHNL_ALL,
+    .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+};
+
+static void start_adv_random_interval(void)
 {
-    printf("\n============ %s ============\n", title);
-    printf("Magic    : 0x%02X\n",   g_tag.magic);
-    printf("Type     : 0x%02X (%s)\n",
-           g_tag.tag_type,
-           g_tag.tag_type == TAG_TYPE_PERSON ? "PERSON" : "ASSET");
-    printf("ID       : 0x%04X\n",   g_tag.tag_id);
-    printf("TX Power : %d dBm\n",   g_tag.tx_power);
-    printf("Sequence : %d\n",       g_tag.sequence);
-    printf("ADV Len  : %d bytes\n", g_adv_len);
-    printf("Interval : %d-%d ms (random)\n",
-           ADV_INTERVAL_MIN_MS, ADV_INTERVAL_MAX_MS);
-    /* FIX: In MAC address */
-    printf("MAC      : %02X:%02X:%02X:%02X:%02X:%02X\n",
-           g_mac[0], g_mac[1], g_mac[2],
-           g_mac[3], g_mac[4], g_mac[5]);
-    printf("==============================\n");
+    /* Random [450, 550] ms → tránh collision nhiều tag */
+    uint32_t ms = ADV_INTERVAL_MIN_MS
+                + (esp_random() % (ADV_INTERVAL_MAX_MS
+                                   - ADV_INTERVAL_MIN_MS + 1));
+
+    /* BLE unit = 0.625ms */
+    uint16_t units = (uint16_t)((ms * 1000) / 625);
+    g_adv_params.adv_int_min = units;
+    g_adv_params.adv_int_max = units;
+
+    build_adv_data();
+
+    /* config_adv_data_raw → GAP callback → start_advertising */
+    esp_ble_gap_config_adv_data_raw(g_adv_raw, ADV_RAW_LEN);
 }
 
-/* ========================================================================== 
- * DÙNG API — GAP CALLBACK
+/* ==========================================================================
+ * SEQUENCE TIMER
+ *
+ * Non-connectable ADV (ADV_NONCONN_IND) không trigger ADV_STOP_COMPLETE_EVT
+ * → không thể increment sequence trong callback
+ * → dùng FreeRTOS timer ~500ms để increment + restart ADV
+ * ========================================================================== */
+static void seq_timer_cb(TimerHandle_t xTimer)
+{
+    (void)xTimer;
+    g_sequence++;   /* uint8_t: 255 → 0 tự động */
+
+    esp_ble_gap_stop_advertising();
+    start_adv_random_interval();
+}
+
+/* ==========================================================================
+ * GAP CALLBACK
  * ========================================================================== */
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                                esp_ble_gap_cb_param_t *param)
 {
     switch (event) {
-
     case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
-        esp_ble_gap_start_advertising(&g_adv_params);
+        if (param->adv_data_raw_cmpl.status == ESP_BT_STATUS_SUCCESS)
+            esp_ble_gap_start_advertising(&g_adv_params);
+        else
+            ESP_LOGE(TAG, "ADV data set FAILED");
         break;
 
     case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
         if (param->adv_start_cmpl.status == ESP_BT_STATUS_SUCCESS) {
-            ESP_LOGI(TAG, "Advertising started!");
-            print_tag_info("TAG ADVERTISING");
+            g_adv_active = true;
+            ESP_LOGD(TAG, "ADV OK seq=%u major=0x%04X minor=0x%04X",
+                     g_sequence, TAG_MAJOR, TAG_MINOR);
         } else {
-            ESP_LOGE(TAG, "Advertising FAILED, status=%d",
-                     param->adv_start_cmpl.status);
+            ESP_LOGE(TAG, "ADV start FAILED");
         }
+        break;
+
+    case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
+        g_adv_active = false;
         break;
 
     default:
@@ -181,105 +232,95 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
     }
 }
 
-/* ========================================================================== 
- * TỰ BUILD — SEQUENCE UPDATE TASK
+/* ==========================================================================
+ * BT INIT
  * ========================================================================== */
-static void seq_update_task(void *arg)
+static esp_err_t bluetooth_init(void)
 {
-    (void)arg;
-
-    uint32_t start_delay = ADV_INTERVAL_MIN_MS +
-                           (esp_random() % (ADV_INTERVAL_MAX_MS -
-                                            ADV_INTERVAL_MIN_MS));
-    vTaskDelay(pdMS_TO_TICKS(start_delay));
-
-    ESP_LOGI(TAG, "Sequence update task started (random %d-%dms)",
-             ADV_INTERVAL_MIN_MS, ADV_INTERVAL_MAX_MS);
-
-    while (1) {
-        g_tag.sequence++;
-        build_adv_data();
-        esp_ble_gap_config_adv_data_raw(g_adv_raw, g_adv_len);
-        ESP_LOGD(TAG, "Seq=%d", g_tag.sequence);
-
-        uint32_t interval = ADV_INTERVAL_MIN_MS +
-                            (esp_random() % (ADV_INTERVAL_MAX_MS -
-                                             ADV_INTERVAL_MIN_MS));
-        vTaskDelay(pdMS_TO_TICKS(interval));
-    }
-}
-
-/* ========================================================================== 
- * TỰ BUILD — TAG INIT
- * ========================================================================== */
-static void tag_init(uint8_t type, uint16_t id)
-{
-    g_tag.magic    = TAG_MAGIC;
-    g_tag.tag_type = type;
-    g_tag.tag_id   = id;
-    g_tag.tx_power = TAG_TX_POWER;
-    g_tag.sequence = 0;
-
-    ESP_LOGI(TAG, "Tag init: type=0x%02X id=0x%04X txpwr=%d",
-             type, id, TAG_TX_POWER);
-}
-
-/* ========================================================================== 
- * DÙNG API — BLE INIT
- * FIX: Thêm đọc MAC address sau khi bluedroid enable
- * ========================================================================== */
-static esp_err_t ble_init(void)
-{
-    esp_err_t err;
-
-    err = esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "mem_release failed: %s", esp_err_to_name(err));
-        return err;
-    }
+    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    err = esp_bt_controller_init(&bt_cfg);
-    if (err != ESP_OK) return err;
+    ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
+    ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
 
-    err = esp_bt_controller_enable(ESP_BT_MODE_BLE);
-    if (err != ESP_OK) return err;
+    esp_bluedroid_config_t cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_bluedroid_init_with_cfg(&cfg));
+    ESP_ERROR_CHECK(esp_bluedroid_enable());
 
-    err = esp_bluedroid_init();
-    if (err != ESP_OK) return err;
+    /* Set radio TX power — ảnh hưởng range và pin */
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, TAG_RADIO_PWR);
 
-    err = esp_bluedroid_enable();
-    if (err != ESP_OK) return err;
-
-    /* FIX: Đọc MAC address của ESP32 này
-     * MAC = địa chỉ vật lý phần cứng
-     * Dùng để identify tag cụ thể
-     * Hiển thị trong print_tag_info() */
-    esp_read_mac(g_mac, ESP_MAC_BT);
-    ESP_LOGI(TAG, "BLE MAC: %02X:%02X:%02X:%02X:%02X:%02X",
-             g_mac[0], g_mac[1], g_mac[2],
-             g_mac[3], g_mac[4], g_mac[5]);
-
-    err = esp_ble_gap_register_callback(gap_event_handler);
-    if (err != ESP_OK) return err;
-
-    err = esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N0);
-    if (err != ESP_OK) return err;
-
-    ESP_LOGI(TAG, "BLE initialized, TX power=0dBm");
     return ESP_OK;
 }
 
-/* ========================================================================== 
+/* ==========================================================================
+ * UART STATUS TASK
+ *   1 → in trạng thái hiện tại
+ * ========================================================================== */
+static void uart_task(void *arg)
+{
+    (void)arg;
+    const uart_config_t cfg = {
+        .baud_rate  = 115200,
+        .data_bits  = UART_DATA_8_BITS,
+        .parity     = UART_PARITY_DISABLE,
+        .stop_bits  = UART_STOP_BITS_1,
+        .flow_ctrl  = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    uart_driver_install(UART_NUM_0, 256, 0, 0, NULL, 0);
+    uart_param_config(UART_NUM_0, &cfg);
+
+    printf("\n===== TAG COMMANDS: 1=status =====\n");
+
+    uint8_t ch;
+    while (1) {
+        int len = uart_read_bytes(UART_NUM_0, &ch, 1, pdMS_TO_TICKS(200));
+        if (len <= 0 || ch == '\r' || ch == '\n') continue;
+
+        if (ch == '1') {
+            const tag_adv_payload_t *p =
+                (const tag_adv_payload_t *)(g_adv_raw + ADV_PAYLOAD_OFF);
+
+            printf("\n========== TAG STATUS ==========\n");
+            printf("UUID      : %02X%02X%02X%02X-%02X%02X-%02X%02X-"
+                   "%02X%02X-%02X%02X%02X%02X%02X%02X\n",
+                   SYSTEM_UUID[0],  SYSTEM_UUID[1],
+                   SYSTEM_UUID[2],  SYSTEM_UUID[3],
+                   SYSTEM_UUID[4],  SYSTEM_UUID[5],
+                   SYSTEM_UUID[6],  SYSTEM_UUID[7],
+                   SYSTEM_UUID[8],  SYSTEM_UUID[9],
+                   SYSTEM_UUID[10], SYSTEM_UUID[11],
+                   SYSTEM_UUID[12], SYSTEM_UUID[13],
+                   SYSTEM_UUID[14], SYSTEM_UUID[15]);
+            printf("Major     : 0x%04X (%s)\n", TAG_MAJOR,
+                   TAG_MAJOR == 0x0001 ? "PERSON" : "ASSET");
+            printf("Minor     : 0x%04X  (Tag ID = %u)\n",
+                   TAG_MINOR, TAG_MINOR);
+            printf("TX Power  : %d dBm  (measured power ref — calibrate!)\n",
+                   TAG_TX_POWER);
+            printf("Sequence  : %u\n",    g_sequence);
+            printf("CRC-16    : 0x%04X\n", p->crc16);
+            printf("ADV state : %s\n", g_adv_active ? "ACTIVE" : "STOPPED");
+            printf("Heap free : %lu bytes\n",
+                   (unsigned long)esp_get_free_heap_size());
+            printf("================================\n");
+        }
+    }
+}
+
+/* ==========================================================================
  * MAIN
  * ========================================================================== */
 void app_main(void)
 {
-    esp_err_t err;
-
     ESP_LOGI(TAG, "=== BLE Tag Starting ===");
+    ESP_LOGI(TAG, "Major=0x%04X (%s)  Minor=0x%04X  TXPwrRef=%ddBm",
+             TAG_MAJOR,
+             TAG_MAJOR == 0x0001 ? "PERSON" : "ASSET",
+             TAG_MINOR, TAG_TX_POWER);
 
-    err = nvs_flash_init();
+    esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
         err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -287,31 +328,19 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
-    err = ble_init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "BLE init failed!");
-        return;
-    }
+    ESP_ERROR_CHECK(bluetooth_init());
+    ESP_ERROR_CHECK(esp_ble_gap_register_callback(gap_event_handler));
 
-    /* =====================================================
-     * CONFIG TAG — ĐỔI DÒNG NÀY KHI FLASH TỪNG TAG
-     * =====================================================
-     * Person 001: tag_init(TAG_TYPE_PERSON, TAG_PERSON_001)
-     * Person 002: tag_init(TAG_TYPE_PERSON, TAG_PERSON_002)
-     * Asset  001: tag_init(TAG_TYPE_ASSET,  TAG_ASSET_001)
-     * Asset  002: tag_init(TAG_TYPE_ASSET,  TAG_ASSET_002)
-     * ===================================================== */
-    tag_init(TAG_TYPE_PERSON, TAG_PERSON_001);
+    /* Sequence timer: 500ms auto-reload
+     * Mỗi lần fire: sequence++, restart ADV với interval mới */
+    g_seq_timer = xTimerCreate("seq", pdMS_TO_TICKS(500),
+                                pdTRUE, NULL, seq_timer_cb);
+    xTimerStart(g_seq_timer, 0);
 
-    build_adv_data();
+    /* Bắt đầu advertise */
+    start_adv_random_interval();
 
-    err = esp_ble_gap_config_adv_data_raw(g_adv_raw, g_adv_len);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "config_adv_data_raw failed!");
-        return;
-    }
+    xTaskCreate(uart_task, "uart", 2048, NULL, 3, NULL);
 
-    xTaskCreate(seq_update_task, "seq_update", 2048, NULL, 5, NULL);
-
-    ESP_LOGI(TAG, "=== TAG READY ===");
+    ESP_LOGI(TAG, "=== Tag READY (1=status) ===");
 }

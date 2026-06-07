@@ -1611,6 +1611,7 @@ CONFIG_BLE_MESH_SENSOR_CLI=y
 # CONFIG_BLE_MESH_LIGHT_LIGHTNESS_CLI is not set
 # default:
 # CONFIG_BLE_MESH_LIGHT_CTL_CLI is not set
+# default:
 # CONFIG_BLE_MESH_LIGHT_HSL_CLI is not set
 # default:
 # CONFIG_BLE_MESH_LIGHT_XYL_CLI is not set

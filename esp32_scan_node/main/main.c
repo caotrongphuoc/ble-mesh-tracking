@@ -60,14 +60,44 @@ typedef struct {
 /* ==========================================================================
  * TU BUILD - CONSTANTS
  * ========================================================================== */
-#define TAG_MAGIC               0xAB
 #define TAG_TYPE_PERSON         0x01
 #define TAG_TYPE_ASSET          0x02
-#define COMPANY_ID_LOW          0xE5
-#define COMPANY_ID_HIGH         0x02
 #define MAX_TAGS                20
 #define TAG_TIMEOUT_MS          5000
 #define SCANNER_ID              0x01
+
+/* Company IDs */
+#define CID_ESPRESSIF           0x02E5   /* ESP32 custom tag */
+#define CID_APPLE               0x004C   /* iBeacon (iPhone) */
+
+/* Major values (tag type) */
+#define TAG_MAJOR_PERSON        0x0001
+#define TAG_MAJOR_ASSET         0x0002
+
+/* System UUID prefix — 4 bytes đầu phải khớp để nhận ra tag "của hệ thống"
+ * Tất cả ESP32 tag và iPhone (RNF Beacon Toolkit) dùng cùng prefix này */
+static const uint8_t SYSTEM_UUID_PREFIX[4] = { 0xAB, 0x00, 0x00, 0x00 };
+
+/* TX power calibrate cho iPhone (iOS cố định, không set được)
+ * Đo RSSI tại 1m với iPhone đang advertise rồi điền vào đây */
+#define PHONE_TX_POWER_1M       (-59)    /* ← calibrate thực tế tại 1m */
+
+/* ADV payload struct của ESP32 tag (24 bytes, khớp với tag.c)
+ *
+ * So sánh với iBeacon:
+ *   iBeacon: CID(2) + 0215(2) + UUID(16) + Major(2) + Minor(2) + TXPwr(1) = 25B
+ *   Custom:  CID(2) + UUID(16) + Major(2) + Minor(2) + TXPwr(1) + Seq(1) + CRC(2) = 26B
+ *   Bỏ "02 15" marker → tiết kiệm 2B → có chỗ cho Seq + CRC ✓ */
+#pragma pack(1)
+typedef struct {
+    uint8_t  uuid[16];   /* 16B: system UUID (AB000000-...) */
+    uint16_t major;      /*  2B: PERSON=0x0001, ASSET=0x0002 */
+    uint16_t minor;      /*  2B: tag ID (0x0001, 0x0002...) */
+    int8_t   tx_power;   /*  1B: measured power tại 1m */
+    uint8_t  sequence;   /*  1B: 0–255 wraps */
+    uint16_t crc16;      /*  2B: CRC-16 CCITT */
+} tag_adv_payload_t;     /* = 24 bytes */
+#pragma pack()
 
 #define LOG_RSSI_THRESHOLD_DBM  3
 #define LOG_MIN_INTERVAL_MS     2000
@@ -110,16 +140,16 @@ static volatile radio_phase_t g_phase        = PHASE_GAP_SCAN;
 static volatile bool          g_has_new_data = false;
 
 /* ==========================================================================
- * TU BUILD - PAYLOAD STRUCT
+ * TU BUILD - PAYLOAD STRUCT (internal, sau khi parse từ ADV)
+ * Không còn magic byte — nhận diện bằng CID (0x02E5 hoặc 0x004C)
  * ========================================================================== */
 #pragma pack(1)
 typedef struct {
-    uint8_t  magic;
-    uint8_t  tag_type;
-    uint16_t tag_id;
-    int8_t   tx_power;
-    uint8_t  sequence;
-    uint16_t crc16;
+    uint8_t  tag_type;   /* TAG_TYPE_PERSON / TAG_TYPE_ASSET */
+    uint16_t tag_id;     /* Minor value = ID thiết bị */
+    int8_t   tx_power;   /* Measured power tại 1m (calibrated) */
+    uint8_t  sequence;   /* 0–255 (0 với iPhone — loss=0%) */
+    uint16_t crc16;      /* 0 với iPhone */
 } tag_payload_t;
 #pragma pack()
 
@@ -339,33 +369,91 @@ static void print_tag_table(void)
 
 /* ==========================================================================
  * TU BUILD - PARSE ADV PAYLOAD
+ *
+ * 2 loại beacon được nhận:
+ *
+ * 1. ESP32 custom tag (CID 0x02E5):
+ *    UUID(16)+Major(2)+Minor(2)+TXPwr(1)+Seq(1)+CRC(2) = 24B
+ *    Verify UUID prefix + CRC → tag_type từ Major, tag_id từ Minor
+ *
+ * 2. iBeacon / iPhone (CID 0x004C, marker 02 15):
+ *    UUID(16)+Major(2)+Minor(2)+TXPwr(1) = 21B
+ *    Verify UUID prefix → tag_type từ Major, tag_id từ Minor
+ *    sequence=0 (không có) → loss_pct=0% là bình thường
  * ========================================================================== */
 static bool parse_tag_payload(uint8_t *adv_data, uint8_t adv_len,
                                tag_payload_t *out)
 {
     if (!adv_data || adv_len < 4 || !out) return false;
     int pos = 0;
+
     while (pos < adv_len) {
-        uint8_t len  = adv_data[pos];
-        if (len == 0 || pos + len >= adv_len) break;
-        uint8_t type = adv_data[pos + 1];
-        
-        // 0x03 là mã của 16-bit Service UUID
-        if (type == 0x03 && len >= 3) {
-            uint16_t uuid = adv_data[pos + 2] | (adv_data[pos + 3] << 8);
-            
-            // Nếu UUID khớp với 0x180D (Heart Rate - iPhone rất thích phát cái này)
-            if (uuid == 0x180D) {
-                out->magic    = 0xAB; // Giả lập các giá trị cố định vì UUID không chứa data thô
-                out->tag_type = 0x01;
-                out->tag_id   = 0x0001;
-                out->tx_power = 0;
+        uint8_t field_len  = adv_data[pos];
+        if (field_len == 0 || pos + field_len >= adv_len) break;
+        uint8_t field_type = adv_data[pos + 1];
+
+        if (field_type == 0xFF && field_len >= 3) {
+            uint16_t cid = (uint16_t)adv_data[pos + 2]
+                         | ((uint16_t)adv_data[pos + 3] << 8);
+
+            /* ---- ESP32 custom tag: CID=0x02E5 ---- */
+            if (cid == CID_ESPRESSIF && field_len >= (1 + 2 + 24)) {
+                tag_adv_payload_t *p =
+                    (tag_adv_payload_t *)(adv_data + pos + 4);
+
+                if (memcmp(p->uuid, SYSTEM_UUID_PREFIX, 4) != 0)
+                    goto next_field;
+
+                /* verify_crc16: CRC-16 CCITT trên N-2 bytes đầu (không gồm field crc16) */
+                if (!verify_crc16((uint8_t *)p,
+                                  sizeof(*p) - sizeof(p->crc16),
+                                  p->crc16)) {
+                    ESP_LOGD(TAG, "CRC fail");
+                    goto next_field;
+                }
+
+                out->tag_type = (p->major == TAG_MAJOR_PERSON)
+                                ? TAG_TYPE_PERSON : TAG_TYPE_ASSET;
+                out->tag_id   = p->minor;
+                out->tx_power = p->tx_power;
+                out->sequence = p->sequence;
+                out->crc16    = p->crc16;
+                return true;
+            }
+
+            /* ---- iBeacon / iPhone: CID=0x004C + marker 02 15 ---- */
+            if (cid == CID_APPLE && field_len >= 26 &&
+                adv_data[pos + 4] == 0x02 &&
+                adv_data[pos + 5] == 0x15) {
+
+                /* FIX 1: Bỏ UUID prefix check
+                 * RNF app UUID tự generate crash nếu dùng system UUID (toàn 0)
+                 * Filter bằng Major=1 (PERSON) hoặc 2 (ASSET) thay thế */
+                uint16_t major = ((uint16_t)adv_data[pos + 22] << 8)
+                                | adv_data[pos + 23];
+                uint16_t minor = ((uint16_t)adv_data[pos + 24] << 8)
+                                | adv_data[pos + 25];
+
+                if (major != TAG_MAJOR_PERSON && major != TAG_MAJOR_ASSET)
+                    goto next_field;
+
+                out->tag_type = (major == TAG_MAJOR_PERSON)
+                                ? TAG_TYPE_PERSON : TAG_TYPE_ASSET;
+
+                /* FIX 2: Namespace 0x8000 cho iPhone
+                 * ESP32:  tag_id = minor          (0x0001-0x00FF)
+                 * iPhone: tag_id = minor | 0x8000 (0x8001-0x80FF)
+                 * Tránh collision khi Minor giống nhau → fix bug displacement */
+                out->tag_id   = minor | 0x8000;
+                out->tx_power = PHONE_TX_POWER_1M;
                 out->sequence = 0;
                 out->crc16    = 0;
                 return true;
             }
         }
-        pos += len + 1;
+
+        next_field:
+        pos += field_len + 1;
     }
     return false;
 }
