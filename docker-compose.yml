@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: tb-postgres
+    environment:
+      POSTGRES_DB: thingsboard
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - tb-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  thingsboard:
+    image: thingsboard/tb-postgres:3.7.0
+    container_name: thingsboard
+    depends_on:
+      - postgres
+    ports:
+      - "8080:9090"   # Web UI:  http://localhost:8080
+      - "1883:1883"   # MQTT broker (ESP32 connect here)
+      - "7070:7070"   # Edge RPC (optional)
+    environment:
+      TB_QUEUE_TYPE: in-memory
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/thingsboard
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    volumes:
+      - tb-data:/data
+      - tb-logs:/var/log/thingsboard
+    restart: unless-stopped
+
+volumes:
+  tb-postgres-data:
+  tb-data:
+  tb-logs:
