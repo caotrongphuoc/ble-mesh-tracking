@@ -1,9 +1,16 @@
 /* ============================================================================
- * BMT (BLE Mesh Tracking) — GATEWAY firmware
+ * BMT (BLE Mesh Tracking) — GATEWAY firmware  [v2 — Zone Detection]
  * ----------------------------------------------------------------------------
- * Role  : Provisioner + BLE Mesh ↔ ThingsBoard MQTT bridge
+ * Role  : Provisioner + BLE Mesh ↔ ThingsBoard MQTT bridge + Zone Detection
  * Board : ESP32 NodeMCU-32S
  * IDF   : v6.0
+ *
+ * What's new in v2:
+ *   - Per-tag tracking: lưu RSSI từ mỗi scanner riêng
+ *   - Zone detection: nearest scanner wins (RSSI mạnh nhất)
+ *   - Hysteresis 5 dBm: tránh nhảy zone do noise
+ *   - Out-of-range timeout 10s
+ *   - Publish thêm field `zone` và `zone_id` trong tag telemetry
  *
  * Naming convention:
  *   - Macros          : BMT_<CATEGORY>_<NAME>
@@ -11,24 +18,18 @@
  *   - Structs         : bmt_<scope>_<name>_t
  *   - Globals         : g_bmt_<name>
  *
- * ThingsBoard integration (Gateway API):
- *   - Topic publish telemetry    : v1/gateway/telemetry
- *   - Topic publish attributes   : v1/gateway/attributes
- *   - Topic connect sub-device   : v1/gateway/connect
- *   - Topic disconnect           : v1/gateway/disconnect
- *   - Gateway self telemetry     : v1/devices/me/telemetry
- *   - Gateway self attributes    : v1/devices/me/attributes
- *
- * Device naming on ThingsBoard:
- *   - bmt_gateway                 (role=gateway)
- *   - bmt_node_0xXXXX             (role=relay  | role=scan)
- *   - bmt_tag_0xYYYY              (role=tag)
+ * Zone mapping (hardcoded):
+ *   scanner 0x01 → bedroom_1
+ *   scanner 0x02 → bedroom_2
+ *   scanner 0x03 → toilet
+ *   any other / no scanner → out_of_range
  * ============================================================================ */
 
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <limits.h>
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -68,11 +69,10 @@
 #define BMT_WIFI_SSID                   "TP-Link_385B"
 #define BMT_WIFI_PASS                   "91324566"
 
-/* ThingsBoard server (IP của máy PC chạy Docker, port 1883 MQTT) */
 #define BMT_TB_HOST                     "mqtt://192.168.1.113:1883"
 #define BMT_TB_GATEWAY_TOKEN            "Sxj62zRhBtUj3tZIRdhd"
 
-/* Device naming prefix (must match ThingsBoard expectations) */
+/* Device naming */
 #define BMT_DEV_NAME_GATEWAY            "bmt_gateway"
 #define BMT_DEV_NAME_NODE_FMT           "bmt_node_0x%04x"
 #define BMT_DEV_NAME_TAG_FMT            "bmt_tag_0x%04x"
@@ -84,35 +84,31 @@
 #define BMT_ROLE_TAG                    "tag"
 
 /* ============================================================================
+ * ZONE DETECTION CONFIG
+ * ============================================================================ */
+#define BMT_MAX_SCANNERS                8       /* scanner_id 0x01..0x08      */
+#define BMT_MAX_TRACKED_TAGS            16
+#define BMT_ZONE_HYSTERESIS_DBM         5       /* đổi zone nếu mạnh hơn ≥5dBm */
+#define BMT_SCANNER_VALID_MS            3500    /* scanner data quá cũ → skip */
+#define BMT_TAG_OUT_OF_RANGE_MS         10000   /* tag biến mất                */
+#define BMT_ZONE_UNKNOWN                0xFF
+
+/* ============================================================================
  * BLE MESH VENDOR MODEL
- *   CID  : 0x02E5 (Espressif)
- *   Gateway = Vendor Client (nhận data từ Scan Node)
  * ============================================================================ */
 #define BMT_CID_ESP                     0x02E5
 #define BMT_VND_MODEL_ID                0x0000
 #define BMT_OP_VND_TAG_STATUS           ESP_BLE_MESH_MODEL_OP_3(0x00, BMT_CID_ESP)
 
 #pragma pack(1)
-/*
- * Payload BLE Mesh từ Scan Node → Gateway
- *
- * FIX: giảm payload từ 13 xuống 8 bytes
- *   BLE Mesh unsegmented max = 11 bytes (opcode 3B + data 8B)
- *   13 bytes → segmented → cần ACK → "Ran out of retransmit"
- *   8 bytes  → unsegmented → fire-and-forget, không cần ACK
- *
- * distance_dm : int16_t đơn vị decimeter, chia 10 để ra mét
- *               max = 3276.7m, resolution = 0.1m
- * loss_pct    : uint8_t 0-100%
- */
 typedef struct {
-    uint8_t  scanner_id;    /* 1B : Scanner nào gửi report          */
-    uint8_t  tag_type;      /* 1B : PERSON=0x01 / ASSET=0x02        */
-    uint16_t tag_id;        /* 2B : ID của tag                      */
-    int8_t   rssi;          /* 1B : RSSI filtered (dBm)             */
-    int16_t  distance_dm;   /* 2B : distance × 10 (decimeter)       */
-    uint8_t  loss_pct;      /* 1B : loss rate % (0-100)             */
-} bmt_tag_report_t;         /* total = 8 bytes → UNSEGMENTED ✓     */
+    uint8_t  scanner_id;
+    uint8_t  tag_type;
+    uint16_t tag_id;
+    int8_t   rssi;
+    int16_t  distance_dm;
+    uint8_t  loss_pct;
+} bmt_tag_report_t;         /* 8 bytes — UNSEGMENTED */
 #pragma pack()
 
 /* ============================================================================
@@ -128,11 +124,9 @@ typedef struct {
 #define BMT_SCAN_DURATION_MS            10000
 #define BMT_WDT_TIMEOUT_S               60
 
-/* NVS */
 #define BMT_NVS_NAMESPACE               "bmt_gw"
 #define BMT_NVS_KEY_NODES               "node_table"
 
-/* UART */
 #define BMT_UART_NUM                    UART_NUM_0
 #define BMT_UART_BAUD                   115200
 #define BMT_UART_RX_BUF_SIZE            2048
@@ -173,16 +167,36 @@ typedef struct {
 } bmt_gateway_scan_entry_t;
 
 /* ============================================================================
+ * ZONE DETECTION: per-tag, per-scanner tracking
+ * ============================================================================ */
+typedef struct {
+    bool     active;
+    uint16_t tag_id;
+    uint8_t  tag_type;
+
+    /* Per-scanner state (index = scanner_id - 1) */
+    int8_t   rssi_by_scanner [BMT_MAX_SCANNERS];
+    uint32_t ts_by_scanner   [BMT_MAX_SCANNERS];
+    bool     valid_by_scanner[BMT_MAX_SCANNERS];
+
+    /* Current zone */
+    uint8_t  current_zone_id;       /* scanner_id của nearest, 0xFF = unknown */
+    uint32_t last_zone_change_ms;
+    uint32_t last_any_report_ms;
+} bmt_gateway_tag_track_t;
+
+/* ============================================================================
  * GLOBALS
  * ============================================================================ */
 static bmt_gateway_mac_cache_t   g_bmt_mac_cache[BMT_MAX_MAC_CACHE];
 static bmt_gateway_node_t        g_bmt_nodes[BMT_MAX_NODES];
 static bmt_gateway_scan_entry_t  g_bmt_scan_list[BMT_MAX_SCAN_LIST];
+static bmt_gateway_tag_track_t   g_bmt_tag_track[BMT_MAX_TRACKED_TAGS];
+
 static int                       g_bmt_scan_count = 0;
 static bool                      g_bmt_scanning   = false;
 static bmt_gateway_prov_mode_t   g_bmt_prov_mode  = BMT_PROV_MODE_MANUAL;
 
-/* Mesh keys */
 static uint16_t g_bmt_net_key_idx = 0x0000;
 static uint16_t g_bmt_app_key_idx = 0x0000;
 
@@ -199,7 +213,6 @@ static uint8_t g_bmt_gw_uuid[ESP_BLE_MESH_OCTET16_LEN] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
 };
 
-/* WiFi / MQTT */
 static EventGroupHandle_t       g_bmt_wifi_evgrp;
 static const int                BMT_WIFI_CONNECTED_BIT = BIT0;
 static esp_mqtt_client_handle_t g_bmt_mqtt_client    = NULL;
@@ -349,19 +362,13 @@ static void bmt_print_hex_key(const char *label, const uint8_t *key, int len)
 static void bmt_print_uuid(const uint8_t *uuid)
 {
     if (!uuid) return;
-    for (int i = 0; i < 16; i++) {
-        printf("%02X", uuid[i]);
-        if (i != 15) printf(":");
-    }
+    for (int i = 0; i < 16; i++) { printf("%02X", uuid[i]); if (i != 15) printf(":"); }
 }
 
 static void bmt_print_mac(const uint8_t *mac)
 {
     if (!mac) return;
-    for (int i = 0; i < 6; i++) {
-        printf("%02X", mac[i]);
-        if (i != 5) printf(":");
-    }
+    for (int i = 0; i < 6; i++) { printf("%02X", mac[i]); if (i != 5) printf(":"); }
 }
 
 static bool bmt_uuid_is_relay(const uint8_t *uuid)
@@ -434,7 +441,6 @@ static void bmt_log_node_table(void)
     printf("\n================ NODE TABLE ================\n");
     bool has_node = false;
     uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
-
     for (int i = 0; i < BMT_MAX_NODES; i++) {
         if (!g_bmt_nodes[i].used) continue;
         has_node = true;
@@ -443,12 +449,11 @@ static void bmt_log_node_table(void)
         printf("  Name        : %s\n",
                g_bmt_nodes[i].name[0] ? g_bmt_nodes[i].name : "(unknown)");
         printf("  Type        : %s\n",
-               g_bmt_nodes[i].is_relay ? "RELAY"   :
-               g_bmt_nodes[i].is_scan  ? "SCAN"    : "UNKNOWN");
+               g_bmt_nodes[i].is_relay ? "RELAY" :
+               g_bmt_nodes[i].is_scan  ? "SCAN"  : "UNKNOWN");
         printf("  UUID        : "); bmt_print_uuid(g_bmt_nodes[i].uuid); printf("\n");
         printf("  MAC         : "); bmt_print_mac(g_bmt_nodes[i].mac);   printf("\n");
         printf("  Config done : %s\n", g_bmt_nodes[i].config_done ? "YES" : "NO");
-
         if (g_bmt_nodes[i].is_relay) {
             printf("  Status      : %s\n", g_bmt_nodes[i].online ? "ONLINE" : "OFFLINE");
             if (g_bmt_nodes[i].last_seen_ms > 0)
@@ -535,6 +540,7 @@ static void bmt_print_status(void)
 {
     printf("\n=========== GATEWAY COMMANDS ===========\n");
     printf("1 -> LIST PROVISIONED NODES\n");
+    printf("2 -> LIST TRACKED TAGS + ZONES\n");
     printf("s -> SCAN BEACONS (%ds)\n", BMT_SCAN_DURATION_MS/1000);
     printf("p -> PROVISION SCAN LIST\n");
     printf("a -> AUTO PROVISION MODE\n");
@@ -543,6 +549,130 @@ static void bmt_print_status(void)
     printf("Provision mode: %s\n",
            g_bmt_prov_mode == BMT_PROV_MODE_AUTO ? "AUTO" : "MANUAL");
     printf("=========================================\n");
+}
+
+/* ============================================================================
+ * ZONE DETECTION
+ * ============================================================================ */
+static const char *bmt_zone_name(uint8_t scanner_id)
+{
+    switch (scanner_id) {
+    case 0x01: return "bedroom_1";
+    case 0x02: return "bedroom_2";
+    case 0x03: return "toilet";
+    case BMT_ZONE_UNKNOWN: return "out_of_range";
+    default:   return "unknown";
+    }
+}
+
+static bmt_gateway_tag_track_t *bmt_tag_track_find(uint16_t tag_id)
+{
+    for (int i = 0; i < BMT_MAX_TRACKED_TAGS; i++)
+        if (g_bmt_tag_track[i].active && g_bmt_tag_track[i].tag_id == tag_id)
+            return &g_bmt_tag_track[i];
+    return NULL;
+}
+
+static bmt_gateway_tag_track_t *bmt_tag_track_get_or_add(uint16_t tag_id, uint8_t tag_type)
+{
+    bmt_gateway_tag_track_t *t = bmt_tag_track_find(tag_id);
+    if (t) return t;
+    for (int i = 0; i < BMT_MAX_TRACKED_TAGS; i++) {
+        if (!g_bmt_tag_track[i].active) {
+            memset(&g_bmt_tag_track[i], 0, sizeof(g_bmt_tag_track[i]));
+            g_bmt_tag_track[i].active          = true;
+            g_bmt_tag_track[i].tag_id          = tag_id;
+            g_bmt_tag_track[i].tag_type        = tag_type;
+            g_bmt_tag_track[i].current_zone_id = BMT_ZONE_UNKNOWN;
+            ESP_LOGI(TAG, "New tag tracked: 0x%04x", tag_id);
+            return &g_bmt_tag_track[i];
+        }
+    }
+    return NULL;
+}
+
+/*
+ * Eval zone for a tag — chọn scanner mạnh nhất với hysteresis
+ *
+ * Returns:
+ *   - scanner_id (0x01..) nếu có ít nhất 1 scanner còn fresh
+ *   - BMT_ZONE_UNKNOWN (0xFF) nếu tất cả scanner đều stale
+ */
+static uint8_t bmt_zone_evaluate(bmt_gateway_tag_track_t *t)
+{
+    uint32_t now           = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    int      best_rssi     = INT_MIN;
+    uint8_t  best_scanner  = BMT_ZONE_UNKNOWN;
+    int      current_rssi  = INT_MIN;
+    bool     current_fresh = false;
+
+    /* Tìm scanner mạnh nhất + check current scanner còn fresh */
+    for (int i = 0; i < BMT_MAX_SCANNERS; i++) {
+        if (!t->valid_by_scanner[i]) continue;
+
+        /* Expire stale data */
+        if (now - t->ts_by_scanner[i] > BMT_SCANNER_VALID_MS) {
+            t->valid_by_scanner[i] = false;
+            continue;
+        }
+
+        if ((int)t->rssi_by_scanner[i] > best_rssi) {
+            best_rssi    = t->rssi_by_scanner[i];
+            best_scanner = i + 1;   /* scanner_id = index + 1 */
+        }
+        if ((i + 1) == t->current_zone_id) {
+            current_rssi  = t->rssi_by_scanner[i];
+            current_fresh = true;
+        }
+    }
+
+    if (best_scanner == BMT_ZONE_UNKNOWN) return BMT_ZONE_UNKNOWN;
+
+    /* Lần đầu có zone HOẶC current scanner đã stale → chọn best ngay */
+    if (t->current_zone_id == BMT_ZONE_UNKNOWN || !current_fresh)
+        return best_scanner;
+
+    /* Hysteresis: chỉ đổi zone nếu RSSI mới mạnh hơn current ≥ 5dBm */
+    if (best_scanner != t->current_zone_id) {
+        if ((best_rssi - current_rssi) < BMT_ZONE_HYSTERESIS_DBM)
+            return t->current_zone_id;
+    }
+    return best_scanner;
+}
+
+static void bmt_log_tag_track(void)
+{
+    uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    printf("\n========== TRACKED TAGS ==========\n");
+    bool any = false;
+    for (int i = 0; i < BMT_MAX_TRACKED_TAGS; i++) {
+        bmt_gateway_tag_track_t *t = &g_bmt_tag_track[i];
+        if (!t->active) continue;
+        any = true;
+        printf("Tag 0x%04x (type=%s)\n",
+               t->tag_id, t->tag_type == 0x01 ? "PERSON" : "ASSET");
+        printf("  Zone           : %s (id=0x%02x)\n",
+               bmt_zone_name(t->current_zone_id), t->current_zone_id);
+        if (t->last_zone_change_ms > 0)
+            printf("  Zone since     : %" PRIu32 "s ago\n",
+                   (now - t->last_zone_change_ms)/1000);
+        printf("  Last report    : %" PRIu32 "s ago\n",
+               (now - t->last_any_report_ms)/1000);
+        printf("  Scanners seen  :\n");
+        for (int j = 0; j < BMT_MAX_SCANNERS; j++) {
+            if (!t->valid_by_scanner[j]) continue;
+            uint32_t age = now - t->ts_by_scanner[j];
+            printf("    0x%02x (%-12s): RSSI=%4d  %s\n",
+                   j+1, bmt_zone_name(j+1),
+                   t->rssi_by_scanner[j],
+                   (age <= BMT_SCANNER_VALID_MS) ? "FRESH" : "STALE");
+        }
+        printf("----------------------------------\n");
+    }
+    if (!any) {
+        printf("  No tracked tags\n");
+        printf("----------------------------------\n");
+    }
 }
 
 /* ============================================================================
@@ -610,29 +740,17 @@ static void bmt_mqtt_init(void)
 {
     esp_mqtt_client_config_t cfg = {
         .broker.address.uri    = BMT_TB_HOST,
-        .credentials.username  = BMT_TB_GATEWAY_TOKEN,  /* ThingsBoard: token = username */
+        .credentials.username  = BMT_TB_GATEWAY_TOKEN,
     };
     g_bmt_mqtt_client = esp_mqtt_client_init(&cfg);
-    if (!g_bmt_mqtt_client) {
-        ESP_LOGE(TAG, "MQTT init failed");
-        return;
-    }
+    if (!g_bmt_mqtt_client) { ESP_LOGE(TAG, "MQTT init failed"); return; }
     esp_mqtt_client_register_event(g_bmt_mqtt_client, ESP_EVENT_ANY_ID,
                                    bmt_mqtt_event_handler, NULL);
     esp_mqtt_client_start(g_bmt_mqtt_client);
 }
 
 /* ============================================================================
- * THINGSBOARD GATEWAY API PRIMITIVES
- *
- * Reference: https://thingsboard.io/docs/reference/gateway-mqtt-api/
- *
- *   v1/gateway/connect       → auto-provision sub-device
- *   v1/gateway/disconnect    → mark sub-device offline
- *   v1/gateway/telemetry     → batched telemetry cho nhiều sub-device
- *   v1/gateway/attributes    → batched attributes cho nhiều sub-device
- *   v1/devices/me/telemetry  → telemetry của chính gateway
- *   v1/devices/me/attributes → attributes của chính gateway
+ * THINGSBOARD GATEWAY API
  * ============================================================================ */
 static void bmt_tb_connect_device(const char *device_name)
 {
@@ -656,9 +774,7 @@ static void bmt_tb_set_role(const char *device_name, const char *role)
 {
     if (!g_bmt_mqtt_connected || !g_bmt_mqtt_client) return;
     char json[128];
-    snprintf(json, sizeof(json),
-             "{\"%s\":{\"role\":\"%s\"}}",
-             device_name, role);
+    snprintf(json, sizeof(json), "{\"%s\":{\"role\":\"%s\"}}", device_name, role);
     esp_mqtt_client_publish(g_bmt_mqtt_client, "v1/gateway/attributes", json, 0, 1, 0);
     ESP_LOGI(TAG, "TB ATTR [%s]: role=%s", device_name, role);
 }
@@ -669,19 +785,13 @@ static void bmt_tb_set_role(const char *device_name, const char *role)
 static void bmt_mqtt_pub_gateway_online(void)
 {
     if (!g_bmt_mqtt_connected || !g_bmt_mqtt_client) return;
-
-    /* Telemetry: status */
     esp_mqtt_client_publish(g_bmt_mqtt_client, "v1/devices/me/telemetry",
                             "{\"status\":\"ONLINE\"}", 0, 1, 0);
-
-    /* Attribute: role */
     esp_mqtt_client_publish(g_bmt_mqtt_client, "v1/devices/me/attributes",
                             "{\"role\":\"" BMT_ROLE_GATEWAY "\"}", 0, 1, 0);
-
     ESP_LOGI(TAG, "TB Gateway ONLINE (role=" BMT_ROLE_GATEWAY ")");
 }
 
-/* Publish status cho node (relay HOẶC scan — phân biệt qua param `role`) */
 static void bmt_mqtt_pub_node_status(uint16_t addr, const char *role, bool online)
 {
     if (!g_bmt_mqtt_connected || !g_bmt_mqtt_client) return;
@@ -702,15 +812,52 @@ static void bmt_mqtt_pub_node_status(uint16_t addr, const char *role, bool onlin
     if (!online) bmt_tb_disconnect_device(dev);
 }
 
+/*
+ * Tag publish + zone detection
+ *   1. Update per-scanner state cho tag
+ *   2. Eval zone (nearest scanner với hysteresis)
+ *   3. Publish telemetry kèm field `zone` + `zone_id`
+ */
 static void bmt_mqtt_pub_tag(bmt_tag_report_t *r)
 {
     if (!g_bmt_mqtt_connected || !g_bmt_mqtt_client || !r) return;
-    char dev[32], json[256];
-    float distance_m = r->distance_dm / 10.0f;
 
+    /* ---- ZONE DETECTION: update + evaluate ---- */
+    bmt_gateway_tag_track_t *t = bmt_tag_track_get_or_add(r->tag_id, r->tag_type);
+    if (!t) {
+        ESP_LOGW(TAG, "Tag track table full, can't track 0x%04x", r->tag_id);
+        return;
+    }
+
+    if (r->scanner_id < 1 || r->scanner_id > BMT_MAX_SCANNERS) {
+        ESP_LOGW(TAG, "Scanner ID 0x%02x out of supported range (1..%d)",
+                 r->scanner_id, BMT_MAX_SCANNERS);
+        return;
+    }
+    int sidx = r->scanner_id - 1;
+    uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+
+    t->rssi_by_scanner [sidx] = r->rssi;
+    t->ts_by_scanner   [sidx] = now;
+    t->valid_by_scanner[sidx] = true;
+    t->last_any_report_ms     = now;
+
+    uint8_t new_zone = bmt_zone_evaluate(t);
+    if (new_zone != t->current_zone_id) {
+        ESP_LOGI(TAG, "Tag 0x%04x ZONE CHANGE: %s -> %s",
+                 r->tag_id,
+                 bmt_zone_name(t->current_zone_id),
+                 bmt_zone_name(new_zone));
+        t->current_zone_id     = new_zone;
+        t->last_zone_change_ms = now;
+    }
+
+    /* ---- PUBLISH ---- */
+    char dev[32], json[384];
+    float distance_m = r->distance_dm / 10.0f;
     snprintf(dev, sizeof(dev), BMT_DEV_NAME_TAG_FMT, r->tag_id);
 
-    /* Auto-connect lần đầu thấy tag (TB sẽ tự tạo sub-device) */
+    /* Auto-connect lần đầu thấy tag */
     static uint16_t s_seen_tags[BMT_MAX_SEEN_TAGS] = {0};
     static int      s_seen_count = 0;
     bool first_seen = true;
@@ -729,14 +876,59 @@ static void bmt_mqtt_pub_tag(bmt_tag_report_t *r)
              "\"type\":\"%s\","
              "\"rssi\":%d,"
              "\"distance\":%.2f,"
-             "\"loss\":%u"
+             "\"loss\":%u,"
+             "\"zone\":\"%s\","
+             "\"zone_id\":\"0x%02x\""
              "}]}",
              dev,
              r->scanner_id,
              r->tag_type == 0x01 ? "PERSON" : "ASSET",
-             r->rssi, distance_m, r->loss_pct);
+             r->rssi, distance_m, r->loss_pct,
+             bmt_zone_name(t->current_zone_id),
+             t->current_zone_id);
     esp_mqtt_client_publish(g_bmt_mqtt_client, "v1/gateway/telemetry", json, 0, 1, 0);
-    ESP_LOGI(TAG, "TB TELEMETRY [%s]: %s", dev, json);
+    ESP_LOGI(TAG, "TB TELEMETRY [%s] zone=%s: scanner=0x%02x rssi=%d dist=%.2fm",
+             dev, bmt_zone_name(t->current_zone_id),
+             r->scanner_id, r->rssi, distance_m);
+}
+
+/*
+ * Out-of-range timeout: nếu không scanner nào báo trong BMT_TAG_OUT_OF_RANGE_MS
+ *   → set zone = out_of_range, publish lên TB
+ */
+static void bmt_zone_timeout_task(void *arg)
+{
+    (void)arg;
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+
+        for (int i = 0; i < BMT_MAX_TRACKED_TAGS; i++) {
+            bmt_gateway_tag_track_t *t = &g_bmt_tag_track[i];
+            if (!t->active) continue;
+            if ((now - t->last_any_report_ms) <= BMT_TAG_OUT_OF_RANGE_MS) continue;
+            if (t->current_zone_id == BMT_ZONE_UNKNOWN) continue;  /* đã out rồi */
+
+            ESP_LOGW(TAG, "Tag 0x%04x OUT OF RANGE (no report for %us)",
+                     t->tag_id,
+                     (unsigned int)(BMT_TAG_OUT_OF_RANGE_MS / 1000));
+            t->current_zone_id     = BMT_ZONE_UNKNOWN;
+            t->last_zone_change_ms = now;
+            /* Invalidate tất cả scanner data */
+            for (int j = 0; j < BMT_MAX_SCANNERS; j++)
+                t->valid_by_scanner[j] = false;
+
+            if (!g_bmt_mqtt_connected || !g_bmt_mqtt_client) continue;
+            char dev[32], json[160];
+            snprintf(dev, sizeof(dev), BMT_DEV_NAME_TAG_FMT, t->tag_id);
+            snprintf(json, sizeof(json),
+                     "{\"%s\":[{\"zone\":\"%s\",\"zone_id\":\"0x%02x\"}]}",
+                     dev, bmt_zone_name(BMT_ZONE_UNKNOWN), BMT_ZONE_UNKNOWN);
+            esp_mqtt_client_publish(g_bmt_mqtt_client, "v1/gateway/telemetry",
+                                    json, 0, 1, 0);
+            ESP_LOGI(TAG, "TB TELEMETRY [%s]: %s", dev, json);
+        }
+    }
 }
 
 /* ============================================================================
@@ -771,6 +963,9 @@ static void bmt_uart_cmd_task(void *arg)
         case '1':
             bmt_log_node_table();
             break;
+        case '2':
+            bmt_log_tag_track();
+            break;
         case 's':
             printf("\n[UART] Starting MANUAL SCAN...\n");
             bmt_do_scan();
@@ -792,10 +987,6 @@ static void bmt_uart_cmd_task(void *arg)
             break;
         case '0':
             printf("\n[UART] Clearing NVS + REBOOT...\n");
-            /* Quan trọng: phải xóa nodes khỏi mesh stack state (NVS riêng) trước,
-             * không chỉ xóa g_bmt_nodes app-level. Nếu không, mesh stack vẫn nhớ
-             * UUID cũ đã gắn với unicast addr → re-provision cùng node sẽ
-             * "Timeout, giving up transaction" vì state conflict. */
             {
                 const esp_ble_mesh_node_t **entry =
                     esp_ble_mesh_provisioner_get_node_table_entry();
@@ -812,6 +1003,7 @@ static void bmt_uart_cmd_task(void *arg)
             }
             bmt_nvs_clear_nodes();
             memset(g_bmt_nodes, 0, sizeof(g_bmt_nodes));
+            memset(g_bmt_tag_track, 0, sizeof(g_bmt_tag_track));
             vTaskDelay(pdMS_TO_TICKS(500));
             esp_restart();
             break;
@@ -825,20 +1017,6 @@ static void bmt_uart_cmd_task(void *arg)
 
 /* ============================================================================
  * SCAN NODE CONFIG TASK
- *
- * Mục đích: gửi APP_KEY_ADD rồi mới MODEL_APP_BIND cho scan node
- *
- * Tại sao 2 bước theo thứ tự này:
- *   1. APP_KEY_ADD     → scan node lưu AppKey vào local list
- *                      → mesh_config_server_cb trên scan node fires
- *                      → g_app_idx được set → scan node có thể publish
- *   2. MODEL_APP_BIND  → bind AppKey vào Vendor Model
- *                      → model mới dùng được AppKey để send/recv
- *
- * Tại sao dùng task riêng (không inline trong callback):
- *   - Mesh callback chạy trong mesh internal task
- *   - vTaskDelay trong callback sẽ block toàn bộ mesh stack
- *   → Task riêng để delay an toàn
  * ============================================================================ */
 static void bmt_scan_config_task(void *arg)
 {
@@ -847,7 +1025,7 @@ static void bmt_scan_config_task(void *arg)
 
     vTaskDelay(pdMS_TO_TICKS(2000));
 
-    /* -------- STEP 1: APP_KEY_ADD -------- */
+    /* STEP 1: APP_KEY_ADD */
     {
         esp_ble_mesh_client_common_param_t  c = {0};
         esp_ble_mesh_cfg_client_set_state_t s = {0};
@@ -861,17 +1039,14 @@ static void bmt_scan_config_task(void *arg)
         s.app_key_add.net_idx = g_bmt_net_key_idx;
         s.app_key_add.app_idx = g_bmt_app_key_idx;
         memcpy(s.app_key_add.app_key, g_bmt_app_key, 16);
-
         esp_err_t e = esp_ble_mesh_config_client_set_state(&c, &s);
-        if (e == ESP_OK)
-            ESP_LOGI(TAG, "[SCN_CFG] Step 1: APP_KEY_ADD sent to 0x%04x", addr);
-        else
-            ESP_LOGE(TAG, "[SCN_CFG] Step 1: APP_KEY_ADD FAILED: %s", esp_err_to_name(e));
+        ESP_LOGI(TAG, "[SCN_CFG] Step 1: APP_KEY_ADD to 0x%04x: %s",
+                 addr, e == ESP_OK ? "OK" : esp_err_to_name(e));
     }
 
     vTaskDelay(pdMS_TO_TICKS(3000));
 
-    /* -------- STEP 2: MODEL_APP_BIND -------- */
+    /* STEP 2: MODEL_APP_BIND */
     {
         esp_ble_mesh_client_common_param_t  c = {0};
         esp_ble_mesh_cfg_client_set_state_t s = {0};
@@ -886,12 +1061,9 @@ static void bmt_scan_config_task(void *arg)
         s.model_app_bind.model_app_idx = g_bmt_app_key_idx;
         s.model_app_bind.model_id      = BMT_VND_MODEL_ID;
         s.model_app_bind.company_id    = BMT_CID_ESP;
-
         esp_err_t e = esp_ble_mesh_config_client_set_state(&c, &s);
-        if (e == ESP_OK)
-            ESP_LOGI(TAG, "[SCN_CFG] Step 2: MODEL_APP_BIND sent to 0x%04x", addr);
-        else
-            ESP_LOGE(TAG, "[SCN_CFG] Step 2: MODEL_APP_BIND FAILED: %s", esp_err_to_name(e));
+        ESP_LOGI(TAG, "[SCN_CFG] Step 2: MODEL_APP_BIND to 0x%04x: %s",
+                 addr, e == ESP_OK ? "OK" : esp_err_to_name(e));
     }
 
     vTaskDelay(pdMS_TO_TICKS(2000));
@@ -903,7 +1075,6 @@ static void bmt_scan_config_task(void *arg)
     }
     ESP_LOGI(TAG, "[SCN_CFG] Scan node 0x%04x fully configured!", addr);
     bmt_log_node_table();
-
     vTaskDelete(NULL);
 }
 
@@ -920,8 +1091,6 @@ static void bmt_mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
 
     case ESP_BLE_MESH_PROVISIONER_PROV_ENABLE_COMP_EVT:
         ESP_LOGI(TAG, "Provisioner scan enabled");
-        /* AppKey bind đã xử lý trong bmt_ble_mesh_init_gateway()
-         * bằng cách gán trực tiếp bmt_vnd_models[0].keys[0] = g_bmt_app_key_idx */
         break;
 
     case ESP_BLE_MESH_PROVISIONER_RECV_UNPROV_ADV_PKT_EVT: {
@@ -952,7 +1121,6 @@ static void bmt_mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
         }
 
         if (bmt_uuid_already_provisioned(uuid)) break;
-
         ESP_LOGI(TAG, "Found unprovisioned [%s]", bmt_uuid_type_str(uuid));
         esp_ble_mesh_unprov_dev_add_t dev = {0};
         memcpy(dev.uuid, uuid, 16);
@@ -977,7 +1145,6 @@ static void bmt_mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
         int idx = bmt_add_node(addr, uuid, mac, NULL);
         if (idx < 0) { ESP_LOGW(TAG, "Node table full"); break; }
 
-        /* RELAY: không cần AppKey bind */
         if (bmt_uuid_is_relay(uuid)) {
             g_bmt_nodes[idx].is_relay     = true;
             g_bmt_nodes[idx].is_scan      = false;
@@ -992,7 +1159,6 @@ static void bmt_mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
             break;
         }
 
-        /* SCAN: APP_KEY_ADD → MODEL_APP_BIND qua task riêng */
         if (bmt_uuid_is_scan(uuid)) {
             g_bmt_nodes[idx].is_scan     = true;
             g_bmt_nodes[idx].is_relay    = false;
@@ -1002,7 +1168,6 @@ static void bmt_mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
             ESP_LOGI(TAG, "Node 0x%04x = SCAN, launching config task...", addr);
             bmt_nvs_save_nodes();
             bmt_log_node_table();
-
             xTaskCreate(bmt_scan_config_task, "scan_cfg", 3072,
                         (void *)(uint32_t)addr, 5, NULL);
             break;
@@ -1025,37 +1190,25 @@ static void bmt_mesh_cfg_client_cb(esp_ble_mesh_cfg_client_cb_event_t event,
     uint16_t addr = param->params->ctx.addr;
     int      idx  = bmt_find_node_index(addr);
 
-    /* ACK từ các bước config scan */
     if (event == ESP_BLE_MESH_CFG_CLIENT_SET_STATE_EVT) {
         uint32_t opcode = param->params->opcode;
-
-        if (opcode == ESP_BLE_MESH_MODEL_OP_APP_KEY_ADD) {
-            ESP_LOGI(TAG, "[CFG] APP_KEY_ADD ACK from 0x%04x — AppKey delivered!", addr);
-        }
-
+        if (opcode == ESP_BLE_MESH_MODEL_OP_APP_KEY_ADD)
+            ESP_LOGI(TAG, "[CFG] APP_KEY_ADD ACK from 0x%04x", addr);
         if (opcode == ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND) {
             ESP_LOGI(TAG, "[CFG] MODEL_APP_BIND ACK from 0x%04x", addr);
             if (idx >= 0 && g_bmt_nodes[idx].is_scan) {
-                ESP_LOGI(TAG, "=== Scan node 0x%04x READY — will publish tag data ===", addr);
-
-                /* Publish scan node ONLINE lên ThingsBoard */
+                ESP_LOGI(TAG, "=== Scan node 0x%04x READY ===", addr);
                 bmt_mqtt_pub_node_status(addr, BMT_ROLE_SCAN, true);
             }
-        }
-
-        if (opcode == ESP_BLE_MESH_MODEL_OP_RELAY_SET) {
-            ESP_LOGI(TAG, "[CFG] RELAY_SET ACK from 0x%04x", addr);
         }
     }
 
     if (event == ESP_BLE_MESH_CFG_CLIENT_TIMEOUT_EVT) {
         uint32_t opcode = param->params->opcode;
-        ESP_LOGW(TAG,
-                 "[CFG] TIMEOUT opcode=0x%04" PRIx32 " addr=0x%04x — retransmit or check mesh coverage",
+        ESP_LOGW(TAG, "[CFG] TIMEOUT opcode=0x%04" PRIx32 " addr=0x%04x",
                  opcode, addr);
     }
 
-    /* Reply từ ping relay (GET_STATE) */
     if (event == ESP_BLE_MESH_CFG_CLIENT_GET_STATE_EVT) {
         if (idx >= 0 && g_bmt_nodes[idx].is_relay) {
             g_bmt_nodes[idx].last_seen_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -1076,13 +1229,11 @@ static void bmt_mesh_cfg_server_cb(esp_ble_mesh_cfg_server_cb_event_t event,
 }
 
 /* ============================================================================
- * VENDOR MODEL CALLBACK (nhận tag report từ Scan Node)
+ * VENDOR MODEL CALLBACK
  * ============================================================================ */
 static void bmt_mesh_vnd_client_cb(esp_ble_mesh_model_cb_event_t event,
                                    esp_ble_mesh_model_cb_param_t *param)
 {
-    ESP_LOGI(TAG, "[VND] Callback event=%d", event);
-
     if (event != ESP_BLE_MESH_MODEL_OPERATION_EVT) return;
     if (!param) return;
 
@@ -1090,9 +1241,6 @@ static void bmt_mesh_vnd_client_cb(esp_ble_mesh_model_cb_event_t event,
     uint16_t src    = param->model_operation.ctx->addr;
     uint8_t *data   = param->model_operation.msg;
     uint16_t len    = param->model_operation.length;
-
-    ESP_LOGI(TAG, "[VND] Received opcode=0x%06" PRIx32 " src=0x%04x len=%d",
-             opcode, src, len);
 
     if (opcode != BMT_OP_VND_TAG_STATUS) return;
     if (len < sizeof(bmt_tag_report_t)) {
@@ -1104,12 +1252,10 @@ static void bmt_mesh_vnd_client_cb(esp_ble_mesh_model_cb_event_t event,
     bmt_tag_report_t report;
     memcpy(&report, data, sizeof(report));
 
-    float distance_m = report.distance_dm / 10.0f;
     ESP_LOGI(TAG,
-             "[VND] Tag: scanner=0x%02x tag=0x%04x type=%s rssi=%ddBm dist=%.2fm loss=%u%%",
-             report.scanner_id, report.tag_id,
-             report.tag_type == 0x01 ? "PERSON" : "ASSET",
-             report.rssi, distance_m, report.loss_pct);
+             "[VND] src=0x%04x scanner=0x%02x tag=0x%04x rssi=%ddBm dist=%.2fm loss=%u%%",
+             src, report.scanner_id, report.tag_id,
+             report.rssi, report.distance_dm / 10.0f, report.loss_pct);
 
     bmt_mqtt_pub_tag(&report);
 }
@@ -1136,9 +1282,7 @@ static void bmt_relay_ping_task(void *arg)
             common.ctx.addr     = g_bmt_nodes[i].addr;
             common.ctx.send_ttl = 7;
             common.msg_timeout  = 5000;
-            esp_err_t err = esp_ble_mesh_config_client_get_state(&common, &get);
-            if (err != ESP_OK)
-                ESP_LOGW(TAG, "Ping relay 0x%04X failed", g_bmt_nodes[i].addr);
+            esp_ble_mesh_config_client_get_state(&common, &get);
 
             if (g_bmt_nodes[i].last_seen_ms > 0 &&
                 (now - g_bmt_nodes[i].last_seen_ms) > BMT_RELAY_OFFLINE_TIMEOUT_MS) {
@@ -1187,7 +1331,6 @@ static esp_err_t bmt_ble_mesh_init_gateway(void)
         ESP_BLE_MESH_PROV_ADV | ESP_BLE_MESH_PROV_GATT);
     if (err != ESP_OK) return err;
 
-    /* Add NetKey */
     const uint8_t *exist_net =
         esp_ble_mesh_provisioner_get_local_net_key(g_bmt_net_key_idx);
     if (!exist_net) {
@@ -1196,7 +1339,6 @@ static esp_err_t bmt_ble_mesh_init_gateway(void)
         ESP_LOGI(TAG, "NetKey added");
     }
 
-    /* Add AppKey */
     const uint8_t *exist_app =
         esp_ble_mesh_provisioner_get_local_app_key(g_bmt_net_key_idx, g_bmt_app_key_idx);
     if (!exist_app) {
@@ -1206,15 +1348,7 @@ static esp_err_t bmt_ble_mesh_init_gateway(void)
         ESP_LOGI(TAG, "AppKey added");
     }
 
-    /* FIX: Gán AppKey vào vendor model trực tiếp qua keys[] array
-     *
-     * Vấn đề: esp_ble_mesh_provisioner_bind_app_key_to_local_model() fail trong
-     * ESP-IDF v6.0 với lỗi "No model found, model id 0x0000, cid 0x0000"
-     *
-     * Workaround: gán trực tiếp vào model->keys[0]
-     *   - bmt_vnd_models[0].keys[i] init = 0xFFFF (ESP_BLE_MESH_KEY_UNUSED)
-     *   - Stack check keys[] khi nhận message với AppKey
-     *   - keys[0] = 0x0000 → match → deliver lên application callback */
+    /* FIX: Gán AppKey vào vendor model trực tiếp qua keys[] array */
     bmt_vnd_models[0].keys[0] = g_bmt_app_key_idx;
     ESP_LOGI(TAG, "Gateway vendor model AppKey bound directly: keys[0]=0x%04x",
              g_bmt_app_key_idx);
@@ -1229,7 +1363,7 @@ static esp_err_t bmt_ble_mesh_init_gateway(void)
 void app_main(void)
 {
     esp_err_t err;
-    ESP_LOGI(TAG, "=== BMT Gateway (BLE Mesh ↔ ThingsBoard) Starting ===");
+    ESP_LOGI(TAG, "=== BMT Gateway v2 (Zone Detection) Starting ===");
 
     err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -1245,31 +1379,32 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     err = bluetooth_init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "BT init failed: %s", esp_err_to_name(err)); return;
-    }
+    if (err != ESP_OK) { ESP_LOGE(TAG, "BT init failed"); return; }
 
     err = bmt_ble_mesh_init_gateway();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Mesh init failed: %s", esp_err_to_name(err)); return;
-    }
+    if (err != ESP_OK) { ESP_LOGE(TAG, "Mesh init failed"); return; }
 
     bmt_uart_init();
 
-    printf("\n================ BMT GATEWAY ================\n");
+    printf("\n================ BMT GATEWAY v2 ================\n");
     bmt_print_hex_key("NetKey: ", g_bmt_net_key, 16);
     bmt_print_hex_key("AppKey: ", g_bmt_app_key, 16);
-    printf("TB     : %s (ThingsBoard)\n", BMT_TB_HOST);
+    printf("TB     : %s\n", BMT_TB_HOST);
     printf("Device : %s\n", BMT_DEV_NAME_GATEWAY);
-    printf("=============================================\n");
+    printf("\nZONE MAPPING:\n");
+    printf("  scanner 0x01 -> %s\n", bmt_zone_name(0x01));
+    printf("  scanner 0x02 -> %s\n", bmt_zone_name(0x02));
+    printf("  scanner 0x03 -> %s\n", bmt_zone_name(0x03));
+    printf("\nZONE PARAMS:\n");
+    printf("  Hysteresis     : %d dBm\n",   BMT_ZONE_HYSTERESIS_DBM);
+    printf("  Scanner valid  : %d ms\n",    BMT_SCANNER_VALID_MS);
+    printf("  Out-of-range   : %d ms\n",    BMT_TAG_OUT_OF_RANGE_MS);
+    printf("================================================\n");
 
     bmt_print_status();
     bmt_log_node_table();
     bmt_mqtt_pub_gateway_online();
 
-    /* FIX WDT: cấu hình WDT TRƯỚC khi tạo wdt_feed_task
-     * Không gọi esp_task_wdt_add(NULL) ở đây — main_task sẽ return ngay
-     * → main_task bị xóa → WDT vẫn monitor task đã chết → crash sau 60s */
     esp_task_wdt_config_t wdt_cfg = {
         .timeout_ms     = BMT_WDT_TIMEOUT_S * 1000,
         .idle_core_mask = 0,
@@ -1277,9 +1412,10 @@ void app_main(void)
     };
     esp_task_wdt_reconfigure(&wdt_cfg);
 
-    xTaskCreate(bmt_uart_cmd_task,   "bmt_uart",       4096, NULL, 4, NULL);
-    xTaskCreate(bmt_relay_ping_task, "bmt_relay_ping", 4096, NULL, 3, NULL);
-    xTaskCreate(bmt_wdt_feed_task,   "bmt_wdt_feed",   2048, NULL, 2, NULL);
+    xTaskCreate(bmt_uart_cmd_task,     "bmt_uart",        4096, NULL, 4, NULL);
+    xTaskCreate(bmt_relay_ping_task,   "bmt_relay_ping",  4096, NULL, 3, NULL);
+    xTaskCreate(bmt_zone_timeout_task, "bmt_zone_timer",  3072, NULL, 3, NULL);
+    xTaskCreate(bmt_wdt_feed_task,     "bmt_wdt_feed",    2048, NULL, 2, NULL);
 
-    ESP_LOGI(TAG, "=== BMT Gateway READY ===");
+    ESP_LOGI(TAG, "=== BMT Gateway v2 READY ===");
 }
