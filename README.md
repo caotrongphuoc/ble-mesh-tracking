@@ -1,4 +1,4 @@
-# BMT — BLE Mesh Tracking
+# BLE Mesh Tracking
 
 Indoor positioning system using BLE Mesh on ESP32. Tags (ESP32 or iPhone iBeacon) are detected by scan nodes via RSSI. Data is forwarded through BLE Mesh to a Gateway, then bridged to ThingsBoard over MQTT. The Gateway determines which zone a tag is in by picking the scanner with the strongest signal (nearest-scanner zone detection with hysteresis).
 
