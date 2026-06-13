@@ -8,12 +8,6 @@ Indoor positioning system on ESP32. Three scan nodes detect a BLE tag (iPhone iB
 
 > Live dashboard, hardware setup, and walk-through video.
 
-![Dashboard](docs/dashboard.png)
-
-![Hardware](docs/hardware.jpg)
-
-[Demo video](docs/demo.mp4)
-
 ---
 
 ## Architecture
