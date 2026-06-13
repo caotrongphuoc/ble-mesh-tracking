@@ -1,355 +1,151 @@
 # BLE Mesh Tracking
 
-Indoor positioning system using BLE Mesh on ESP32. Tags (ESP32 or iPhone iBeacon) are detected by scan nodes via RSSI. Data is forwarded through BLE Mesh to a Gateway, then bridged to ThingsBoard over MQTT. The Gateway determines which zone a tag is in by picking the scanner with the strongest signal (nearest-scanner zone detection with hysteresis).
+Indoor positioning system on ESP32. Three scan nodes detect a BLE tag (iPhone iBeacon or custom ESP32), forward RSSI data through BLE Mesh to a Gateway, which decides the tag's current zone (nearest-scanner) and pushes it to a ThingsBoard dashboard over MQTT.
+
+---
+
+## Demo
+
+> Live dashboard, hardware setup, and walk-through video.
+
+![Dashboard](docs/dashboard.png)
+
+![Hardware](docs/hardware.jpg)
+
+[Demo video](docs/demo.mp4)
 
 ---
 
 ## Architecture
 
 ```
-                                BLE Advertising
-       ┌──────────────┐  ───────────────────────►  ┌──────────────┐
-       │   iPhone     │       iBeacon              │ Scan Node 1  │
-       │  (iBeacon)   │  ───────────────────────►  │   (Room 1)   │
-       │              │       iBeacon              │              │
-       │      or      │  ───────────────────────►  ├──────────────┤
-       │              │                            │ Scan Node 2  │
-       │  ESP32 Tag   │  ───────────────────────►  │   (Room 2)   │
-       │   (custom)   │                            ├──────────────┤
-       └──────────────┘  ───────────────────────►  │ Scan Node 3  │
-                                                   │   (Room 3)   │
-                                                   └──────┬───────┘
-                                                          │ BLE Mesh
-                                                          │ (Vendor Model)
-                                                          ▼
-                                                   ┌──────────────┐
-                                                   │  (optional)  │
-                                                   │  Relay Node  │
-                                                   └──────┬───────┘
-                                                          │ BLE Mesh
-                                                          ▼
-                                                   ┌──────────────┐
-                                                   │   Gateway    │
-                                                   │   (ESP32 +   │
-                                                   │   WiFi STA)  │
-                                                   └──────┬───────┘
-                                                          │ MQTT
-                                                          │ (Gateway API)
-                                                          ▼
-                                                   ┌──────────────┐
-                                                   │ ThingsBoard  │
-                                                   │   (Docker)   │
-                                                   │   Dashboard  │
-                                                   └──────────────┘
+   Tag (iPhone / ESP32)
+          │ BLE advertising
+          ▼
+   Scan Node 1 / 2 / 3 ──── BLE Mesh (Vendor Model)
+          │
+          ▼
+   Gateway (ESP32 + WiFi) ──── MQTT ──── ThingsBoard (Docker)
+                                              │
+                                              ▼
+                                         Dashboard
 ```
 
-**Data flow:**
-1. Tag (iPhone iBeacon or custom ESP32) broadcasts BLE advertisements containing UUID + Major + Minor (tag ID).
-2. Scan nodes continuously scan for advertisements, filter packets belonging to the system, then apply Kalman filtering to RSSI and estimate distance via path-loss model.
-3. Each scan node publishes `{scanner_id, tag_id, rssi, distance, loss_pct}` to the Gateway over BLE Mesh Vendor Model (8-byte unsegmented payload).
-4. Gateway receives reports from all scanners, runs zone detection logic (nearest scanner with 5 dBm hysteresis).
-5. Gateway forwards telemetry plus the `zone` field to ThingsBoard via MQTT Gateway API.
-6. ThingsBoard renders the real-time dashboard with floor plan and zone indicator.
+Each scan node samples RSSI, applies Kalman filtering, estimates distance, and publishes `{scanner_id, tag_id, rssi, distance}` to the Gateway. The Gateway runs nearest-scanner zone detection with 5 dBm hysteresis and publishes the result to ThingsBoard via the MQTT Gateway API.
 
 ---
 
 ## Hardware
 
-| Role             | Model                  | Quantity | Notes                                              |
-|------------------|------------------------|----------|----------------------------------------------------|
-| Gateway          | ESP32 DevKitC WROOM-32 | 1        | Needs WiFi access to the ThingsBoard server        |
-| Scan Node        | ESP32 DevKitC WROOM-32 | 3        | Placed in 3 rooms                                  |
-| Relay (optional) | ESP32 DevKitC WROOM-32 | 0–1      | Extends mesh range across walls / long distances   |
-| Tag              | iPhone (nRF Connect)   | —        | Or an ESP32 DevKitC WROOM-32 running `bmt_tag`     |
-
-**Server requirements:**
-- Host machine running Docker (Windows / Linux / macOS)
-- Docker Desktop or native Docker Engine
-- ~2 GB free RAM for the ThingsBoard container
+- 1 × ESP32 DevKitC WROOM-32 — Gateway
+- 3 × ESP32 DevKitC WROOM-32 — Scan nodes
+- 1 × ESP32 DevKitC WROOM-32 — Relay (optional, extends mesh range)
+- iPhone with nRF Connect (or another ESP32 running `bmt_tag` firmware) — Tag
+- A machine running Docker (Windows / Linux / macOS) — ThingsBoard host
 
 ---
 
 ## Repo structure
 
 ```
-ble-mesh-tracking/
-├── bmt_gateway/         # Gateway firmware (Provisioner + MQTT bridge + Zone detection)
-├── bmt_relay/           # Relay firmware (passive forwarder, optional)
-├── bmt_scan_node_1/     # Scan node, ID=0x01 → zone "room_1"
-├── bmt_scan_node_2/     # Scan node, ID=0x02 → zone "room_2"
-├── bmt_scan_node_3/     # Scan node, ID=0x03 → zone "room_3"
-├── bmt_tag/             # ESP32 tag firmware (optional — can use iPhone iBeacon instead)
-├── docker-compose.yml   # ThingsBoard self-host stack (PostgreSQL backend)
-└── README.md
+bmt_gateway/         Gateway firmware: provisioner + MQTT bridge + zone detection
+bmt_scan_node_1/     Scan node, ID=0x01 → zone "room_1"
+bmt_scan_node_2/     Scan node, ID=0x02 → zone "room_2"
+bmt_scan_node_3/     Scan node, ID=0x03 → zone "room_3"
+bmt_relay/           Relay firmware (passive forwarder, optional)
+bmt_tag/             ESP32 tag firmware (optional)
+docker-compose.yml   ThingsBoard self-host stack
 ```
 
-Each firmware folder is a standalone ESP-IDF project. Reason for splitting `scan_node_1/2/3` into separate folders (instead of one project + build configs): each node has a different UUID and Scanner ID hardcoded in source, making `idf.py flash` straightforward without `menuconfig`.
-
----
-
-## Naming convention
-
-The codebase uses the `bmt_` prefix (**B**LE **M**esh **T**racking):
-
-| Item     | Pattern                  | Example                                  |
-|----------|--------------------------|------------------------------------------|
-| Macro    | `BMT_<CATEGORY>_<NAME>`  | `BMT_WIFI_SSID`, `BMT_TB_HOST`           |
-| Function | `bmt_<module>_<action>`  | `bmt_mqtt_init()`, `bmt_zone_evaluate()` |
-| Struct   | `bmt_<scope>_<name>_t`   | `bmt_gateway_node_t`, `bmt_tag_report_t` |
-| Global   | `g_bmt_<name>`           | `g_bmt_tag_track`, `g_bmt_mqtt_client`   |
-
-**ThingsBoard device naming:**
-- `bmt_gateway` (role=`gateway`)
-- `bmt_node_0xXXXX` (role=`relay` or `scan` — single naming scheme for both, differentiated by the `role` attribute)
-- `bmt_tag_0xYYYY` (role=`tag`)
+Each firmware is a standalone ESP-IDF v6.0 project. Scan nodes are split into three folders because each has a different UUID and Scanner ID hardcoded in source.
 
 ---
 
 ## Quick start
 
-### 1. Start ThingsBoard
-
+**1. Start ThingsBoard**
 ```bash
 docker compose up -d
-# First run takes ~2 minutes to initialize
-docker compose logs -f thingsboard
-# Wait until you see "Started ThingsboardServerApplication"
 ```
+Open `http://localhost:8080` (login: `tenant@thingsboard.org` / `tenant`). Create a device named `bmt_gateway`, enable the "Is gateway" toggle, copy the access token.
 
-Open `http://localhost:8080`, login with `tenant@thingsboard.org` / `tenant`.
-
-### 2. Create the Gateway device on ThingsBoard
-
-1. Sidebar → **Entities** → **Devices** → **+** → **Add new device**
-2. Name: `bmt_gateway`
-3. Enable the **"Is gateway"** toggle
-4. Save → click the device → **Details** tab → **Copy access token**
-
-### 3. Configure the Gateway firmware
-
-Edit `bmt_gateway/main/main.c`, set the USER CONFIG macros:
-
+**2. Configure Gateway firmware** — edit `bmt_gateway/main/main.c`:
 ```c
-#define BMT_WIFI_SSID            "YourWiFiSSID"
-#define BMT_WIFI_PASS            "YourWiFiPassword"
+#define BMT_WIFI_SSID            "YourWiFi"
+#define BMT_WIFI_PASS            "YourPassword"
 #define BMT_TB_HOST              "mqtt://<PC_IP>:1883"
 #define BMT_TB_GATEWAY_TOKEN     "<paste_token_here>"
 ```
 
-`<PC_IP>` is the LAN IP of the machine running Docker. The ESP32 and PC must be on the same subnet (same WiFi router, or PC on Ethernet + ESP32 on WiFi if the router covers both).
-
-### 4. Build & flash the Gateway
-
+**3. Flash all boards** (Gateway first, then scan nodes one at a time):
 ```bash
-cd bmt_gateway
-idf.py set-target esp32
-idf.py build
-idf.py -p COMx flash monitor
+cd bmt_gateway       && idf.py -p COMx flash monitor
+cd bmt_scan_node_1   && idf.py -p COMx flash monitor
+cd bmt_scan_node_2   && idf.py -p COMx flash monitor
+cd bmt_scan_node_3   && idf.py -p COMx flash monitor
 ```
+Wait for `=== Scan node 0x000X READY ===` on the Gateway before flashing the next.
 
-Expected log:
-```
-[BMT_GW] WiFi connected! IP: ...
-[BMT_GW] MQTT connected to ThingsBoard
-[BMT_GW] TB Gateway ONLINE (role=gateway)
-[BMT_GW] === BMT Gateway v2 READY ===
-```
-
-### 5. Flash the 3 scan nodes
-
-Each scan node lives in its own folder with `BMT_SCANNER_ID` and UUID already set:
-
-```bash
-cd bmt_scan_node_1   # Scanner ID=0x01 → "room_1"
-idf.py -p COMx flash monitor
-
-cd bmt_scan_node_2   # Scanner ID=0x02 → "room_2"
-idf.py -p COMy flash monitor
-
-cd bmt_scan_node_3   # Scanner ID=0x03 → "room_3"
-idf.py -p COMz flash monitor
-```
-
-**Important — provision sequentially:** flash and power on one scan node at a time, wait for the Gateway log `=== Scan node 0x000X READY ===` before moving to the next. The Gateway provisioner allocates unicast addresses in order, so flashing in parallel can race and produce duplicate addresses.
-
-### 6. (Optional) Flash the Relay if mesh range is insufficient
-
-For long or wall-divided layouts where single-hop BLE Mesh can't reach all scanners, place one Relay between Gateway and far scan nodes:
-
-```bash
-cd bmt_relay
-idf.py -p COMx flash monitor
-```
-
-The Relay is auto-provisioned by the Gateway the same way scan nodes are.
-
-### 7. Test with iPhone iBeacon
-
-1. Install **nRF Connect** on iPhone
-2. **Advertiser** tab → create a new iBeacon:
-   - UUID: any value (UUID prefix check is disabled for iBeacons from iPhone)
-   - **Major: `0x0001`** (PERSON) or **`0x0002`** (ASSET) — required, the scan node filters on this field
-   - Minor: any value (becomes `tag_id | 0x8000` in the system)
-3. Start advertising
-4. Walk through the rooms with the iPhone. On the ThingsBoard UI → device `bmt_tag_0xXXXX` → **Latest telemetry** tab:
-   ```json
-   {
-     "scanner": "0x02",
-     "type": "ASSET",
-     "rssi": -65,
-     "distance": 2.5,
-     "loss": 0,
-     "zone": "room_2",
-     "zone_id": "0x02"
-   }
-   ```
+**4. Test** — open nRF Connect on iPhone, advertise an iBeacon with Major `0x0001` (PERSON) or `0x0002` (ASSET), walk through the rooms, watch the `zone` field update on the ThingsBoard device `bmt_tag_0xXXXX`.
 
 ---
 
-## Configuration details
+## How it works
 
-### Vendor Model (BLE Mesh protocol)
+**Zone detection.** Each scanner has an ID (0x01–0x03) mapped to a room name. The Gateway tracks the latest RSSI from each scanner per tag (window: 3.5 s). The zone is the room of the scanner with the strongest RSSI. To avoid flickering, a new zone is only accepted if its RSSI exceeds the current one by at least 5 dBm.
 
-| Field            | Value                                                       |
-|------------------|-------------------------------------------------------------|
-| Company ID (CID) | `0x02E5` (Espressif)                                        |
-| Server Model ID  | `0x0000` (Scan node — publisher)                            |
-| Client Model ID  | `0x0001` (Gateway — subscriber)                             |
-| Opcode           | `BMT_OP_VND_TAG_STATUS` = `ESP_BLE_MESH_MODEL_OP_3(0x00, 0x02E5)` |
-| Payload size     | 8 bytes (unsegmented, no ACK required)                      |
+**Time-division radio.** An ESP32 has a single BLE radio, so scan nodes alternate between GAP scanning (1000 ms) and mesh publishing (500 ms). Each tag is reported once per 1.5 s per scanner.
 
-### Tag report payload (8 bytes)
-
+**Vendor Model payload.** 8 bytes — fits in a single unsegmented BLE Mesh PDU, no ACK needed:
 ```c
-typedef struct {
-    uint8_t  scanner_id;    /* 1B : Scanner ID that produced this report          */
-    uint8_t  tag_type;      /* 1B : 0x01=PERSON, 0x02=ASSET                       */
-    uint16_t tag_id;        /* 2B : Tag ID (iPhone: minor | 0x8000)               */
-    int8_t   rssi;          /* 1B : Filtered RSSI (dBm)                           */
-    int16_t  distance_dm;   /* 2B : Distance x 10 (decimeters, 0.1m resolution)   */
-    uint8_t  loss_pct;      /* 1B : Packet loss rate (0-100%)                     */
-} bmt_tag_report_t;
+struct {
+    uint8_t  scanner_id;
+    uint8_t  tag_type;      // 0x01=PERSON, 0x02=ASSET
+    uint16_t tag_id;
+    int8_t   rssi;          // filtered (Kalman)
+    int16_t  distance_dm;   // decimeters
+    uint8_t  loss_pct;
+};
 ```
 
-### Zone detection params (Gateway)
-
-| Param                       | Value | Meaning                                                                  |
-|-----------------------------|-------|--------------------------------------------------------------------------|
-| `BMT_ZONE_HYSTERESIS_DBM`   | 5     | Only change zone if the new RSSI exceeds the current one by ≥ 5 dBm      |
-| `BMT_SCANNER_VALID_MS`      | 3500  | Scanner data older than 3.5 s is ignored when voting                     |
-| `BMT_TAG_OUT_OF_RANGE_MS`   | 10000 | If no scanner reports the tag for 10 s, zone becomes `out_of_range`      |
-
-### Zone mapping
-
-Hardcoded in `bmt_gateway/main/main.c`:
-
-```c
-static const char *bmt_zone_name(uint8_t scanner_id)
-{
-    switch (scanner_id) {
-    case 0x01: return "room_1";
-    case 0x02: return "room_2";
-    case 0x03: return "room_3";
-    case 0xFF: return "out_of_range";
-    default:   return "unknown";
-    }
-}
-```
-
-To change the mapping, edit this function and reflash the Gateway.
-
-### Time-division radio (scan node)
-
-An ESP32 has a single BLE radio, so mesh transmission and GAP scanning can't run simultaneously. The scan node uses a 1.5 s cycle:
-
-```
-|<-- GAP scan 1000ms -->|<-- Mesh publish 500ms -->|
-   Sniff iBeacons           Publish to Gateway
-   Kalman filtering         via BLE Mesh
-```
-
-Result: each tag is published once per 1.5 s per scanner. With 3 scanners, the Gateway receives ~6 telemetry events per second per tag (when all 3 can see it).
+**ThingsBoard devices.** The Gateway uses the [MQTT Gateway API](https://thingsboard.io/docs/reference/gateway-mqtt-api/) — sub-devices (`bmt_node_0xXXXX`, `bmt_tag_0xYYYY`) are auto-provisioned, no manual setup needed.
 
 ---
 
-## UART commands
+## Serial commands
 
-On the serial monitor (`idf.py monitor`):
+Gateway:
+- `1` — list provisioned nodes
+- `2` — list tracked tags with current zone and per-scanner RSSI
+- `0` — clear NVS and reboot (wipes provisioning)
 
-### Gateway
-
-| Key | Action                                                              |
-|-----|---------------------------------------------------------------------|
-| `1` | List provisioned nodes (UUID, MAC, addr, online status)             |
-| `2` | List tracked tags + current zone + RSSI from each scanner           |
-| `s` | Manual scan for 10 s, looking for unprovisioned beacons             |
-| `p` | Provision manually from the scan list                               |
-| `a` | Enable auto-provision mode                                          |
-| `4` | Print menu help                                                     |
-| `0` | Clear NVS + reboot (wipes all provisioning)                         |
-
-### Scan node / Relay
-
-| Key | Action                                                              |
-|-----|---------------------------------------------------------------------|
-| `1` | Print status (Scanner ID, node addr, app_idx, phase)                |
-| `r` | Reset mesh provisioning + reboot (back to unprovisioned)            |
+Scan node / Relay:
+- `1` — print status (scanner ID, mesh address, app_idx, phase)
+- `r` — reset mesh provisioning and reboot
 
 ---
 
-## Troubleshooting
+## Common issues
 
-### Gateway can't reach ThingsBoard (`MQTT disconnected`)
-- Container running? — `docker ps`
-- `BMT_TB_HOST` IP matches the Docker host LAN IP (not `localhost`)?
-- Windows Firewall blocking port 1883? — add an inbound rule
-- Token correct (copied from the `bmt_gateway` device on TB UI)?
-
-### Three scan nodes flashed but only one shows on the Gateway
-- Did all three use the same `BMT_SCANNER_ID`? — each must be flashed from a different folder (`bmt_scan_node_1/2/3`)
-- Is the last byte of the UUID different per node? — in the source, byte 15 must match `BMT_SCANNER_ID`
-- Provisioning race during parallel flash? — clear Gateway NVS (`0` key), then power on one scan node at a time
-
-### Scan node far from Gateway — zone never changes
-- This is the physical limit of single-hop BLE Mesh (~10 m indoors, ~50 % reduction per wall)
-- Workarounds: move Gateway to a central location, or add a Relay (`bmt_relay`) between Gateway and the distant scan node
-- Sanity check: place the distant scan node next to the Gateway temporarily — if it works, the issue is range
-
-### Tag bounces between zones constantly
-- RSSI noise exceeds the hysteresis threshold — raise `BMT_ZONE_HYSTERESIS_DBM` from 5 to 7-10
-- Or slow down the update rate by raising `BMT_GAP_SCAN_DURATION_MS`
-
-### Build error: `esp_read_mac` undeclared
-- ESP-IDF v6.0 no longer auto-includes `esp_mac.h` via `esp_system.h`
-- Fix: add `#include "esp_mac.h"` at the top of any file using `esp_read_mac()` / `ESP_MAC_BT`
-
-### Build error: `esp-mqtt` component not found
-- In ESP-IDF v6.0, `esp-mqtt` is a managed component, not a core component
-- Already declared in `idf_component.yml`:
-  ```yaml
-  dependencies:
-    espressif/mqtt: "*"
-  ```
+- **`MQTT disconnected`** — Docker not running, wrong PC IP in `BMT_TB_HOST`, or Windows Firewall blocking port 1883.
+- **Only one scan node visible** — all three flashed with the same Scanner ID. Flash each from its own folder.
+- **Far scanner doesn't reach Gateway** — single-hop BLE Mesh is ~10 m indoors. Move the Gateway central or add the Relay.
+- **Tag bounces between zones** — raise `BMT_ZONE_HYSTERESIS_DBM` from 5 to 8–10.
+- **Build error: `esp_read_mac` undeclared** — add `#include "esp_mac.h"` (ESP-IDF v6.0 dropped the implicit include).
 
 ---
 
 ## Tech stack
 
-- **Firmware:** ESP-IDF v6.0, C, FreeRTOS
-- **Protocol:** BLE Mesh (Bluetooth SIG), Vendor Model, MQTT v3.1.1
-- **Server:** ThingsBoard CE 3.7.0 (Docker, PostgreSQL backend)
-- **DSP:** Kalman filter for RSSI smoothing, path-loss model (n=2.5) for distance estimation
-- **Build env:** ESP-IDF VSCode extension (Espressif IDF v2.1.0)
+ESP-IDF v6.0 · BLE Mesh (Vendor Model) · MQTT 3.1.1 · ThingsBoard CE 3.7.0 · Kalman filter · Path-loss distance model (n=2.5)
 
 ---
 
 ## Roadmap
 
-- [x] WiFi + MQTT bridge on Gateway
 - [x] BLE Mesh provisioning + Vendor Model
 - [x] 3 scan nodes with time-division radio
-- [x] Zone detection (nearest-scanner with hysteresis)
-- [x] ThingsBoard integration (Gateway API + auto-provision sub-devices)
+- [x] Nearest-scanner zone detection
+- [x] ThingsBoard integration with auto-provisioned sub-devices
 - [ ] ThingsBoard dashboard (floor plan + timeline)
-- [ ] Multi-tag tracking + alarm rules
-- [ ] Triangulation for sub-room positioning (RSSI from 3 scanners → coordinates within a room)
+- [ ] Trilateration for sub-room positioning
