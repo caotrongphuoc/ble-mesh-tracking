@@ -1,5 +1,5 @@
 /* ============================================================================
- * BMT (BLE Mesh Tracking) — GATEWAY firmware  [v3 — MQTT Queue Worker]
+ * BMT (BLE Mesh Tracking) — GATEWAY firmware
  * ----------------------------------------------------------------------------
  * Role  : Provisioner + BLE Mesh ↔ ThingsBoard MQTT bridge + Zone Detection
  * Board : ESP32 DevKitC WROOM-32
