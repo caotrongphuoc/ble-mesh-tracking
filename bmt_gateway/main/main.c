@@ -5,11 +5,6 @@
  * Board : ESP32 DevKitC WROOM-32
  * IDF   : v6.0
  *
- * What's new in v3 (vs v2):
- *   - Tách MQTT publish ra task riêng (queue-based worker)
- *   - Mesh VND callback chỉ enqueue, không block
- *   - Fix bug: khi MQTT disconnect/slow, mesh task không bị nghẽn nữa
- *     → Gateway không drop PDU từ scan_2/scan_3 khi đang xử lý scan_1
  *
  * Architecture:
  *   mesh VND cb ──► xQueueSend(g_bmt_mqtt_queue, report)  (non-blocking)
