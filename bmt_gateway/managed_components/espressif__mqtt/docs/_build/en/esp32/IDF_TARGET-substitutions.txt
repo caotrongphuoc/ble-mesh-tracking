@@ -1,0 +1,8 @@
+{'{IDF_TARGET_CFG_PREFIX}': 'ESP32',
+ '{IDF_TARGET_DATASHEET_CN_URL}': 'https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_cn.pdf',
+ '{IDF_TARGET_DATASHEET_EN_URL}': 'https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf',
+ '{IDF_TARGET_NAME}': 'ESP32',
+ '{IDF_TARGET_PATH_NAME}': 'esp32',
+ '{IDF_TARGET_TOOLCHAIN_PREFIX}': 'xtensa-esp32-elf',
+ '{IDF_TARGET_TRM_CN_URL}': 'https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_cn.pdf',
+ '{IDF_TARGET_TRM_EN_URL}': 'https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf'}

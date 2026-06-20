@@ -1,0 +1,37 @@
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt_client.inc:68: WARNING: Duplicate C++ declaration, also defined at index:36.
+Declaration is '.. cpp:type:: struct esp_mqtt_event_t esp_mqtt_event_t'.
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt_client.inc:70: WARNING: Duplicate C++ declaration, also defined at index:39.
+Declaration is '.. cpp:type:: struct esp_mqtt_client_config_t esp_mqtt_client_config_t'.
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt_client.inc:76: WARNING: Duplicate C++ declaration, also defined at index:62.
+Declaration is '.. cpp:enum:: esp_mqtt_event_id_t'.
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt_client.inc:77: WARNING: Duplicate C++ declaration, also defined at index:63.
+Declaration is '.. cpp:enum:: esp_mqtt_connect_return_code_t'.
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt_client.inc:78: WARNING: Duplicate C++ declaration, also defined at index:64.
+Declaration is '.. cpp:enum:: esp_mqtt_error_type_t'.
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt_client.inc:79: WARNING: Duplicate C++ declaration, also defined at index:65.
+Declaration is '.. cpp:enum:: esp_mqtt_transport_t'.
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt_client.inc:80: WARNING: Duplicate C++ declaration, also defined at index:66.
+Declaration is '.. cpp:enum:: esp_mqtt_protocol_ver_t'.
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt5_client.inc:56: WARNING: Duplicate C++ declaration, also defined at index:56.
+Declaration is '.. cpp:enumerator:: __attribute__'.
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: CRITICAL: Duplicate ID: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: WARNING: Duplicate explicit target name: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt5_client.inc:56: WARNING: Duplicate C++ declaration, also defined at index:56.
+Declaration is '.. cpp:enumerator:: __attribute__'.
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: CRITICAL: Duplicate ID: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: WARNING: Duplicate explicit target name: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt5_client.inc:56: WARNING: Duplicate C++ declaration, also defined at index:56.
+Declaration is '.. cpp:enumerator:: __attribute__'.
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: CRITICAL: Duplicate ID: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: WARNING: Duplicate explicit target name: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/_build/en/esp32/inc/mqtt5_client.inc:56: WARNING: Duplicate C++ declaration, also defined at index:56.
+Declaration is '.. cpp:enumerator:: __attribute__'.
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: CRITICAL: Duplicate ID: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/en/index.rst:2: WARNING: Duplicate explicit target name: "mqtt5__client_8h_1a4504a6557b6b27d66613101e758693f4a8c1dfc1ccf00a08192611433ee7f17b4".
+/builds/espressif/esp-mqtt/docs/en/index.rst:51: WARNING: undefined label: 'config_mqtt_outbox_expired_timeout_ms'
+/builds/espressif/esp-mqtt/docs/en/index.rst:51: WARNING: undefined label: 'config_mqtt_report_deleted_messages'
+/builds/espressif/esp-mqtt/docs/en/index.rst:139: WARNING: undefined label: 'esp_tls_server_verification'
+/builds/espressif/esp-mqtt/docs/en/index.rst:184: WARNING: undefined label: 'config_mqtt_protocol_311'
+/builds/espressif/esp-mqtt/docs/en/index.rst:186: WARNING: undefined label: 'config_mqtt_transport_ssl'
+/builds/espressif/esp-mqtt/docs/en/index.rst:186: WARNING: undefined label: 'config_mqtt_transport_websocket'
+/builds/espressif/esp-mqtt/docs/en/index.rst:188: WARNING: undefined label: 'config_mqtt_custom_outbox'
