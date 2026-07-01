@@ -1,3 +1,9 @@
+<div align="center">
+  
+![Repo Traffic](https://komarev.com/ghpvc/?username=ble-mesh-tracking&label=Repo+Traffic&color=blue&style=flat-square)
+
+</div>
+
 # BLE Mesh Tracking (BMT)
 
 Indoor zone-level tracking on ESP32. A BLE tag (iPhone iBeacon or ESP32) is picked up by three scan nodes, which forward filtered RSSI over BLE Mesh to a Gateway. The Gateway picks the nearest scanner and pushes the current zone to ThingsBoard over MQTT.
