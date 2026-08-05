@@ -18,6 +18,9 @@ Thumbs.db
 *.zip
 *.docx
 
+# Local deployment config with real secrets — copy from deploy-config.example.txt
+deploy-config.txt
+
 # OTA payloads — build locally, CMake POST_BUILD copies them here
 firmware/*.bin
 __pycache__/

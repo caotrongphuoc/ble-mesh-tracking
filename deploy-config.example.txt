@@ -14,8 +14,8 @@ does not fit your setup.
   1. WIFI (used by Gateway, Scanner, Relay — same value in all three)
 --------------------------------------------------------------------------------
 
-WIFI_SSID     = Phuoc          e.g. "MyHome_2G"
-WIFI_PASSWORD = 91324566          e.g. "supersecret"
+WIFI_SSID     = <FILL_IN>          e.g. "MyHome_2G"
+WIFI_PASSWORD = <FILL_IN>          e.g. "supersecret"
 
 Notes:
   - ESP32 supports 2.4 GHz only. Do NOT paste a 5 GHz SSID.
@@ -28,8 +28,8 @@ Notes:
   2. THINGSBOARD SERVER (Gateway only)
 --------------------------------------------------------------------------------
 
-TB_HOST_IP           = 192.168.1.247   e.g. "192.168.1.50"  (LAN IP of the Docker host)
-TB_GATEWAY_TOKEN     = ArQWMnc5ia7v7uoaKyhf   e.g. "AbCdEfGh12345..."  (Devices -> bmt_gateway -> Details -> Copy access token)
+TB_HOST_IP           = <FILL_IN>   e.g. "192.168.1.50"  (LAN IP of the Docker host)
+TB_GATEWAY_TOKEN     = <FILL_IN>   e.g. "AbCdEfGh12345..."  (Devices -> bmt_gateway -> Details -> Copy access token)
 
 TB_CN              = bmt-tb.local  [OPTIONAL — only change if you regen certs with a different hostname]
 
@@ -159,6 +159,6 @@ WHERE TO GO NEXT
   4. After the scanners are flashed and running, come back to section 5
      (ZONE MAP) with the real MACs.
 
-This file is a template. Do not commit filled-in secrets: keep your
-local copy outside the repo (e.g. rename to deploy-config.local.txt) or
-add it to .gitignore before you paste real WiFi passwords and tokens.
+This file is the template — copy it to `deploy-config.txt` (which is
+gitignored) before filling in real WiFi passwords, tokens or IPs, so
+your secrets never end up staged for commit.
