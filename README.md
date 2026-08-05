@@ -1,6 +1,5 @@
 <div align="center">
 
-![Repo Traffic](https://komarev.com/ghpvc/?username=ble-mesh-tracking&label=Repo+Traffic&color=blue&style=flat-square)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
 ![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0.1-red?style=flat-square)
 ![Target](https://img.shields.io/badge/target-ESP32%20%7C%20ESP32--S3-informational?style=flat-square)
