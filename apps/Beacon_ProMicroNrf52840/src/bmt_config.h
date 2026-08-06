@@ -21,8 +21,7 @@ static const uint8_t BMT_SYSTEM_UUID[16] = {
 #define BMT_ADV_INTERVAL_MIN_MS 900
 #define BMT_ADV_INTERVAL_MAX_MS 1100
 
-/* [TODO power-opt] Actual radio TX power (distinct from BMT_TAG_TX_POWER
- * above, which is the "declared" value in the payload the Scanner uses
- * for distance estimation). On Zephyr / nRF52 this is set via Kconfig
- * (CONFIG_BT_CTLR_TX_PWR_*), not a runtime API like ESP-IDF. Will be
- * addressed in the power-optimisation pass. */
+/* Actual radio TX power is distinct from BMT_TAG_TX_POWER above (the
+ * "declared" value in the payload the Scanner uses for distance
+ * estimation). On Zephyr / nRF52 it is set via Kconfig
+ * (CONFIG_BT_CTLR_TX_PWR_*), not a runtime API like ESP-IDF. */
