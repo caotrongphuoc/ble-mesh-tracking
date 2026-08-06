@@ -333,7 +333,7 @@ static void report_pending_task(void* arg)
 	vTaskDelay(pdMS_TO_TICKS(5000));
 	if (check_and_clear_pending())
 	{
-		ESP_LOGI(TAG, "Phat hien vua OTA xong va reboot thanh cong — bao cao ve Gateway");
+		ESP_LOGI(TAG, "Detected a fresh OTA + successful reboot — reporting back to Gateway");
 		bmt_mesh_report_ota_result(0);
 	}
 	vTaskDelete(NULL);

@@ -165,7 +165,7 @@ void bmt_mesh_generate_keys_if_needed(void)
 	{
 		esp_fill_random(s_net_key, sizeof(s_net_key));
 		esp_fill_random(s_app_key, sizeof(s_app_key));
-		ESP_LOGI(TAG, "[SECURITY] Sinh key ung vien (chi dung neu stack chua co key sau init)");
+		ESP_LOGI(TAG, "[SECURITY] Generating candidate key (used only if stack has no key after init)");
 	}
 	else
 	{
@@ -468,7 +468,7 @@ static void cfg_client_cb(esp_ble_mesh_cfg_client_cb_event_t event,
 			xEventGroupSetBits(s_cfg_ack_evgrp, BMT_CFG_ACK_BIT);
 		if (param->error_code != 0)
 		{
-			ESP_LOGW(TAG, "[PING] 0x%04x FAILED (err=%d) — khong tinh ACK",
+			ESP_LOGW(TAG, "[PING] 0x%04x FAILED (err=%d) — not counted as ACK",
 			         addr, param->error_code);
 			return;
 		}

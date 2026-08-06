@@ -193,7 +193,7 @@ static esp_err_t beacon_key_import(const uint8_t* key)
 	psa_status_t st = psa_import_key(&attr, key, 16, &new_id);
 	if (st != PSA_SUCCESS)
 	{
-		ESP_LOGE(TAG, "[SECURITY] psa_import_key failed: %d — giu key cu", (int)st);
+		ESP_LOGE(TAG, "[SECURITY] psa_import_key failed: %d — keeping the old key", (int)st);
 		return ESP_FAIL;
 	}
 
@@ -238,7 +238,7 @@ static void beacon_hmac_key_init(void)
 	esp_fill_random(new_key, sizeof(new_key));
 	beacon_key_persist(new_key);
 	beacon_key_import(new_key);
-	ESP_LOGW(TAG, "[SECURITY] OTA-beacon key: sinh RANDOM lan dau (khong dung key hardcode), key_id=%" PRIu32,
+	ESP_LOGW(TAG, "[SECURITY] OTA-beacon key: generated RANDOM on first boot (not using the hardcoded key), key_id=%" PRIu32,
 	         (uint32_t)s_beacon_hmac_key_id);
 }
 
@@ -253,7 +253,7 @@ static void beacon_key_rotate_and_push(void)
 	 * NVS/PSA/scanner lech key nhau (boot lai gateway se dung key sai). */
 	if (beacon_key_import(new_key) != ESP_OK)
 	{
-		ESP_LOGE(TAG, "[SECURITY] Key rotate ABORTED — giu key cu, khong push");
+		ESP_LOGE(TAG, "[SECURITY] Key rotate ABORTED — keeping the old key, not pushing");
 		return;
 	}
 	beacon_key_persist(new_key);

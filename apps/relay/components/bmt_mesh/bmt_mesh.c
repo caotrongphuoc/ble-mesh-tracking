@@ -169,7 +169,7 @@ static void mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
 	}
 	if (opcode == BMT_OP_VND_RESET_CMD)
 	{
-		ESP_LOGW(TAG, "[VND] RESET_CMD from gateway — resetting mesh, se tu reboot khi xong...");
+		ESP_LOGW(TAG, "[VND] RESET_CMD from gateway — resetting mesh, will reboot when done...");
 		vTaskDelay(pdMS_TO_TICKS(300));
 		bmt_mesh_local_reset();
 	}
@@ -230,7 +230,7 @@ esp_err_t bmt_mesh_report_ota_result(uint8_t status)
 {
 	if (!s_provisioned || s_app_idx == 0xFFFF)
 	{
-		ESP_LOGW(TAG, "[OTA] Chua provision, khong gui duoc bao cao ket qua OTA");
+		ESP_LOGW(TAG, "[OTA] Not provisioned, cannot report OTA result");
 		return ESP_ERR_INVALID_STATE;
 	}
 	bmt_ota_result_t r = {.status = status};
@@ -250,8 +250,8 @@ static void reset_reboot_fallback_task(void* arg)
 	vTaskDelay(pdMS_TO_TICKS(5000));
 	if (s_reboot_after_reset)
 	{
-		ESP_LOGW(TAG, "[RESET] Fallback timeout — event reset khong ve kip trong 5s, "
-		              "reboot cuong buc");
+		ESP_LOGW(TAG, "[RESET] Fallback timeout — reset event did not arrive within 5s, "
+		              "forcing reboot");
 		esp_restart();
 	}
 	vTaskDelete(NULL);
