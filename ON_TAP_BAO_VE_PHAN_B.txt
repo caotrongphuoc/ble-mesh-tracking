@@ -1,0 +1,995 @@
+ÔN TẬP BẢO VỆ KHÓA LUẬN - PHẦN B
+Đề tài: Xây dựng hệ thống thu nhận và xử lý dữ liệu dựa trên BLE Mesh tích hợp máy chủ IoT ThingsBoard
+
+Mục đích tài liệu
+=================
+
+Tài liệu này dùng để ôn phần B dựa trên SOURCE CODE HIỆN TẠI của dự án.
+Trọng tâm phần B là tuyến xử lý từ Gateway đến ThingsBoard:
+
+  Gateway -> Wi-Fi -> MQTTS -> ThingsBoard Gateway API
+          -> Rule Chain -> lưu trạng thái từng Tag -> Dashboard
+
+Các phần kiến trúc tổng thể, BLE Mesh và kết quả thực nghiệm là nội dung chung,
+vì vậy vẫn cần hiểu để trình bày và trả lời câu hỏi liên kết.
+
+Không nhận là nội dung chính của phần B:
+
+  - Firmware phát beacon của Tag.
+  - Thuật toán scan, xác thực HMAC beacon và lọc Kalman tại Scanner.
+  - Firmware Relay chi tiết.
+  - OTA.
+
+Nếu hội đồng hỏi các phần trên, có thể giải thích ở mức kiến trúc và nói rõ phần
+mình trực tiếp phụ trách là Gateway, truyền dữ liệu an toàn và xử lý trên
+ThingsBoard.
+
+
+1. BÀI TRÌNH BÀY NGẮN 2-3 PHÚT
+===============================
+
+Phần em phụ trách là tuyến xử lý dữ liệu từ Gateway đến máy chủ IoT
+ThingsBoard. Sau khi Scanner thu được beacon của Tag, Scanner tạo bản tin
+TAG_STATUS và gửi qua BLE Mesh. Gateway nhận bản tin, xác định Scanner nguồn
+dựa trên địa chỉ node/MAC, sau đó đưa report vào hàng đợi FreeRTOS để tách xử
+lý BLE Mesh thời gian thực khỏi kết nối mạng có thể chậm.
+
+MQTT worker lấy report khỏi hàng đợi và gửi lên ThingsBoard bằng MQTTS. Hệ
+thống dùng cổng 8883, chứng thư CA để xác thực máy chủ và mã hóa TLS; access
+token dùng để xác thực Gateway với ThingsBoard. Dữ liệu RSSI gửi thường xuyên
+dùng QoS 0 vì dữ liệu cũ nhanh mất giá trị, còn các bản tin trạng thái và điều
+khiển quan trọng dùng QoS 1.
+
+Gateway không quyết định phòng chính thức. Gateway chỉ chuẩn hóa và chuyển
+telemetry. ThingsBoard tạo một child device riêng cho từng Tag. Rule Chain lưu
+RSSI gần nhất của các Scanner, bỏ mẫu quá cũ, chọn Scanner có RSSI mạnh nhất,
+sau đó áp dụng hysteresis 5 dBm và debounce 2 lần để tránh đổi phòng liên tục ở
+biên. Kết quả được lưu thành server attributes và time-series, rồi Dashboard
+hiển thị danh sách nhiều Tag, phòng hiện tại, RSSI, lịch sử và tình trạng hệ
+thống.
+
+Gateway còn theo dõi node bằng heartbeat, phát hiện Tag ngoài vùng sau 10 giây
+không có report, tự kết nối lại Wi-Fi/MQTT và dùng watchdog để phục hồi khi
+toàn tuyến Mesh không còn dữ liệu hữu ích. Nhờ tách Gateway làm nhiệm vụ truyền
+và ThingsBoard làm nhiệm vụ ra quyết định, thuật toán có thể thay đổi mà không
+cần nạp lại firmware.
+
+
+2. KIẾN TRÚC TỔNG THỂ
+=====================
+
+Luồng dữ liệu đầy đủ:
+
+  (1) Tag phát BLE advertising.
+  (2) Scanner thu beacon, xử lý và tạo TAG_STATUS.
+  (3) Scanner publish TAG_STATUS qua BLE Mesh.
+  (4) Relay chỉ forward ở Network Layer nếu đường truyền trực tiếp yếu.
+  (5) Gateway nhận TAG_STATUS và ánh xạ nguồn về MAC Scanner.
+  (6) Gateway đưa report vào hàng đợi FreeRTOS.
+  (7) MQTT worker gửi telemetry qua MQTTS.
+  (8) ThingsBoard Gateway API chuyển dữ liệu đến child device của Tag.
+  (9) Rule Chain xác định phòng bằng RSSI, freshness, hysteresis và debounce.
+ (10) ThingsBoard lưu attributes/time-series và Dashboard hiển thị kết quả.
+
+Vai trò từng thiết bị:
+
+  - Tag: phát beacon để được nhận diện.
+  - Scanner: scan beacon và gửi kết quả RSSI vào BLE Mesh.
+  - Relay: forward gói Mesh khi cần mở rộng/ổn định đường truyền.
+  - Gateway: cầu nối BLE Mesh với mạng IP/ThingsBoard.
+  - ThingsBoard: quản lý thiết bị, xử lý Rule Chain, lưu dữ liệu và hiển thị.
+
+Vì sao không xác định phòng tại Gateway?
+
+  - Gateway chỉ cần làm tốt nhiệm vụ cầu nối và truyền telemetry.
+  - Việc đổi ngưỡng, thêm Scanner hoặc sửa ánh xạ phòng không cần flash lại.
+  - ThingsBoard có sẵn lưu trạng thái, Rule Chain, time-series và Dashboard.
+  - Mỗi Tag có trạng thái độc lập, thuận lợi khi mở rộng nhiều Tag.
+
+ThingsBoard chạy localhost có phải Cloud không?
+
+  - Không nên gọi localhost là public cloud.
+  - ThingsBoard đang chạy trên một máy chủ cục bộ, vẫn là IoT server.
+  - Có thể triển khai cùng phần mềm đó lên máy chủ LAN, VPS hoặc cloud sau này.
+  - Vì vậy tên đề tài dùng “máy chủ IoT ThingsBoard” là chính xác nhất.
+
+
+3. DỮ LIỆU TAG_STATUS
+=====================
+
+Struct bmt_tag_report_t được đóng gói 1 byte và gồm:
+
+  - scanner_id: chỉ số Scanner.
+  - battery: phần trăm pin Tag, từ 0 đến 100.
+  - tag_id: mã Tag 16 bit.
+  - rssi: cường độ tín hiệu nhận, đơn vị dBm.
+  - distance_dm: khoảng cách ước lượng theo decimet.
+  - loss_pct: phần trăm packet loss ước lượng.
+
+Khi Gateway nhận TAG_STATUS:
+
+  - Kiểm tra chiều dài bản tin có đủ struct.
+  - Sao chép report ra khỏi buffer callback.
+  - Tăng bộ đếm lưu lượng Mesh nhận được.
+  - Ánh xạ địa chỉ nguồn BLE Mesh sang Scanner trong node table.
+  - Gắn MAC Scanner 12 ký tự hex vào item.
+  - Đưa item vào MQTT queue mà không chặn callback.
+
+Vì sao dùng MAC Scanner thay vì chỉ dùng scanner_id?
+
+  - MAC ổn định và duy nhất hơn chỉ số cục bộ.
+  - Rule Chain ánh xạ MAC Scanner sang phòng.
+  - Có thể thay đổi sơ đồ phòng ở server mà không đổi cấu trúc gói của Tag.
+
+
+4. KHỞI ĐỘNG GATEWAY
+====================
+
+Trình tự quan trọng trong app_main:
+
+  1. Khởi tạo NVS; nếu version/page lỗi thì xóa NVS và khởi tạo lại.
+  2. Khởi tạo cơ chế factory reset.
+  3. Nạp node table từ NVS.
+  4. Khởi tạo bảng theo dõi Tag.
+  5. Tạo hoặc nạp khóa BLE Mesh.
+  6. Khởi động MQTT worker và hàng đợi.
+  7. Khởi tạo Wi-Fi.
+  8. Khởi tạo MQTT/TLS.
+  9. Khởi tạo Bluetooth và BLE Mesh.
+ 10. Khởi động UART, heartbeat, timeout Tag và watchdog.
+
+Vì sao MQTT worker được tạo trước khi Mesh hoạt động?
+
+  - Bảo đảm queue sẵn sàng trước khi callback Mesh có thể nhận report.
+  - Tránh callback cố ghi vào một queue chưa tồn tại.
+
+Nếu Wi-Fi chưa kết nối lúc boot thì sao?
+
+  - Gateway chờ ban đầu tối đa khoảng 15 giây.
+  - Nếu chưa có Wi-Fi, quá trình boot vẫn tiếp tục.
+  - Wi-Fi tự reconnect; MQTT cũng có cơ chế reconnect sau đó.
+  - BLE Mesh không bị phụ thuộc hoàn toàn vào kết nối Internet tại thời điểm boot.
+
+
+5. HÀNG ĐỢI FREERTOS VÀ MQTT WORKER
+===================================
+
+Thông số source hiện tại:
+
+  - Kích thước queue: 64 report.
+  - MQTT worker stack: 4096 byte.
+  - Priority: 5.
+  - Callback dùng xQueueSend(..., 0), tức không chờ.
+  - Có bộ đếm enqueued, dropped và published.
+
+Vì sao cần queue?
+
+  - Callback BLE Mesh cần kết thúc nhanh.
+  - TLS/MQTT có thể mất hàng trăm mili giây hoặc bị ngắt mạng.
+  - Queue tách producer là Mesh khỏi consumer là MQTT worker.
+  - Hấp thụ burst ngắn và tránh block Bluetooth stack.
+
+Khi queue đầy thì sao?
+
+  - Report mới nhất đang được enqueue sẽ bị bỏ.
+  - Bộ đếm dropped tăng để có thể chẩn đoán.
+  - Đây là lựa chọn ưu tiên tính sống của hệ thống hơn việc chặn callback.
+
+Queue có phải bộ nhớ offline không?
+
+  - Không.
+  - Worker vẫn lấy item khỏi queue khi MQTT mất kết nối.
+  - Trạng thái nội bộ có thể được cập nhật nhưng live RSSI không được giữ để
+    phát lại, vì RSSI cũ không còn đại diện cho vị trí hiện tại.
+  - Chỉ các trạng thái quan trọng như out_of_range pending được phát lại sau
+    reconnect.
+
+Nếu cần bảo đảm không mất dữ liệu lịch sử thì cải tiến thế nào?
+
+  - Thêm persistent queue/ring buffer trong flash.
+  - Gắn timestamp gốc cho từng mẫu.
+  - Có chính sách giới hạn dung lượng và chống mòn flash.
+  - Khi reconnect phát bù theo thứ tự, nhưng tách live data khỏi historical data.
+
+
+6. WI-FI, MQTT VÀ TLS
+=====================
+
+Wi-Fi:
+
+  - Gateway hoạt động ở station mode.
+  - Cấu hình tối thiểu WPA2-PSK.
+  - Event disconnect kích hoạt kết nối lại.
+
+MQTT:
+
+  - Broker URI dạng mqtts://<IP>:8883.
+  - Reconnect timeout hiện tại khoảng 5 giây.
+  - Gateway subscribe RPC: v1/devices/me/rpc/request/+ với QoS 1.
+  - Telemetry Tag gửi qua v1/gateway/telemetry.
+
+TLS và access token khác nhau thế nào?
+
+  - TLS mã hóa đường truyền, chống nghe lén/sửa dữ liệu trên đường truyền và
+    xác thực máy chủ bằng certificate.
+  - Access token xác thực Gateway với ThingsBoard và quyết định Gateway được
+    phép kết nối dưới danh tính nào.
+  - Token không thay thế TLS; TLS cũng không thay thế token.
+
+Source kiểm tra certificate ra sao?
+
+  - CA certificate được nhúng trong firmware.
+  - Gateway kết nối bằng IP nhưng xác minh common name bmt-tb.local.
+  - Nếu certificate không do CA tin cậy ký, hết hạn hoặc sai tên, TLS phải lỗi.
+
+Tại sao có thể kết nối IP nhưng kiểm tra hostname?
+
+  - IP dùng để định tuyến đến máy chủ.
+  - Tên bmt-tb.local là danh tính nằm trong certificate.
+  - Cách này cho phép đổi IP máy chủ mà không nhất thiết cấp lại certificate,
+    miễn định tuyến đúng và certificate vẫn hợp lệ cho tên đã cấu hình.
+
+QoS 0 và QoS 1:
+
+  - QoS 0: gửi tối đa một lần, không chờ PUBACK; có thể mất gói.
+  - QoS 1: giao ít nhất một lần, cần PUBACK; có thể xuất hiện bản trùng.
+  - QoS 1 không có nghĩa dữ liệu “chính xác hơn”, mà tăng bảo đảm giao nhận.
+
+Vì sao RSSI dùng QoS 0?
+
+  - RSSI được cập nhật liên tục.
+  - Mẫu mới quan trọng hơn mẫu cũ.
+  - Giảm độ trễ, overhead và backlog khi mạng chập chờn.
+
+Vì sao connect/attributes/trạng thái thường dùng QoS 1?
+
+  - Các sự kiện này ít hơn nhưng ảnh hưởng trạng thái quản lý thiết bị.
+  - Việc giao nhận quan trọng hơn chi phí PUBACK.
+
+
+7. THINGSBOARD GATEWAY API
+==========================
+
+Các topic chính:
+
+  - v1/gateway/connect: tạo/kết nối child device và chỉ định profile.
+  - v1/gateway/disconnect: thông báo child device ngắt kết nối.
+  - v1/gateway/attributes: cập nhật thuộc tính child device.
+  - v1/gateway/telemetry: gửi telemetry child device.
+  - v1/devices/me/telemetry: telemetry của chính Gateway.
+  - v1/devices/me/attributes: attributes của chính Gateway.
+
+Quy ước tên:
+
+  - Gateway: bmt_gateway.
+  - Node: bmt_node_<12 ký tự MAC>.
+  - Tag: bmt_tag_0x<4 ký tự hex>.
+  - Profile Tag: ble_tag.
+  - Profile node: ble_mesh_node.
+  - Role: gateway, scan, relay hoặc tag.
+
+Khi MQTT vừa reconnect, Gateway làm gì?
+
+  - Đánh dấu connected.
+  - Subscribe RPC.
+  - Công bố Gateway ONLINE.
+  - Re-announce các node/Tag đã biết và role của chúng.
+  - Phát lại out_of_range đang pending.
+
+Telemetry một Tag có dạng ý nghĩa như sau:
+
+  {
+    "bmt_tag_0x8001": [{
+      "scanner_id": "765ca3077000",
+      "battery": 80,
+      "rssi": -55,
+      "distance": 12,
+      "loss": 0
+    }]
+  }
+
+Điểm cần nhớ: Gateway gửi scanner_id là MAC Scanner, không tự gửi kết luận
+phòng chính thức.
+
+
+8. HỖ TRỢ NHIỀU TAG
+====================
+
+Source hiện tại chạy được với hai Tag trở lên.
+
+Cách tách trạng thái:
+
+  - Mỗi report mang tag_id.
+  - Gateway có một entry theo dõi riêng cho từng tag_id.
+  - Mỗi Tag là một child device riêng trên ThingsBoard.
+  - Rule Chain chạy theo originator là child device tương ứng.
+  - current_zone, candidate_zone và candidate_count là server attributes riêng
+    của từng Tag.
+  - Dashboard có alias All Tags và Selected Tag.
+
+Do đó Tag 0x8001 và Tag 0x8002 không ghi đè trạng thái phòng của nhau.
+
+Giới hạn source hiện tại:
+
+  - Gateway theo dõi tối đa 16 Tag.
+  - Mỗi Tag có tối đa 8 slot Scanner cục bộ.
+  - Node table tối đa 10 node.
+  - Queue MQTT có 64 item dùng chung.
+  - Nếu bảng 16 Tag đầy, Tag mới không tạo được state và report của Tag đó
+    không được publish theo luồng hiện tại.
+
+Nếu mở rộng quy mô lớn:
+
+  - Dùng cấu trúc động hoặc tăng giới hạn sau khi tính RAM.
+  - Giám sát queue drop và tốc độ publish.
+  - Tách cấu hình Scanner/phòng khỏi code Rule Chain.
+  - Phân vùng Gateway hoặc cân bằng tải nếu mật độ Tag cao.
+
+
+9. RULE CHAIN XÁC ĐỊNH PHÒNG
+============================
+
+Rule Chain ble_tag_zone_detection có 7 node chính:
+
+  1. Parse and map zone.
+  2. Fetch tag state.
+  3. Apply hysteresis.
+  4. Build attrs payload.
+  5. Save tag state ở SERVER_SCOPE.
+  6. Save zone history time-series.
+  7. Build TS payload.
+
+Ánh xạ Scanner hiện tại:
+
+  - 765ca3077000 -> room_1.
+  - 125ba3077000 -> room_2.
+  - 22458bdf948c -> room_3.
+
+Thông số thuật toán:
+
+  - HYSTERESIS_DBM = 5 dBm.
+  - DEBOUNCE_COUNT = 2.
+  - SCANNER_VALID_MS = 10000 ms.
+
+Các bước ra quyết định:
+
+  1. Nhận RSSI mới và cập nhật snapshot của Scanner vừa gửi.
+  2. Lấy RSSI/timestamp trước đó của các Scanner từ server attributes.
+  3. Bỏ Scanner có mẫu cũ quá 10 giây.
+  4. Chọn Scanner fresh có RSSI lớn nhất, tức gần 0 dBm nhất.
+  5. Ánh xạ Scanner đó sang phòng ứng viên.
+  6. Nếu chưa có phòng hoặc vừa out_of_range, gán ngay.
+  7. Nếu vẫn cùng phòng hiện tại, giữ phòng và reset candidate.
+  8. Nếu phòng mới khác phòng hiện tại, kiểm tra chênh ít nhất 5 dBm.
+  9. Nếu đạt ngưỡng, tích lũy candidate_count.
+ 10. Đủ 2 lần xác nhận thì mới đổi phòng.
+
+Ví dụ hysteresis và debounce:
+
+  - Tag hiện ở room_1 với RSSI tốt nhất của room_1 là -65 dBm.
+  - Scanner room_2 đo -58 dBm.
+  - Chênh lệch là 7 dBm, vượt ngưỡng 5 dBm.
+  - Lần đầu: candidate_zone=room_2, candidate_count=1, vẫn giữ room_1.
+  - Lần xác nhận tiếp theo vẫn đạt: count=2, chuyển sang room_2.
+
+Nếu chỉ mạnh hơn 3 dBm:
+
+  - Không vượt hysteresis.
+  - Chưa đổi phòng.
+  - Rule Chain dùng cơ chế leaky bucket: candidate_count đang dương giảm một,
+    thay vì luôn xóa sạch ngay lập tức.
+
+Hysteresis và debounce khác nhau:
+
+  - Hysteresis kiểm tra độ mạnh của bằng chứng: phòng mới phải mạnh hơn phòng
+    hiện tại tối thiểu 5 dBm.
+  - Debounce kiểm tra độ bền theo thời gian/số lần: bằng chứng phải được xác
+    nhận đủ 2 lần.
+
+Nếu Scanner phòng hiện tại đã stale thì sao?
+
+  - Scanner stale không được quyền bỏ phiếu giữ phòng.
+  - Phòng mới fresh có thể vượt qua kiểm tra mà không so với RSSI stale.
+  - Giá trị cũ chỉ có thể được giữ để hiển thị trong lúc chờ debounce.
+
+Nếu một phòng có nhiều Scanner thì sao?
+
+  - Rule Chain tìm Scanner fresh có RSSI tốt nhất trong phòng hiện tại.
+  - Không chỉ lấy Scanner đầu tiên của phòng đó.
+  - ZONE_MAP có thể ánh xạ nhiều MAC Scanner vào cùng một room.
+
+Tại sao không dùng một ngưỡng RSSI tuyệt đối?
+
+  - Một giá trị như -60 dBm không tự cho biết phòng nào đúng.
+  - RSSI phụ thuộc công suất phát, vật cản, hướng anten và môi trường.
+  - Hệ thống cần so sánh đồng thời các Scanner đã đặt ở các phòng.
+
+Tại sao không trilateration?
+
+  - Mục tiêu là phân loại theo phòng, không phải tọa độ chính xác.
+  - RSSI trong nhà nhiều multipath nên suy khoảng cách tuyệt đối không ổn định.
+  - Strongest RSSI kết hợp hysteresis/debounce đơn giản và phù hợp prototype.
+
+
+10. PHÂN BIỆT CÁC TIMEOUT
+=========================
+
+Ba giá trị dễ bị nhầm:
+
+  1. Gateway BMT_SCANNER_VALID_MS = 3500 ms:
+     Chỉ dùng cho hiển thị/chẩn đoán FRESH hoặc STALE cục bộ qua UART.
+
+  2. Rule Chain SCANNER_VALID_MS = 10000 ms:
+     Dùng để quyết định Scanner nào còn đủ mới để tham gia xác định phòng.
+
+  3. Gateway BMT_TAG_OUT_OF_RANGE_MS = 10000 ms:
+     Nếu toàn bộ Tag không có bất kỳ report nào quá 10 giây, Gateway đánh dấu
+     out_of_range và gửi trạng thái này lên ThingsBoard.
+
+Hai giá trị 10 giây có cùng con số nhưng khác nhiệm vụ: một giá trị đánh giá
+tuổi từng mẫu Scanner ở server; một giá trị đánh giá Tag hoàn toàn mất dấu ở
+Gateway.
+
+
+11. OUT_OF_RANGE
+================
+
+Task kiểm tra timeout chạy mỗi 1 giây.
+
+Nếu một Tag không có report hơn 10 giây:
+
+  - current_zone cục bộ chuyển sang unknown/out_of_range.
+  - Xóa valid flags của các Scanner cho Tag đó.
+  - Đặt out_of_range_pending.
+  - Gửi current_zone="out_of_range" và current_zone_num=0 lên ThingsBoard.
+  - Nếu publish thành công thì xóa pending.
+
+Nếu MQTT đang mất kết nối:
+
+  - Trạng thái pending được giữ.
+  - Khi MQTT reconnect, Gateway phát lại out_of_range.
+  - Nếu Tag xuất hiện lại trước khi phát pending, fresh report hủy pending để
+    tránh gửi một kết luận out_of_range đã lỗi thời.
+
+Tại sao cần out_of_range ở Gateway khi Rule Chain cũng có freshness?
+
+  - Rule Chain chỉ chạy khi có message đến.
+  - Nếu Tag im lặng hoàn toàn, không có message mới để kích hoạt Rule Chain.
+  - Task tại Gateway chủ động tạo sự kiện mất dấu.
+
+
+12. NODE TABLE VÀ HEARTBEAT
+===========================
+
+Node table:
+
+  - Tối đa 10 node.
+  - Lưu trong NVS namespace bmt_gw, key node_table.
+  - Lưu địa chỉ Mesh, UUID, MAC, tên, role Scanner/Relay và trạng thái config.
+  - Sau reboot, thông tin provision/config được giữ nhưng online được đặt lại
+    false cho đến khi có bằng chứng node còn sống.
+
+Gateway nhận dạng loại node từ prefix UUID:
+
+  - SCAN... cho Scanner.
+  - RELAY... cho Relay.
+
+Heartbeat:
+
+  - Sau boot chờ ban đầu khoảng 30 giây.
+  - Gateway gửi Config Default TTL Get đến từng Scanner/Relay đã cấu hình.
+  - Chu kỳ kiểm tra khoảng 20 giây, có khoảng nghỉ giữa các node.
+  - Timeout phản hồi từng message khoảng 5 giây.
+  - Nếu quá 60 giây không có last_seen thì node được đánh dấu OFFLINE.
+  - Chỉ callback thành công, error_code bằng 0, mới được tính là ACK hợp lệ.
+
+Tại sao dùng Config TTL Get làm ping?
+
+  - Đây là message có phản hồi trong BLE Mesh Config Model.
+  - Không cần tự tạo thêm opcode heartbeat riêng.
+  - Phản hồi chứng minh node vẫn giao tiếp hai chiều qua Mesh.
+
+
+13. WATCHDOG VÀ TỰ PHỤC HỒI
+============================
+
+Có hai lớp watchdog khác nhau:
+
+  A. Task watchdog của ESP-IDF:
+     - Timeout 60 giây.
+     - Main loop feed khoảng mỗi 10 giây.
+     - Phát hiện task/hệ thống bị treo, không còn chạy bình thường.
+
+  B. Data watchdog của ứng dụng:
+     - Theo dõi bộ đếm lưu lượng Mesh hữu ích.
+     - Bộ đếm tăng khi nhận TAG_STATUS hoặc ping ACK thành công.
+     - Phát hiện trường hợp CPU vẫn chạy nhưng tuyến Mesh không còn dữ liệu.
+
+SOURCE HIỆN TẠI của data watchdog:
+
+  - BMT_WDG_TIMEOUT_MS = 300000 ms = 300 giây = 5 phút.
+  - Gửi RESET_CMD tối đa 5 lần.
+  - Cách nhau 1500 ms.
+  - Chờ node 12000 ms.
+  - Sau đó xóa provisioning/node state cần thiết và restart Gateway nếu lệnh
+    reset đã gửi được.
+  - Nếu mọi lần gửi RESET_CMD đều thất bại, không xóa ngay; chờ chu kỳ sau.
+
+Quy trình:
+
+  1. Chụp snapshot bộ đếm Mesh.
+  2. Chờ 5 phút.
+  3. Nếu bộ đếm thay đổi, hệ thống còn hoạt động và bắt đầu chu kỳ mới.
+  4. Nếu không đổi, broadcast RESET_CMD nhiều lần.
+  5. Chờ node xử lý.
+  6. Xóa trạng thái provision cần thiết, bảng node/Tag và restart để tự dựng lại.
+
+Vì sao không reset khi chỉ một Tag im lặng?
+
+  - Tag có thể đơn giản là đi xa hoặc hết pin.
+  - Data watchdog kiểm tra toàn tuyến Mesh bằng cả TAG_STATUS lẫn ping ACK.
+  - Mất một Tag được xử lý bởi out_of_range, không đồng nghĩa Mesh bị treo.
+
+*** CẢNH BÁO QUAN TRỌNG TRƯỚC KHI BẢO VỆ ***
+
+Một số tài liệu/kết quả thực nghiệm cũ có thể ghi watchdog 30 giây và thời gian
+phục hồi Relay khoảng 38,2 giây. Source hiện tại đã cấu hình 300 giây. Không
+được nói source hiện tại reset sau 30 giây. Câu trả lời an toàn:
+
+  “Bản source hiện tại dùng timeout 300 giây để tránh reset nhầm khi lưu lượng
+  thấp. Số liệu 38,2 giây thuộc cấu hình thực nghiệm trước với timeout ngắn hơn.
+  Khi chốt báo cáo và demo cần ghi rõ version/cấu hình tương ứng.”
+
+
+14. DASHBOARD
+=============
+
+Dashboard Indoor Tracking có các nhóm chức năng:
+
+  - Tracked Tags: danh sách tất cả Tag và phòng hiện tại.
+  - Selected Tag/Tag Detail: thông tin Tag được chọn.
+  - Floor Plan/Current Zone: hiển thị phòng.
+  - RSSI graph: RSSI của các Scanner theo thời gian.
+  - Zone history/decision diagnostics: lịch sử phòng, candidate và quyết định.
+  - System health: trạng thái Gateway, Scanner, Relay và Tag.
+  - Scanner freshness: tuổi dữ liệu Scanner.
+
+Luồng chọn Tag:
+
+  - Alias All Tags lấy nhiều device có profile ble_tag.
+  - Click một hàng cập nhật dashboard state.
+  - Alias Selected Tag trỏ đến entity vừa chọn.
+  - Các widget chi tiết đổi theo Tag đó.
+
+Tại sao Dashboard hỗ trợ nhiều Tag?
+
+  - Không dùng một entity cố định cho mọi Tag.
+  - Mỗi Tag là child device riêng.
+  - Alias và state parameter chọn đúng entity cần xem.
+
+
+15. KẾT QUẢ THỰC NGHIỆM CẦN NHỚ
+===============================
+
+Các số liệu tổng hợp chung trong báo cáo:
+
+  - 3 phiên thử nghiệm.
+  - 2160 điểm đủ điều kiện đánh giá.
+  - 2153 điểm có telemetry hợp lệ.
+  - 1965 điểm dự đoán đúng.
+  - Accuracy: 91,27%.
+  - Macro-F1: 91,33%.
+  - Coverage: 99,68%.
+  - 32 lần chuyển phòng đúng.
+  - Độ trễ trung vị: 10,00 giây.
+  - Độ trễ trung bình: 13,34 ± 12,55 giây.
+  - P95: 47,90 giây.
+  - 29/32 lần hội tụ trong cửa sổ 30 giây, tương đương 90,63%.
+  - 35 walking windows sau grace period.
+  - 22 lần đổi zone.
+  - 7 chu kỳ flapping hoàn chỉnh.
+  - 3 sai lệch không phục hồi trong cùng window.
+  - Mức flapping: 0,20 chu kỳ/phút.
+  - Lỗi tập trung chủ yếu ở biên Room 2 - Room 3; báo cáo nêu 88,30% lỗi.
+
+Kết quả phục hồi trong báo cáo:
+
+  - Gateway mất nguồn: trung bình khoảng 8,7 giây.
+  - Scanner 02 mất nguồn: telemetry phục hồi khoảng 12,4 giây.
+  - Đường Relay: khoảng 38,2 giây trong cấu hình thực nghiệm tương ứng.
+
+Giải thích kết quả:
+
+  - Accuracy và macro-F1 gần nhau cho thấy hiệu năng tương đối cân bằng giữa
+    các phòng, không chỉ tốt ở một lớp lớn.
+  - Coverage 99,68% nghĩa là phần lớn thời gian hệ thống có kết luận hợp lệ.
+  - Sai số ở biên là hợp lý do RSSI dao động và multipath.
+  - Hysteresis/debounce giảm flapping nhưng tạo đánh đổi với độ trễ chuyển phòng.
+  - P95 cao hơn median nhiều cho thấy một số ca biên hội tụ chậm.
+
+Không nên khẳng định:
+
+  - Hệ thống định vị chính xác theo mét.
+  - RSSI luôn tỉ lệ hoàn hảo với khoảng cách.
+  - QoS 1 bảo đảm không trùng bản tin.
+  - Kết quả prototype đại diện cho mọi tòa nhà/môi trường.
+
+
+16. CÁC TÌNH HUỐNG LỖI VÀ CÁCH TRẢ LỜI
+=======================================
+
+Tình huống 1: Tag quá xa, mọi Scanner đều không bắt được.
+
+  Sau 10 giây không có bất kỳ report nào, task timeout tại Gateway phát trạng
+  thái out_of_range. Nếu MQTT đang mất kết nối, trạng thái được giữ pending và
+  phát sau reconnect, trừ khi Tag xuất hiện lại trước đó.
+
+Tình huống 2: Một Scanner không gửi được nhưng Scanner khác vẫn hoạt động.
+
+  Heartbeat sẽ đánh dấu node lỗi sau timeout. Rule Chain chỉ dùng snapshot còn
+  fresh và vẫn có thể quyết định bằng Scanner khác. Độ tin cậy có thể giảm,
+  nhất là phòng chỉ có một Scanner.
+
+Tình huống 3: Relay mất.
+
+  Nếu Scanner vẫn có đường trực tiếp/đường Mesh khác, dữ liệu vẫn đi được. Nếu
+  toàn tuyến mất dữ liệu, heartbeat/data watchdog tham gia phát hiện và phục hồi.
+  Relay không scan beacon và không quyết định phòng; nó chỉ forward.
+
+Tình huống 4: Wi-Fi mất.
+
+  Wi-Fi tự reconnect. Mesh vẫn có thể chạy nhưng live RSSI lấy khỏi queue trong
+  thời gian mất mạng không được lưu lâu dài để replay. Trạng thái quan trọng
+  pending được khôi phục khi MQTT reconnect.
+
+Tình huống 5: ThingsBoard/MQTT broker dừng.
+
+  MQTT báo disconnect và thử reconnect. Sau khi kết nối lại, Gateway subscribe
+  RPC, công bố online, re-announce child devices và phát pending state.
+
+Tình huống 6: Queue đầy.
+
+  Report mới bị drop, counter tăng. Cần xem tốc độ sinh report, tốc độ publish,
+  chất lượng mạng và kích thước queue. Không nên block callback Mesh.
+
+Tình huống 7: Hai Scanner có RSSI gần bằng nhau ở cửa phòng.
+
+  Hysteresis yêu cầu phòng mới hơn ít nhất 5 dBm; debounce yêu cầu 2 lần xác
+  nhận. Nhờ đó tránh đổi phòng qua lại do nhiễu tức thời.
+
+Tình huống 8: Gateway reboot.
+
+  Node table/provisioning được nạp từ NVS, nhưng trạng thái online cần được xác
+  nhận lại. Wi-Fi/MQTT/Mesh khởi tạo lại và thiết bị được re-announce.
+
+
+17. CÂU HỎI BẢO VỆ VÀ TRẢ LỜI MẪU
+==================================
+
+Câu 1: Đóng góp chính của phần B là gì?
+
+Trả lời: Phần B xây dựng Gateway làm cầu nối BLE Mesh với ThingsBoard qua
+MQTTS, quản lý từng node/Tag, xử lý reconnect và timeout; đồng thời xây dựng
+Rule Chain xác định phòng cho từng Tag và Dashboard theo dõi nhiều Tag.
+
+Câu 2: Tại sao Gateway không tự quyết định phòng?
+
+Trả lời: Em tách trách nhiệm để Gateway tập trung truyền telemetry, còn server
+giữ trạng thái và ra quyết định. Nhờ vậy có thể đổi ánh xạ Scanner, ngưỡng và
+thuật toán mà không flash firmware, đồng thời hỗ trợ nhiều Tag rõ ràng hơn.
+
+Câu 3: Gateway biết report đến từ Scanner nào bằng cách nào?
+
+Trả lời: Callback Mesh có địa chỉ nguồn. Gateway tra node table để lấy MAC của
+Scanner nguồn rồi gửi MAC đó trong trường scanner_id lên ThingsBoard.
+
+Câu 4: Vì sao cần FreeRTOS queue?
+
+Trả lời: Để callback BLE Mesh không bị block bởi Wi-Fi, TLS hoặc MQTT. Callback
+chỉ sao chép/enqueue nhanh, còn worker riêng thực hiện publish.
+
+Câu 5: Queue 64 có bảo đảm không mất dữ liệu không?
+
+Trả lời: Không. Nó hấp thụ burst ngắn, không phải persistent storage. Khi đầy,
+report mới bị drop và có counter theo dõi. Với RSSI thời gian thực, dữ liệu mới
+quan trọng hơn phát lại dữ liệu cũ.
+
+Câu 6: TLS và token bảo vệ gì?
+
+Trả lời: TLS mã hóa và xác thực server bằng certificate; token xác thực danh
+tính Gateway với ThingsBoard. Hai cơ chế bổ sung nhau.
+
+Câu 7: Vì sao dùng QoS 0 cho RSSI?
+
+Trả lời: RSSI cập nhật liên tục và nhanh lỗi thời. QoS 0 giảm overhead và tránh
+backlog. QoS 1 dành cho trạng thái/điều khiển quan trọng hơn, nhưng có thể trùng.
+
+Câu 8: Hysteresis 5 dBm có nghĩa gì?
+
+Trả lời: Scanner thuộc phòng mới phải có RSSI tốt hơn Scanner tốt nhất còn fresh
+của phòng hiện tại ít nhất 5 dBm thì mới đủ điều kiện tạo bằng chứng chuyển.
+
+Câu 9: Debounce bằng 2 có nghĩa gì?
+
+Trả lời: Sau khi vượt hysteresis một lần, hệ thống chưa đổi phòng ngay. Cần đủ
+hai lần xác nhận cho cùng candidate zone thì mới commit phòng mới.
+
+Câu 10: Vì sao cần cả hysteresis lẫn debounce?
+
+Trả lời: Hysteresis kiểm tra biên độ chênh RSSI, debounce kiểm tra sự ổn định qua
+nhiều report. Một cơ chế xử lý độ mạnh, cơ chế kia xử lý dao động theo thời gian.
+
+Câu 11: Nếu phòng hiện tại không còn sample fresh thì sao?
+
+Trả lời: RSSI stale không được dùng để cản phòng mới. Rule Chain chọn bằng chứng
+fresh; phòng mới vẫn qua debounce trước khi commit.
+
+Câu 12: Hai Tag có chạy được không?
+
+Trả lời: Có. Gateway tách entry theo tag_id, ThingsBoard tạo child device riêng,
+Rule Chain lưu server attributes riêng theo originator và Dashboard chọn từng
+Tag. Source hiện giới hạn tối đa 16 Tag tại Gateway.
+
+Câu 13: Nếu hai Tag cùng phòng thì sao?
+
+Trả lời: Cả hai có thể có cùng current_zone nhưng vẫn là hai device khác nhau,
+có RSSI, candidate_count và lịch sử độc lập.
+
+Câu 14: Nếu không có message mới thì Rule Chain có tự phát hiện mất Tag không?
+
+Trả lời: Không nhất thiết, vì Rule Chain cần message kích hoạt. Vì vậy Gateway có
+task timeout riêng, sau 10 giây im lặng chủ động gửi out_of_range.
+
+Câu 15: Scanner freshness 3,5 giây và 10 giây có bất nhất không?
+
+Trả lời: Không nếu hiểu đúng phạm vi. 3,5 giây chỉ là chẩn đoán FRESH/STALE cục
+bộ tại Gateway; 10 giây là cửa sổ ra quyết định của Rule Chain trên server.
+
+Câu 16: Heartbeat phát hiện node chết thế nào?
+
+Trả lời: Gateway gửi Config Default TTL Get và chỉ coi phản hồi thành công là
+ACK. Nếu last_seen quá 60 giây, node bị đánh dấu offline.
+
+Câu 17: Task watchdog và data watchdog khác nhau thế nào?
+
+Trả lời: Task watchdog phát hiện phần mềm bị treo, timeout 60 giây. Data watchdog
+phát hiện hệ thống vẫn chạy nhưng không có TAG_STATUS/ping ACK; source hiện tại
+dùng cửa sổ 300 giây.
+
+Câu 18: Vì sao data watchdog dùng cả ping ACK?
+
+Trả lời: Không có Tag trong vùng không có nghĩa Mesh bị lỗi. Ping ACK chứng minh
+node và đường Mesh vẫn hoạt động ngay cả khi không có TAG_STATUS.
+
+Câu 19: Relay có xử lý dữ liệu ứng dụng không?
+
+Trả lời: Không. Relay chủ yếu forward PDU tại Network Layer của BLE Mesh. Nó
+không scan Tag, không tính RSSI và không quyết định phòng.
+
+Câu 20: Tại sao accuracy chưa đạt 100%?
+
+Trả lời: RSSI trong nhà chịu multipath, che khuất và nhiễu, đặc biệt ở ranh giới
+phòng. Hysteresis/debounce giảm flapping nhưng tạo độ trễ; đây là trade-off.
+
+Câu 21: Macro-F1 91,33% cho biết gì?
+
+Trả lời: Chỉ số tính F1 riêng từng phòng rồi lấy trung bình, nên phản ánh cân
+bằng giữa các lớp tốt hơn chỉ nhìn accuracy tổng.
+
+Câu 22: Coverage 99,68% có nghĩa gì?
+
+Trả lời: Trong các điểm đủ điều kiện đánh giá, gần như toàn bộ có telemetry/kết
+quả hợp lệ. Coverage không đồng nghĩa accuracy.
+
+Câu 23: Vì sao median latency 10 giây nhưng P95 47,9 giây?
+
+Trả lời: Phần lớn chuyển phòng hội tụ tương đối nhanh, nhưng một số tình huống
+biên RSSI dao động làm hysteresis/debounce cần nhiều report hơn, tạo đuôi dài.
+
+Câu 24: Muốn giảm độ trễ chuyển phòng thì làm gì?
+
+Trả lời: Có thể giảm ngưỡng hysteresis, giảm debounce hoặc tăng tần suất report,
+nhưng sẽ tăng flapping và tải mạng. Cần hiệu chỉnh bằng dữ liệu thực nghiệm.
+
+Câu 25: Muốn tăng độ chính xác thì làm gì?
+
+Trả lời: Hiệu chỉnh theo từng phòng, bố trí thêm Scanner ở vùng khó, dùng feature
+nhiều mẫu/thống kê thời gian hoặc mô hình fingerprinting. Cần cân bằng RAM,
+độ trễ và độ phức tạp.
+
+Câu 26: Điểm yếu lớn nhất của hệ thống hiện tại?
+
+Trả lời: Phụ thuộc RSSI và cấu hình phòng cố định trong Rule Chain; giới hạn bộ
+nhớ tĩnh 16 Tag; live telemetry không có persistent offline buffer; kết quả mới
+được thử trên quy mô prototype.
+
+Câu 27: Nếu đổi vị trí Scanner thì phải làm gì?
+
+Trả lời: Cập nhật ZONE_MAP trên Rule Chain và hiệu chỉnh lại ngưỡng/kết quả. Vì
+quyết định ở server nên không cần thay firmware chỉ để đổi ánh xạ phòng.
+
+Câu 28: Vì sao dùng ThingsBoard thay vì tự viết toàn bộ server?
+
+Trả lời: ThingsBoard có sẵn MQTT device management, Gateway API, Rule Chain,
+attributes, time-series và Dashboard. Nhờ đó tập trung vào logic hệ thống thay
+vì xây lại hạ tầng IoT cơ bản.
+
+Câu 29: ThingsBoard localhost có phải máy chủ không?
+
+Trả lời: Có, đó là máy chủ chạy cục bộ. “Cloud” thường hàm ý hạ tầng từ xa/có
+khả năng truy cập mạng rộng; vì vậy báo cáo dùng “máy chủ IoT ThingsBoard”.
+
+Câu 30: Source có OTA, đó có phải phần B không?
+
+Trả lời: Source tích hợp một số hook/RPC OTA ở kiến trúc chung, nhưng OTA không
+phải nội dung em phụ trách. Phần em trình bày tập trung Gateway, MQTTS,
+ThingsBoard, Rule Chain, Dashboard và cơ chế vận hành liên quan.
+
+
+18. CÂU HỎI PHẢN BIỆN SÂU
+==========================
+
+1. Nếu QoS 0 mất đúng report thứ hai của debounce thì sao?
+
+   Việc chuyển phòng bị chậm đến report phù hợp tiếp theo, nhưng trạng thái sai
+   không được commit vội. Với telemetry liên tục, report tiếp theo sẽ bù về mặt
+   quyết định chứ không phải phát lại gói cũ.
+
+2. QoS 1 có giải quyết hoàn toàn việc mất mạng không?
+
+   Không. QoS 1 chỉ hỗ trợ giao ít nhất một lần trong phiên/cơ chế MQTT tương
+   ứng; vẫn cần reconnect, session policy và persistent buffer nếu muốn lưu mọi
+   dữ liệu xuyên thời gian mất mạng.
+
+3. Access token bị lộ thì sao?
+
+   Kẻ khác có thể giả danh Gateway nếu truy cập được broker. Cần xoay token,
+   bảo vệ firmware/NVS, giới hạn mạng và dùng TLS. Prototype dùng token nhưng
+   triển khai thực tế nên có quy trình cấp phát/thu hồi khóa.
+
+4. Chỉ kiểm tra common name có đủ không?
+
+   Còn cần chuỗi CA tin cậy, thời hạn certificate và hostname verification.
+   Triển khai thật nên quản lý certificate lifecycle và đồng bộ thời gian.
+
+5. Candidate_count có bị dùng chung giữa các Tag không?
+
+   Không. Nó được lưu là server attribute trên originator child device của từng
+   Tag, nên Rule Chain của mỗi Tag có state độc lập.
+
+6. Nếu report đến không đúng thứ tự thì sao?
+
+   Source dựa nhiều vào thời điểm xử lý Date.now() tại Rule Chain, không mang
+   timestamp đo gốc đầy đủ cho mọi quyết định. Trong mạng cục bộ độ trễ nhỏ,
+   nhưng mở rộng nên truyền timestamp nguồn và loại mẫu quá cũ/out-of-order.
+
+7. Nếu hai Scanner cùng RSSI thì chọn cái nào?
+
+   Vòng lặp chỉ thay best khi RSSI lớn hơn, nên trong trường hợp bằng nhau,
+   Scanner xuất hiện trước trong danh sách có thể được giữ. Có thể bổ sung tie
+   breaker theo phòng hiện tại hoặc timestamp để quyết định rõ hơn.
+
+8. Nếu máy chủ restart, trạng thái Rule Chain có mất không?
+
+   Trạng thái được lưu dưới server attributes của ThingsBoard, không chỉ nằm
+   trong biến JavaScript của một lần chạy. Khả năng tồn tại qua restart phụ
+   thuộc database/persistence của ThingsBoard.
+
+9. Nếu Rule Chain lỗi nhưng MQTT vẫn connected thì sao?
+
+   Gateway chỉ biết publish được tới broker, không biết chắc logic downstream
+   đã cho kết quả đúng. Cần giám sát Rule Chain failures, debug events và alarm
+   trên ThingsBoard để phát hiện lỗi tầng ứng dụng.
+
+10. Tại sao không cho Gateway nhận lại current_zone từ server?
+
+    Thiết kế hiện tại coi ThingsBoard là nguồn sự thật cho phòng và Dashboard.
+    Nếu thiết bị edge cần hành động theo phòng khi mất server, có thể bổ sung
+    RPC/attributes subscription hoặc một fallback edge algorithm, nhưng sẽ phải
+    giải quyết đồng bộ hai nguồn quyết định.
+
+
+19. DEMO BẢO VỆ NÊN THỰC HIỆN
+=============================
+
+Trình tự demo gọn:
+
+  1. Mở Dashboard và chỉ ra Gateway, 3 Scanner, Relay, 2 Tag đều online.
+  2. Chọn Tag 0x8001, cho xem room hiện tại và ba đường RSSI.
+  3. Di chuyển Tag sang phòng khác.
+  4. Chỉ candidate_zone/candidate_count và giải thích hysteresis/debounce.
+  5. Khi current_zone đổi, chỉ lịch sử time-series.
+  6. Chọn Tag 0x8002 để chứng minh state độc lập.
+  7. Nếu an toàn, tắt một Scanner hoặc đưa Tag ra xa để minh họa offline/OOR.
+
+Trước demo:
+
+  - Kiểm tra IP ThingsBoard đúng với BMT_TB_IP.
+  - Kiểm tra certificate/CN và giờ hệ thống.
+  - Kiểm tra access token.
+  - Kiểm tra đúng Rule Chain đang active và root chain có route đúng profile.
+  - Kiểm tra ZONE_MAP đúng MAC Scanner thực tế.
+  - Xóa/ghi chú dữ liệu test gây nhầm.
+  - Chuẩn bị video/screenshot dự phòng nếu RF tại phòng bảo vệ không ổn định.
+
+
+20. CHECKLIST HỌC NHANH
+=======================
+
+Phải thuộc:
+
+  [ ] Luồng Tag -> Scanner -> Mesh/Relay -> Gateway -> MQTTS -> ThingsBoard.
+  [ ] Gateway truyền telemetry; Rule Chain quyết định phòng.
+  [ ] Queue 64, nonblocking, không phải offline storage.
+  [ ] QoS 0 cho RSSI; QoS 1 là at-least-once và có thể trùng.
+  [ ] TLS xác thực/mã hóa; token xác thực Gateway.
+  [ ] Hysteresis 5 dBm, debounce 2, Rule Chain freshness 10 giây.
+  [ ] Gateway local freshness 3,5 giây chỉ để chẩn đoán.
+  [ ] Out_of_range sau 10 giây không có report.
+  [ ] Multi-tag: child device và state riêng; Gateway tối đa 16 Tag.
+  [ ] Heartbeat TTL Get; offline node sau 60 giây.
+  [ ] Task WDT 60 giây; data watchdog SOURCE HIỆN TẠI 300 giây.
+  [ ] Accuracy 91,27%; macro-F1 91,33%; coverage 99,68%.
+  [ ] Median latency 10 giây; P95 47,90 giây.
+  [ ] Ưu điểm, hạn chế và hướng phát triển.
+
+
+21. TÓM TẮT MỘT CÂU CHO TỪNG KHỐI
+==================================
+
+  - Gateway: cầu nối phi chặn giữa BLE Mesh và máy chủ IoT.
+  - Queue: tách callback thời gian thực khỏi mạng chậm/chập chờn.
+  - MQTTS: truyền telemetry có mã hóa và xác thực server.
+  - Gateway API: biểu diễn mỗi node/Tag thành device riêng trên ThingsBoard.
+  - Rule Chain: hợp nhất RSSI mới, loại mẫu stale và ổn định quyết định phòng.
+  - Hysteresis: phòng mới phải mạnh hơn đủ 5 dBm.
+  - Debounce: phòng mới phải được xác nhận đủ 2 lần.
+  - Dashboard: theo dõi nhiều Tag, phòng, RSSI, lịch sử và sức khỏe hệ thống.
+  - Heartbeat: kiểm tra từng node còn phản hồi qua Mesh.
+  - Out-of-range: chủ động báo Tag mất dấu dù không còn telemetry kích Rule Chain.
+  - Watchdog: phục hồi khi phần mềm treo hoặc toàn tuyến Mesh im lặng bất thường.
+
+
+22. ĐƯỜNG DẪN SOURCE ĐỂ ĐỐI CHIẾU
+=================================
+
+  - apps/gateway/main/main.c
+    Trình tự khởi động và tạo các task.
+
+  - apps/gateway/components/bmt_config/bmt_config.h
+    Wi-Fi, địa chỉ ThingsBoard, TLS name, token và quy ước tên device.
+
+  - apps/gateway/components/bmt_mesh/bmt_mesh.c
+    Nhận TAG_STATUS, provisioning, ping và ánh xạ node nguồn.
+
+  - apps/gateway/components/bmt_mqtt/bmt_mqtt.c
+    Queue, MQTT worker, TLS client, reconnect và RPC subscription.
+
+  - apps/gateway/components/bmt_thingsboard/bmt_thingsboard.c
+    ThingsBoard Gateway API, telemetry, node status và out_of_range.
+
+  - apps/gateway/components/bmt_zone/bmt_zone.c và bmt_zone.h
+    Bảng trạng thái nhiều Tag và giới hạn bộ nhớ.
+
+  - apps/gateway/components/bmt_node_table/bmt_node_table.c và .h
+    Node table và lưu NVS.
+
+  - apps/gateway/components/bmt_watchdog/bmt_watchdog.c
+    Data watchdog và quy trình phục hồi.
+
+  - thingsboard/rulechain/ble_tag_zone_detection.json
+    Ánh xạ phòng, freshness, hysteresis, debounce và lưu state.
+
+  - thingsboard/dashboard/indoor_tracking.json
+    Dashboard nhiều Tag và các widget.
+
+
+KẾT LUẬN CẦN NHỚ
+================
+
+Giá trị chính của phần B không chỉ là “đưa dữ liệu lên Dashboard”. Phần B xây
+dựng một pipeline hoàn chỉnh: nhận dữ liệu Mesh không chặn, truyền an toàn qua
+MQTTS, quản lý nhiều thiết bị logic trên ThingsBoard, giữ trạng thái độc lập cho
+nhiều Tag, ra quyết định phòng ổn định bằng freshness/hysteresis/debounce, đồng
+thời xử lý reconnect, timeout và tự phục hồi. Khi trả lời bảo vệ, luôn nói rõ
+phạm vi, trade-off và thông số đúng theo version source đang trình bày.
