@@ -6,7 +6,7 @@ import config, flash firmware, verify end-to-end. Each step has a
 **"Why"** paragraph so nothing is done blindly.
 
 > For everyday operation (start / stop ThingsBoard) see
-> `Thingboards.md`. MQTT API detail: `../docs/05-thingsboard-mqtt.md`.
+> `Thingsboard.md`. MQTT API detail: `../docs/05-thingsboard-mqtt.md`.
 > One-page English quickstart: `../docs/00-quickstart.md`.
 
 ---

@@ -1,6 +1,6 @@
 # ThingsBoard CE setup for BMT (self-hosted, MQTTS)
 
-Directory-local README for `thingsboard/`. Condensed English setup below — for the full step-by-step with troubleshooting see [../docs/04-thingsboard-setup.md](../docs/04-thingsboard-setup.md); for the full Vietnamese deployment walkthrough see [import.md](import.md); for daily operations (start/stop) see [Thingboards.md](Thingboards.md).
+Directory-local README for `thingsboard/`. Condensed English setup below — for the full step-by-step with troubleshooting see [../docs/04-thingsboard-setup.md](../docs/04-thingsboard-setup.md); for the full Vietnamese deployment walkthrough see [import.md](import.md); for daily operations (start/stop) see [Thingsboard.md](Thingsboard.md).
 
 ## Folder contents
 
