@@ -27,7 +27,7 @@ regen command; the repo ships none).
 
 For interop the master HMAC key must match byte-for-byte across every
 tag variant and the Scanner — see
-[`../../SECURITY.md`](../../SECURITY.md).
+[`../../.github/SECURITY.md`](../../.github/SECURITY.md).
 
 **Status: experimental.** No OTA-over-mesh support (the OTA path in
 `apps/tag` is not shared with this variant); flashing is manual via

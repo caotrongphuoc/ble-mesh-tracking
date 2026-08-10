@@ -32,7 +32,7 @@
 ## Checklist
 
 - [ ] `tools/format.sh` clean (no diff).
-- [ ] Commit messages follow `[TAG] subject` convention (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
+- [ ] Commit messages follow `[TAG] subject` convention (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 - [ ] Docs updated if behavior changed.
 - [ ] No secrets, WiFi credentials, or personal LAN IPs committed.
 - [ ] By opening this PR I agree the contribution is under Apache-2.0.

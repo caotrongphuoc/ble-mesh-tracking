@@ -1,11 +1,11 @@
 # Contributing
 
-Thanks for your interest in improving BLE Mesh Tracking. This document is short — the [docs/](docs/) folder has the details.
+Thanks for your interest in improving BLE Mesh Tracking. This document is short — the [docs/](../docs/) folder has the details.
 
 ## Before you start
 
-- Read [docs/00-quickstart.md](docs/00-quickstart.md) to get the system running once. Every contribution assumes you can build and flash all four apps.
-- Skim [docs/01-architecture.md](docs/01-architecture.md) so you know where the change you want to make belongs (Tag / Scanner / Relay / Gateway / server-side).
+- Read [docs/00-quickstart.md](../docs/00-quickstart.md) to get the system running once. Every contribution assumes you can build and flash all four apps.
+- Skim [docs/01-architecture.md](../docs/01-architecture.md) so you know where the change you want to make belongs (Tag / Scanner / Relay / Gateway / server-side).
 
 ## Development setup
 
@@ -45,11 +45,11 @@ Split unrelated changes into separate commits — each commit should stand on it
 
 ## Testing before opening a PR
 
-Run the checks listed in [docs/05-operation.md#checklists](docs/05-operation.md#checklists). At minimum:
+Run the checks listed in [docs/05-operation.md#checklists](../docs/05-operation.md#checklists). At minimum:
 
 - All four apps build cleanly.
-- If your change touches a runtime path, run the relevant scenario in [docs/06-testing.md](docs/06-testing.md).
-- If your change touches OTA, run the fault-injection scenario (Test 16) in [docs/06-testing.md](docs/06-testing.md#test-16-fault-injection).
+- If your change touches a runtime path, run the relevant scenario in [docs/06-testing.md](../docs/06-testing.md).
+- If your change touches OTA, run the fault-injection scenario (Test 16) in [docs/06-testing.md](../docs/06-testing.md#test-16-fault-injection).
 
 ## Pull request flow
 
@@ -77,4 +77,4 @@ Some code is duplicated across apps by design (`bmt_types.h`, `bmt_auth.*`, `bmt
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE), the same license that covers the rest of the project.
+By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](../LICENSE), the same license that covers the rest of the project.

@@ -64,12 +64,12 @@ those before flashing.** Skipping regeneration means:
 | TLS CA + server cert (MQTTS + OTA nginx) | `cd thingsboard && bash tls/gen_certs.sh` |
 | `BMT_TAG_MASTER_KEY` / `BMT_OTA_BEACON_HMAC_KEY` | Replace the 16 bytes in each `apps/*/components/bmt_auth/bmt_auth.c` (must be byte-for-byte identical across Tag, Scanner and Beacon apps for `BMT_TAG_MASTER_KEY`) |
 
-More per-key detail lives in [`keys/README.md`](keys/README.md),
-[`keys/README.md`](keys/README.md) and
-[`thingsboard/tls/gen_certs.sh`](thingsboard/tls/gen_certs.sh).
+More per-key detail lives in [`keys/README.md`](../keys/README.md),
+[`keys/README.md`](../keys/README.md) and
+[`thingsboard/tls/gen_certs.sh`](../thingsboard/tls/gen_certs.sh).
 
 ## Third-party dependencies
 
 Security issues in ESP-IDF, Zephyr / MCUboot, Mbed TLS, NimBLE,
 FreeRTOS, ThingsBoard CE, or nginx should be reported upstream. See
-[`NOTICE`](NOTICE) for links.
+[`NOTICE`](../NOTICE) for links.
