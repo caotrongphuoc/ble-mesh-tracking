@@ -78,6 +78,38 @@ To hand over AppKeys and bind models, the mesh spec uses two extra models:
 
 Our gateway's `bmt_mesh.c` sends two per node during configuration: `APP_KEY_ADD` then `MODEL_APP_BIND`. Only after both ACKs come back does the gateway set `config_done = true`.
 
+## Full flow: unprovisioned beacon to `config_done`
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Unprovisioned Node
+    participant G as Gateway (Provisioner)
+
+    Note over U: Boot with no NetKey
+    loop Every ~1 s
+        U-->>G: Unprovisioned beacon<br/>UUID = "SCAN"+MAC or "RELAY"
+    end
+    G->>G: Prefix match ("SCAN" / "RELAY")
+
+    G->>U: Provisioning Invite
+    G->>U: Public keys, derive session key
+    Note over G,U: Static OOB authentication<br/>(16-byte shared secret)
+    G->>U: Provisioning Data (NetKey + primary address)
+    U-->>G: Provisioning Complete (PROV_COMPLETE_EVT)
+    G->>G: bmt_node_table_save()
+
+    Note over U: Node has NetKey — cannot decode<br/>the vendor AppKey layer yet
+
+    G->>U: Config: APP_KEY_ADD
+    U-->>G: ACK
+    G->>U: Config: MODEL_APP_BIND (vendor model ↔ AppKey)
+    U-->>G: ACK
+    G->>G: config_done = true
+```
+
+Only nodes with `config_done = true` can send or receive vendor opcodes (`TAG_STATUS`, `RESET_CMD`, `OTA_TRIGGER`, …). See [07-operation.md](07-operation.md) for what happens if a node reboots mid-config, and for the self-heal path when the gateway restarts.
+
 ## Publishing and TTL
 
 ```c
