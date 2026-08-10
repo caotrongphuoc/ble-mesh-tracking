@@ -31,7 +31,7 @@ New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (o
 | [docs/04-thingsboard.md](docs/04-thingsboard.md) | Whole ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server, troubleshooting. |
 | [docs/07-operation.md](docs/07-operation.md) | Runtime behavior, UART commands, factory reset, source layout, checklists (pre-commit, pre-flash, pre-release, deployment). |
 | [docs/09-testing.md](docs/09-testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end + fault injection, regression baseline. |
-| [docs/12-changelog.md](docs/12-changelog.md) | Change log. |
+| [CHANGELOG.md](CHANGELOG.md) | Change log (Keep-a-Changelog + SemVer). |
 | [docs/13-secure-boot.md](docs/13-secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
 | [docs/14-nrf52840-beacon.md](docs/14-nrf52840-beacon.md) | Optional coin-cell tag variant on nRF52840 (ProMicro / XIAO). Build via Zephyr / west. |
 

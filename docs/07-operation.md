@@ -381,7 +381,7 @@ Before tagging a release:
 - [ ] Test 3 (walking) passes.
 - [ ] Test 6 (gateway persistence) passes.
 - [ ] [Fast smoke test](09-testing.md#fast-smoke-test) or the full OTA flow (Tests 9-16) in [09-testing.md](09-testing.md#ota) passes.
-- [ ] Changelog entry in [12-changelog.md](12-changelog.md) describes what changed and why.
+- [ ] Changelog entry in [../CHANGELOG.md](../CHANGELOG.md) describes what changed and why.
 - [ ] Tag the commit with the same date the build produces (`YYYYMMDD`).
 
 ### Deployment (on-site)
@@ -402,7 +402,7 @@ At the customer site, in order:
 ### After a bug is found in production
 
 - [ ] Reproduce locally with the failing tag / scanner / relay layout.
-- [ ] Add a note in [12-changelog.md](12-changelog.md) describing the symptom.
+- [ ] Add a note in [../CHANGELOG.md](../CHANGELOG.md) describing the symptom.
 - [ ] Fix the root cause, not the symptom. Adding another `if` to paper over a race is a symptom fix.
 - [ ] Add or update a test in [09-testing.md](09-testing.md) so the same regression is caught next time.
 - [ ] OTA the fix to every node in the field. Verify via ThingsBoard `ota_result` attribute.
