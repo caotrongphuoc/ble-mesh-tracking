@@ -2,7 +2,7 @@
 
 > Quick-run guide. For the first-time setup from zero (create profiles,
 > import rule chain, import dashboard, etc.), see
-> [`../docs/04-thingsboard-setup.md`](../docs/04-thingsboard-setup.md).
+> [`../docs/04-thingsboard.md`](../docs/04-thingsboard.md).
 
 ---
 

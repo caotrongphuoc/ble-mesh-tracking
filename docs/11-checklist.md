@@ -56,7 +56,7 @@ Before tagging a release:
 At the customer site, in order:
 
 - [ ] ThingsBoard container running: `docker compose ps` shows `Up`.
-- [ ] Certs regenerated for this deployment (see [06-http-tls.md](06-http-tls.md#regenerate-the-certs)).
+- [ ] Certs regenerated for this deployment (see [04-thingsboard.md#regenerate-certs](04-thingsboard.md#regenerate-certs)).
 - [ ] Firmware flashed with real credentials (see Pre-flash above).
 - [ ] Gateway UART shows `MQTT connected to ThingsBoard` within 30 seconds of boot.
 - [ ] Relay powered on and provisioned (`[RLY_CFG] Relay 0x00xx fully configured`).

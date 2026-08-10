@@ -51,7 +51,7 @@ docker compose up -d
 
 Wait 1-2 minutes. Open `http://localhost:8080`, log in with `tenant@thingsboard.org` / `tenant`, change the password.
 
-Device profiles, rule chain, dashboard, and gateway token: see [04-thingsboard-setup.md](04-thingsboard-setup.md). Do these before flashing.
+Device profiles, rule chain, dashboard, and gateway token: see [04-thingsboard.md](04-thingsboard.md). Do these before flashing.
 
 ## 4. Set firmware config
 
@@ -64,7 +64,7 @@ Edit `apps/*/components/bmt_config/bmt_config.h`:
 | `BMT_TB_GATEWAY_TOKEN` | gateway | Token from step 3. |
 | `BMT_OTA_*_URL` | gateway, scanner, relay | `https://<host-ip>:8443/<name>.bin`. |
 
-Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` embeds (`apps/gateway/components/bmt_mqtt/ca.pem` and `components/bmt_ota/ota_ca.pem`) as part of the same run. Rebuild every affected firmware after a regen. See [06-http-tls.md](06-http-tls.md).
+Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` embeds (`apps/gateway/components/bmt_mqtt/ca.pem` and `components/bmt_ota/ota_ca.pem`) as part of the same run. Rebuild every affected firmware after a regen. See the *TLS trust chain* section of [04-thingsboard.md](04-thingsboard.md#tls-trust-chain).
 
 ## 5. Build and flash
 

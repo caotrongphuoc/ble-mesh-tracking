@@ -72,7 +72,7 @@ In parallel, `bmt_mesh_ping` polls every configured scanner and relay every 20 s
   - **OTA-beacon key** — plain rotating key. The gateway makes a new random 16-byte key every 24 hours, stores it in NVS, and pushes it to every scanner over mesh (encrypted by the mesh AppKey). Only scanners holding the current key accept an OTA-beacon.
 - Fake beacons that do not know the current key fail HMAC and get dropped.
 
-HTTPS OTA server and TLS setup: [06-http-tls.md](06-http-tls.md). Full OTA test procedure: [10-testing-ota.md](10-testing-ota.md). Key derivation and rotation math: [03-algorithms.md](03-algorithms.md).
+HTTPS OTA server and TLS setup: [04-thingsboard.md#https-ota-server-nginx-port-8443](04-thingsboard.md#https-ota-server-nginx-port-8443). Full OTA test procedure: [10-testing-ota.md](10-testing-ota.md). Key derivation and rotation math: [03-algorithms.md](03-algorithms.md).
 
 ## ThingsBoard rule chain
 
@@ -85,7 +85,7 @@ The `ble_tag_zone_detection` rule chain runs on every tag telemetry event:
 
 To move a scanner to a different room, edit `ZONE_MAP` on the server. No reflash needed.
 
-Hysteresis and leaky-bucket debounce are explained in [03-algorithms.md](03-algorithms.md). MQTT topics and payloads used by the rule chain: [05-thingsboard-mqtt.md](05-thingsboard-mqtt.md).
+Hysteresis and leaky-bucket debounce are explained in [03-algorithms.md](03-algorithms.md). MQTT topics and payloads used by the rule chain: [04-thingsboard.md#mqtt-topics](04-thingsboard.md#mqtt-topics).
 
 ## Source layout
 

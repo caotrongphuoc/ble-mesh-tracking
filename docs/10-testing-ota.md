@@ -69,7 +69,7 @@ Confirm URLs reachable:
 curl -sk -o /dev/null -w "%{http_code}\n" https://<host-ip>:8443/Scanner.bin
 ```
 
-Should print `200`. `-k` skips CA verification for this manual check (the firmware itself verifies against embedded `ota_ca.pem`). Fix firewall if not `200` (see [06-http-tls.md](06-http-tls.md)).
+Should print `200`. `-k` skips CA verification for this manual check (the firmware itself verifies against embedded `ota_ca.pem`). Fix firewall if not `200` (see [04-thingsboard.md#firewall](04-thingsboard.md#firewall)).
 
 Open serial monitors on every board.
 

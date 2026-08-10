@@ -18,12 +18,9 @@ firmware expects.
 
 - One-page end-to-end setup (host + firmware + ThingsBoard):
   [`../docs/00-quickstart.md`](../docs/00-quickstart.md).
-- Detailed ThingsBoard configuration reference (device profiles, rule
-  chain, dashboard aliases, `ZONE_MAP`, verification, common
-  problems): [`../docs/04-thingsboard-setup.md`](../docs/04-thingsboard-setup.md).
+- Detailed ThingsBoard reference — setup, device profiles, rule
+  chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust,
+  HTTPS OTA server, troubleshooting:
+  [`../docs/04-thingsboard.md`](../docs/04-thingsboard.md).
 - Daily operation (start / stop, docker commands, troubleshooting):
   [`operations.md`](operations.md).
-- MQTT topic and payload reference:
-  [`../docs/05-thingsboard-mqtt.md`](../docs/05-thingsboard-mqtt.md).
-- HTTPS OTA server and TLS trust:
-  [`../docs/06-http-tls.md`](../docs/06-http-tls.md).

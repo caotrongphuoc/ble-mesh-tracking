@@ -18,7 +18,7 @@ Room-level indoor tracking on ESP32 / ESP32-S3 with BLE Mesh and a self-hosted T
 
 Tags send BLE beacons. Scanners read signal strength. A relay forwards mesh packets. The gateway pushes raw data to ThingsBoard over MQTTS. A ThingsBoard rule chain turns RSSI into a room name.
 
-New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). For the ThingsBoard side in depth — device profiles, rule chain, dashboard aliases, `ZONE_MAP`, verification, common problems — see [docs/04-thingsboard-setup.md](docs/04-thingsboard-setup.md).
+New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). For the ThingsBoard side in depth — device profiles, rule chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust, verification, common problems — see [docs/04-thingsboard.md](docs/04-thingsboard.md).
 
 ## Documentation
 
@@ -28,9 +28,7 @@ New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (o
 | [docs/01-architecture.md](docs/01-architecture.md) | System layout and how data moves between nodes. |
 | [docs/02-ble-mesh.md](docs/02-ble-mesh.md) | BLE Mesh parts used in this project. |
 | [docs/03-algorithms.md](docs/03-algorithms.md) | Kalman filter, HMAC, hysteresis, OTA compare, watchdog. |
-| [docs/04-thingsboard-setup.md](docs/04-thingsboard-setup.md) | ThingsBoard install, device profiles, rule chain, dashboard. |
-| [docs/05-thingsboard-mqtt.md](docs/05-thingsboard-mqtt.md) | MQTT topics, payload format, and RPC. |
-| [docs/06-http-tls.md](docs/06-http-tls.md) | HTTPS OTA server and TLS cert flow. |
+| [docs/04-thingsboard.md](docs/04-thingsboard.md) | Whole ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server, troubleshooting. |
 | [docs/07-operation.md](docs/07-operation.md) | Runtime behavior and per-file source description. |
 | [docs/08-uart-commands.md](docs/08-uart-commands.md) | UART commands for each node. |
 | [docs/09-testing.md](docs/09-testing.md) | 9 manual tests and regression baseline. |
