@@ -49,7 +49,7 @@ Run the checks listed in [docs/07-operation.md#checklists](docs/07-operation.md#
 
 - All four apps build cleanly.
 - If your change touches a runtime path, run the relevant scenario in [docs/09-testing.md](docs/09-testing.md).
-- If your change touches OTA, run the fault-injection scenarios in [docs/10-testing-ota.md](docs/10-testing-ota.md).
+- If your change touches OTA, run the fault-injection scenario (Test 16) in [docs/09-testing.md](docs/09-testing.md#test-16-fault-injection).
 
 ## Pull request flow
 

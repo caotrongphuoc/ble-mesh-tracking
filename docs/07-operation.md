@@ -109,7 +109,7 @@ mesh is never mistaken for a dead one.
 
 HTTPS OTA server and TLS setup:
 [04-thingsboard.md#https-ota-server-nginx-port-8443](04-thingsboard.md#https-ota-server-nginx-port-8443).
-Full OTA test procedure: [10-testing-ota.md](10-testing-ota.md). Key
+Full OTA test procedure: [09-testing.md#ota](09-testing.md#ota). Key
 derivation and rotation math: [03-algorithms.md](03-algorithms.md).
 
 ## ThingsBoard rule chain
@@ -380,7 +380,7 @@ Before tagging a release:
 - [ ] Test 1 (bring-up) from [09-testing.md](09-testing.md) passes.
 - [ ] Test 3 (walking) passes.
 - [ ] Test 6 (gateway persistence) passes.
-- [ ] Test 9 smoke from [09-testing.md](09-testing.md) or full flow in [10-testing-ota.md](10-testing-ota.md) passes.
+- [ ] [Fast smoke test](09-testing.md#fast-smoke-test) or the full OTA flow (Tests 9-16) in [09-testing.md](09-testing.md#ota) passes.
 - [ ] Changelog entry in [12-changelog.md](12-changelog.md) describes what changed and why.
 - [ ] Tag the commit with the same date the build produces (`YYYYMMDD`).
 

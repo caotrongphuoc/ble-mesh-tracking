@@ -23,11 +23,11 @@
 
 ## Test plan
 
-<!-- What you actually ran to verify this works. Reference the scenario from docs/09-testing.md or docs/10-testing-ota.md when it applies. -->
+<!-- What you actually ran to verify this works. Reference the scenario from docs/09-testing.md when it applies. -->
 
 - [ ] All four apps build (`tools/build-all.sh` or CI).
 - [ ] Flashed and verified on hardware (list which boards).
-- [ ] Relevant test from `docs/09-testing.md` or `docs/10-testing-ota.md` passes.
+- [ ] Relevant test from `docs/09-testing.md` passes.
 
 ## Checklist
 

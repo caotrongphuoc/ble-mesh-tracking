@@ -127,7 +127,7 @@ The nginx OTA fileserver comes up automatically with `docker compose up -d` in s
 cd thingsboard && docker compose up -d ota-fileserver
 ```
 
-On gateway UART: `u` starts OTA for scanners and relays, `g` for gateway self-update. Full procedure: [10-testing-ota.md](10-testing-ota.md).
+On gateway UART: `u` starts OTA for scanners and relays, `g` for gateway self-update. Full procedure: [09-testing.md#ota](09-testing.md#ota).
 
 ## Troubleshooting
 
