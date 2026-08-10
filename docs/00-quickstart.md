@@ -70,7 +70,7 @@ Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` 
 
 Find the serial ports first: Linux `ls /dev/ttyUSB*`, Windows Device Manager under "Ports (COM & LPT)".
 
-All four apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway — that first boot is what burns the signing/encryption eFuses, and it is permanent per chip. Read [secure-boot.md](07-secure-boot.md) before you flash real hardware, and generate your own `secure_boot_keys/bmt_fleet_rsa3072.pem` first (not committed to the repo).
+All four apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway — that first boot is what burns the signing/encryption eFuses, and it is permanent per chip. Read [secure-boot.md](07-secure-boot.md) before you flash real hardware, and generate your own `keys/bmt_fleet_rsa3072.pem` first (not committed to the repo).
 
 ```
 cd apps/gateway && idf.py -p <port> erase-flash flash

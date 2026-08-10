@@ -51,8 +51,8 @@ jobs:
       # per-deployment regen story.
       - name: Generate throwaway signing key + TLS bundle
         run: |
-          mkdir -p secure_boot_keys
-          openssl genrsa -out secure_boot_keys/bmt_fleet_rsa3072.pem 3072
+          mkdir -p keys
+          openssl genrsa -out keys/bmt_fleet_rsa3072.pem 3072
           (cd thingsboard/tls && bash gen_certs.sh)
 
       - uses: espressif/esp-idf-ci-action@v1
@@ -81,9 +81,9 @@ jobs:
       # esp-idf job above.
       - name: Generate throwaway MCUboot key
         run: |
-          mkdir -p bmt/mcuboot_keys
+          mkdir -p bmt/keys
           openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
-              -out bmt/mcuboot_keys/bmt_tag_ecdsa_p256.pem
+              -out bmt/keys/bmt_tag_ecdsa_p256.pem
 
       - uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:

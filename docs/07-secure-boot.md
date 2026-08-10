@@ -38,7 +38,7 @@ Two more `sdkconfig` values changed on all four apps alongside the security opti
 All four apps point to the same key file:
 
 ```
-CONFIG_SECURE_BOOT_SIGNING_KEY="../../secure_boot_keys/bmt_fleet_rsa3072.pem"
+CONFIG_SECURE_BOOT_SIGNING_KEY="../../keys/bmt_fleet_rsa3072.pem"
 ```
 
 One RSA-3072 keypair signs gateway, relay, scanner, and tag firmware. A board only boots firmware signed by this key. Losing the key does not brick already-flashed boards — they keep running — but you lose the ability to sign and OTA any future firmware to them.
@@ -46,8 +46,8 @@ One RSA-3072 keypair signs gateway, relay, scanner, and tag firmware. A board on
 The key is gitignored and never committed. Generate your own before your first flash:
 
 ```
-mkdir -p secure_boot_keys
-espsecure.py generate_signing_key --version 2 --scheme rsa3072 secure_boot_keys/bmt_fleet_rsa3072.pem
+mkdir -p keys
+espsecure.py generate_signing_key --version 2 --scheme rsa3072 keys/bmt_fleet_rsa3072.pem
 ```
 
 Back it up outside the repo (password manager, offline drive). There is no recovery if you lose it after boards are in the field.
@@ -67,6 +67,6 @@ By design, once the secure-boot eFuse is burned the bootloader rejects an unsign
 
 ## Out of scope: the MCUboot / ECDSA key
 
-The `mcuboot_keys/` folder holds the ECDSA P-256 signing key for the nRF52840 Beacon variants (Zephyr / MCUboot bootloader). It is unrelated to the ESP-IDF Secure Boot V2 setup above, despite both key folders sitting side by side at the repo root. Neither key is committed — see [`mcuboot_keys/README.md`](../mcuboot_keys/README.md) for the regen command.
+The nRF52840 Beacon variants (Zephyr / MCUboot bootloader) use a separate ECDSA P-256 signing key that lives alongside the Secure Boot key in [`keys/`](../keys/) as `bmt_tag_ecdsa_p256.pem`. It is unrelated to the ESP-IDF Secure Boot V2 setup above. Neither key is committed — see [`keys/README.md`](../keys/README.md) for the regen command.
 
 Related: [quickstart.md](00-quickstart.md), [thingsboard.md#tls-trust-chain](04-thingsboard.md#tls-trust-chain), [operation.md#checklists](05-operation.md#checklists), [../CHANGELOG.md](../CHANGELOG.md).

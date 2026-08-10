@@ -32,9 +32,9 @@ during the open-source cleanup. Anyone who can run
 `git clone --mirror` on this repo and read `git log -p` can recover
 every historical value:
 
-- `secure_boot_keys/bmt_fleet_rsa3072.pem` — Secure Boot V2 signing
+- `keys/bmt_fleet_rsa3072.pem` — Secure Boot V2 signing
   key (all four ESP-IDF apps).
-- `mcuboot_keys/bmt_tag_ecdsa_p256.pem` — MCUboot signing key for the
+- `keys/bmt_tag_ecdsa_p256.pem` — MCUboot signing key for the
   nRF52840 Beacon variants.
 - `thingsboard/tls/ca.key` and `thingsboard/tls/server.key` —
   self-signed dev CA and the ThingsBoard / OTA server key.
@@ -59,13 +59,13 @@ those before flashing.** Skipping regeneration means:
 
 | Key | Command |
 |---|---|
-| Secure Boot V2 (ESP-IDF, all four apps) | `espsecure.py generate_signing_key --version 2 --scheme rsa3072 secure_boot_keys/bmt_fleet_rsa3072.pem` |
-| MCUboot (nRF52840 Beacon apps) | `imgtool keygen -t ecdsa-p256 -k mcuboot_keys/bmt_tag_ecdsa_p256.pem` |
+| Secure Boot V2 (ESP-IDF, all four apps) | `espsecure.py generate_signing_key --version 2 --scheme rsa3072 keys/bmt_fleet_rsa3072.pem` |
+| MCUboot (nRF52840 Beacon apps) | `imgtool keygen -t ecdsa-p256 -k keys/bmt_tag_ecdsa_p256.pem` |
 | TLS CA + server cert (MQTTS + OTA nginx) | `cd thingsboard && bash tls/gen_certs.sh` |
 | `BMT_TAG_MASTER_KEY` / `BMT_OTA_BEACON_HMAC_KEY` | Replace the 16 bytes in each `apps/*/components/bmt_auth/bmt_auth.c` (must be byte-for-byte identical across Tag, Scanner and Beacon apps for `BMT_TAG_MASTER_KEY`) |
 
-More per-key detail lives in [`secure_boot_keys/README.md`](secure_boot_keys/README.md),
-[`mcuboot_keys/README.md`](mcuboot_keys/README.md) and
+More per-key detail lives in [`keys/README.md`](keys/README.md),
+[`keys/README.md`](keys/README.md) and
 [`thingsboard/tls/gen_certs.sh`](thingsboard/tls/gen_certs.sh).
 
 ## Third-party dependencies

@@ -370,7 +370,7 @@ Short bullet lists to catch mistakes before they cost a re-flash trip.
 - [ ] `BMT_MESH_STATIC_OOB_VAL` regenerated (not the dev default). Same value in gateway AND scanner AND relay.
 - [ ] `CONFIG_BLE_MESH_SETTINGS=y` in gateway `sdkconfig`.
 - [ ] Firmware `PROJECT_VER` shows the deployment build time. Sanity: it must be later than every previously flashed version.
-- [ ] `secure_boot_keys/bmt_fleet_rsa3072.pem` generated yourself and backed up outside the repo before the first `erase-flash`. See [secure-boot.md](07-secure-boot.md) — the eFuse burn on first boot is permanent per board.
+- [ ] `keys/bmt_fleet_rsa3072.pem` generated yourself and backed up outside the repo before the first `erase-flash`. See [secure-boot.md](07-secure-boot.md) — the eFuse burn on first boot is permanent per board.
 
 ### Pre-release
 

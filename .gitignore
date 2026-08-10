@@ -25,9 +25,8 @@ ON_TAP*.txt
 deploy-config.txt
 
 # Cryptographic material — every deployment generates its own.
-# See secure_boot_keys/README.md, mcuboot_keys/README.md, thingsboard/tls/gen_certs.sh
-secure_boot_keys/*.pem
-mcuboot_keys/*.pem
+# See keys/README.md, thingsboard/tls/gen_certs.sh
+keys/*.pem
 thingsboard/tls/ca.key
 thingsboard/tls/ca.pem
 thingsboard/tls/ca.srl
