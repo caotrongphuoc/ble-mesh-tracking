@@ -1,5 +1,6 @@
 <div align="center">
 
+[![build](https://github.com/caotrongphuoc/ble-mesh-tracking/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/caotrongphuoc/ble-mesh-tracking/actions/workflows/build.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
 ![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0.1-red?style=flat-square)
 ![Target](https://img.shields.io/badge/target-ESP32%20%7C%20ESP32--S3-informational?style=flat-square)
