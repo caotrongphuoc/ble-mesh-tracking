@@ -41,10 +41,11 @@ Download the ESP-IDF Installer v6.0.1 from `https://dl.espressif.com/dl/esp-idf/
 
 Install Docker first. Linux: `sudo apt install docker.io docker-compose-plugin`. Windows: Docker Desktop (needs WSL2 on first run).
 
-Then:
+The repo ships no key material. Generate the dev CA + server cert once (`openssl` required — Git Bash on Windows already has it), then bring the stack up:
 
 ```
 cd thingsboard
+bash tls/gen_certs.sh          # first-run only; also copies ca.pem into both firmware EMBED_TXTFILES paths
 docker compose up -d
 ```
 
@@ -63,7 +64,7 @@ Edit `apps/*/components/bmt_config/bmt_config.h`:
 | `BMT_TB_GATEWAY_TOKEN` | gateway | Token from step 3. |
 | `BMT_OTA_*_URL` | gateway, scanner, relay | `https://<host-ip>:8443/<name>.bin`. |
 
-If you regenerated TLS certs, copy `thingsboard/tls/ca.pem` over BOTH `apps/gateway/components/bmt_mqtt/ca.pem` (MQTTS trust) AND `components/bmt_ota/ota_ca.pem` (shared OTA client trust). Both firmware locations embed the same CA. See [06-http-tls.md](06-http-tls.md).
+Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` embeds (`apps/gateway/components/bmt_mqtt/ca.pem` and `components/bmt_ota/ota_ca.pem`) as part of the same run. Rebuild every affected firmware after a regen. See [06-http-tls.md](06-http-tls.md).
 
 ## 5. Build and flash
 

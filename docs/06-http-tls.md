@@ -89,7 +89,7 @@ flowchart LR
     OTACA -. trusts .-> NGX
 ```
 
-Every time `gen_certs.sh` runs, both firmware copies of `ca.pem` must be refreshed together (see the [Regenerate certs](#regenerate-certs-production-deploy) section below), otherwise one of the two verification paths breaks.
+`gen_certs.sh` refreshes both firmware copies of `ca.pem` as part of the same run, so the two verification paths never drift apart. The repo ships no key material — run the script once on a fresh clone before `docker compose up`.
 
 ### Cert layout under `thingsboard/tls/`
 
@@ -124,11 +124,9 @@ Why CN and not SAN: the gateway has no DNS resolution, only IP. CN mode fits tha
 ```
 cd thingsboard/tls
 bash gen_certs.sh
-cp ca.pem ../../apps/gateway/components/bmt_mqtt/ca.pem
-cp ca.pem ../../components/bmt_ota/ota_ca.pem
 ```
 
-Rebuild and flash gateway, scanner and relay. Then restart the containers (both MQTTS and OTA nginx pick up the new server cert automatically since they mount from `thingsboard/tls/`):
+The script generates fresh `ca.*` / `server.*` in this directory and copies the new `ca.pem` into both firmware `EMBED_TXTFILES` paths so the next firmware build trusts this server. Then rebuild and flash gateway, scanner and relay, and restart the containers (both MQTTS and OTA nginx pick up the new server cert automatically since they mount from `thingsboard/tls/`):
 
 ```
 cd thingsboard

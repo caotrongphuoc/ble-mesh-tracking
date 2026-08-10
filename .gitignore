@@ -21,6 +21,19 @@ Thumbs.db
 # Local deployment config with real secrets — copy from deploy-config.example.txt
 deploy-config.txt
 
+# Cryptographic material — every deployment generates its own.
+# See secure_boot_keys/README.md, mcuboot_keys/README.md, thingsboard/tls/gen_certs.sh
+secure_boot_keys/*.pem
+mcuboot_keys/*.pem
+thingsboard/tls/ca.key
+thingsboard/tls/ca.pem
+thingsboard/tls/ca.srl
+thingsboard/tls/server.csr
+thingsboard/tls/server.key
+thingsboard/tls/server.pem
+apps/gateway/components/bmt_mqtt/ca.pem
+components/bmt_ota/ota_ca.pem
+
 # OTA payloads — build locally, CMake POST_BUILD copies them here
 firmware/*.bin
 __pycache__/

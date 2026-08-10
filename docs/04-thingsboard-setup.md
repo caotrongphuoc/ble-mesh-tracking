@@ -30,10 +30,24 @@ Do them in order — later steps depend on earlier ones.
 Docker Desktop on Windows / macOS. Native `docker` +
 `docker-compose-plugin` on Linux.
 
-### 2. Start ThingsBoard
+### 2. Generate the TLS bundle (once)
+
+The repo ships no key material. On a fresh clone, generate a dev CA +
+server cert before starting the stack. The script also copies the new
+`ca.pem` into both firmware `EMBED_TXTFILES` paths so the next
+firmware build trusts this server:
 
 ```
 cd thingsboard
+bash tls/gen_certs.sh
+```
+
+Requires `openssl` (Git Bash on Windows already has it). Re-run any
+time certs expire or if you change the hostname inside the script.
+
+### 3. Start ThingsBoard
+
+```
 docker compose up -d
 ```
 
@@ -50,12 +64,12 @@ serves firmware `.bin` files out of the repo's `firmware/` directory.
 Build a new firmware, the `.bin` lands there, mesh nodes can download
 it. No more manual `python -m http.server` per OTA.
 
-### 3. Log in
+### 4. Log in
 
 Open `http://localhost:8080`, log in with `tenant@thingsboard.org` /
 `tenant`, then change the password (top-right → Profile).
 
-### 4. Create two device profiles
+### 5. Create two device profiles
 
 Menu Device profiles → `+`. Names must match **character-for-character**:
 
@@ -72,7 +86,7 @@ them over MQTT Gateway API (`v1/gateway/connect`) with a
 profile **by name** — a one-character mismatch drops the device into
 the `default` profile and the zone rule chain never runs for it.
 
-### 5. Create the gateway device and copy the token
+### 6. Create the gateway device and copy the token
 
 Menu Devices → `+ Add device`. Name it `bmt_gateway`, tick
 **Is gateway**. In the Credentials tab, copy the Access Token.
@@ -86,7 +100,7 @@ Paste it into `apps/gateway/components/bmt_config/bmt_config.h`:
 Also update `BMT_TB_IP` in the same file to the LAN IP of the machine
 running Docker.
 
-### 6. Import the rule chains
+### 7. Import the rule chains
 
 Menu Rule chains → `+ Import`:
 
@@ -102,7 +116,7 @@ into is decided by the device's profile**. Skip this step and tag
 telemetry only passes through the Root chain (raw storage) — the
 zone attribute is never computed.
 
-### 7. Update `ZONE_MAP` with real scanner MACs
+### 8. Update `ZONE_MAP` with real scanner MACs
 
 Open `ble_tag_zone_detection` → double-click the **Apply hysteresis**
 node → find the top of the script:
@@ -124,7 +138,7 @@ Editing `ZONE_MAP` in the browser instead of firmware is the main
 benefit of this architecture: moving a scanner to a different room
 is a one-line edit, no reflash.
 
-### 8. Import the dashboard
+### 9. Import the dashboard
 
 Menu Dashboards → `+ Import dashboard` → pick
 `thingsboard/dashboard/indoor_tracking.json`.
@@ -144,9 +158,9 @@ In view mode, click a row in **Tracked Tags** to load that tag into
 the floor plan, current-zone card, RSSI charts, and diagnostic
 widgets.
 
-### 9. Rebuild and flash the gateway
+### 10. Rebuild and flash the gateway
 
-After step 5, rebuild `apps/gateway` and flash. The gateway connects
+After step 6, rebuild `apps/gateway` and flash. The gateway connects
 over MQTTS on port 8883 and auto-registers sub-devices under the
 right profile.
 
@@ -179,15 +193,12 @@ its own with no board touched.
 
 ## Regenerate certs
 
-```
-cd thingsboard/tls
-bash gen_certs.sh
-cp ca.pem ../../apps/gateway/components/bmt_mqtt/ca.pem
-cp ca.pem ../../components/bmt_ota/ota_ca.pem
-```
-
-Rebuild the gateway and any node whose OTA CA needs to change.
-`EMBED_TXTFILES` bundles the new `ca.pem` into the firmware.
+Re-run `bash thingsboard/tls/gen_certs.sh` (same command as step 2).
+It refreshes `ca.pem` / `server.pem` in `thingsboard/tls/` and copies
+the new `ca.pem` into both firmware `EMBED_TXTFILES` paths. Then
+rebuild the gateway (and any node whose OTA CA must trust the new
+server) so `EMBED_TXTFILES` bundles the fresh CA into the image, and
+restart the Docker stack so the containers reload the server cert.
 
 ## Common problems on a new deployment
 
