@@ -9,6 +9,32 @@ identical byte-for-byte**; only the hardware-dependent parts differ
 
 ---
 
+## 0. Overview
+
+An **optional coin-cell variant** of [`../tag`](../tag) (ESP-IDF).
+Same wire protocol byte-for-byte (CID `0x02E5`, 24-byte payload,
+HMAC-16, TOTP-style epoch key) so ESP32 scanners recognise it out of
+the box — no scanner-side change needed. Pick this variant when a
+wearable coin-cell tag matters more than reflash-over-USB convenience;
+stick with `apps/tag` on ESP32-S3 otherwise.
+
+Build system is **Zephyr / west** (not ESP-IDF); see the
+[Zephyr getting-started guide](https://docs.zephyrproject.org/latest/develop/getting_started/index.html).
+The bootloader is **MCUboot** with ECDSA-P256 signing — the signing
+key lives in `../../mcuboot_keys/` (see
+[`../../mcuboot_keys/README.md`](../../mcuboot_keys/README.md) for the
+regen command; the repo ships none).
+
+For interop the master HMAC key must match byte-for-byte across every
+tag variant and the Scanner — see
+[`../../SECURITY.md`](../../SECURITY.md).
+
+**Status: experimental.** No OTA-over-mesh support (the OTA path in
+`apps/tag` is not shared with this variant); flashing is manual via
+UF2 as described below.
+
+---
+
 ## 1. Build
 
 ```powershell

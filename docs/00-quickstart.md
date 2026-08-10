@@ -10,7 +10,7 @@ Common flow first, then OS-specific notes. Assumes you have a workstation on the
 - Git.
 - **3x ESP32-S3** (gateway + relay + tag) and **3x ESP32** (3 scanners). Six boards total. See the hardware table in the [README](../README.md#hardware) for the reasoning behind the split (S3 for BLE + WiFi coexistence on gateway/relay/tag; plain ESP32 is enough for the scanner role).
 - One USB-serial cable per board.
-- Optional: 1x nRF52840 board (nice!nano v2, XIAO BLE Sense) if you want to run the coin-cell battery Beacon variant of the tag — see [14-nrf52840-beacon.md](14-nrf52840-beacon.md).
+- Optional: 1x nRF52840 board (nice!nano v2, XIAO BLE Sense) if you want to run the coin-cell battery Beacon variant of the tag — see [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
 
 ## 1. Clone
 

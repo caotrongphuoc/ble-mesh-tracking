@@ -8,8 +8,9 @@ SB_CONFIG_BOOT_SIGNATURE_KEY_FILE="../../mcuboot_keys/bmt_tag_ecdsa_p256.pem"
 ```
 
 The key is `.gitignore`d — every deployment must generate its own.
-See [docs/14-nrf52840-beacon.md](../docs/14-nrf52840-beacon.md) for
-the Beacon build flow.
+See [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md)
+and [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md)
+for the Beacon build flow.
 
 ## Generate
 

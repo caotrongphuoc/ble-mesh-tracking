@@ -25,5 +25,5 @@ Each successful build drops its `.bin` into `firmware/` via the CMake `POST_BUIL
 
 ## Not covered
 
-- Beacon nRF52840 apps use Zephyr / west and are outside this script — build them by hand per [docs/14-nrf52840-beacon.md](../docs/14-nrf52840-beacon.md).
+- Beacon nRF52840 apps use Zephyr / west and are outside this script — build them by hand per [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
 - No script for signing / OTA packaging — the CMake POST_BUILD step already handles the ESP-IDF signed image; MCUboot signing for Beacon is documented in the per-board READMEs.

@@ -33,7 +33,7 @@ New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (o
 | [docs/09-testing.md](docs/09-testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end + fault injection, regression baseline. |
 | [CHANGELOG.md](CHANGELOG.md) | Change log (Keep-a-Changelog + SemVer). |
 | [docs/13-secure-boot.md](docs/13-secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
-| [docs/14-nrf52840-beacon.md](docs/14-nrf52840-beacon.md) | Optional coin-cell tag variant on nRF52840 (ProMicro / XIAO). Build via Zephyr / west. |
+| [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md), [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) | Optional coin-cell tag variants on nRF52840 (build via Zephyr / west). |
 
 ## Hardware
 
