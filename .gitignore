@@ -18,6 +18,9 @@ Thumbs.db
 *.zip
 *.docx
 
+# Personal review / defense notes kept alongside the repo
+ON_TAP*.txt
+
 # Local deployment config with real secrets — copy from deploy-config.example.txt
 deploy-config.txt
 
