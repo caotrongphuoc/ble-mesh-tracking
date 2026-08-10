@@ -17,7 +17,7 @@ Room-level indoor tracking on ESP32 / ESP32-S3 with BLE Mesh and a self-hosted T
 
 Tags send BLE beacons. Scanners read signal strength. A relay forwards mesh packets. The gateway pushes raw data to ThingsBoard over MQTTS. A ThingsBoard rule chain turns RSSI into a room name.
 
-New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). A more detailed step-by-step deployment walkthrough is at [thingsboard/import.md](thingsboard/import.md).
+New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). For the ThingsBoard side in depth — device profiles, rule chain, dashboard aliases, `ZONE_MAP`, verification, common problems — see [docs/04-thingsboard-setup.md](docs/04-thingsboard-setup.md).
 
 ## Documentation
 
