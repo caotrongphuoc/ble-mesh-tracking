@@ -69,4 +69,4 @@ By design, once the secure-boot eFuse is burned the bootloader rejects an unsign
 
 The `mcuboot_keys/` folder holds the ECDSA P-256 signing key for the nRF52840 Beacon variants (Zephyr / MCUboot bootloader). It is unrelated to the ESP-IDF Secure Boot V2 setup above, despite both key folders sitting side by side at the repo root. Neither key is committed — see [`mcuboot_keys/README.md`](../mcuboot_keys/README.md) for the regen command.
 
-Related: [00-quickstart.md](00-quickstart.md), [04-thingsboard.md#tls-trust-chain](04-thingsboard.md#tls-trust-chain), [11-checklist.md](11-checklist.md), [12-changelog.md](12-changelog.md).
+Related: [00-quickstart.md](00-quickstart.md), [04-thingsboard.md#tls-trust-chain](04-thingsboard.md#tls-trust-chain), [07-operation.md#checklists](07-operation.md#checklists), [12-changelog.md](12-changelog.md).

@@ -95,7 +95,7 @@ Linux permission denied on `/dev/ttyUSB*`: `sudo usermod -aG dialout $USER`, the
 
 If a node never reaches "fully configured", power-cycle just that node — it will send a fresh unprovisioned beacon and the gateway re-provisions it (see [07-operation.md](07-operation.md#self-healing)).
 
-Full command list: [08-uart-commands.md](08-uart-commands.md). Test procedures: [09-testing.md](09-testing.md).
+Full command list: [07-operation.md#uart-commands](07-operation.md#uart-commands). Test procedures: [09-testing.md](09-testing.md).
 
 ## 7. OTA
 

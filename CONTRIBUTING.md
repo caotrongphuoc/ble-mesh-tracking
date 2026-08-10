@@ -45,7 +45,7 @@ Split unrelated changes into separate commits — each commit should stand on it
 
 ## Testing before opening a PR
 
-Run the checks listed in [docs/11-checklist.md](docs/11-checklist.md). At minimum:
+Run the checks listed in [docs/07-operation.md#checklists](docs/07-operation.md#checklists). At minimum:
 
 - All four apps build cleanly.
 - If your change touches a runtime path, run the relevant scenario in [docs/09-testing.md](docs/09-testing.md).
