@@ -22,7 +22,7 @@ firmware expects.
   chain, dashboard aliases, `ZONE_MAP`, verification, common
   problems): [`../docs/04-thingsboard-setup.md`](../docs/04-thingsboard-setup.md).
 - Daily operation (start / stop, docker commands, troubleshooting):
-  [`Thingsboard.md`](Thingsboard.md).
+  [`operations.md`](operations.md).
 - MQTT topic and payload reference:
   [`../docs/05-thingsboard-mqtt.md`](../docs/05-thingsboard-mqtt.md).
 - HTTPS OTA server and TLS trust:
