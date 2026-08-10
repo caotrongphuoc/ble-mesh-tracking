@@ -72,9 +72,10 @@ static bool wait_cfg_ack(uint16_t addr, uint32_t opcode)
 	return (bits & BMT_CFG_ACK_BIT) != 0;
 }
 
-/* Gui 1 buoc config + cho ACK, thu lai toi da BMT_CFG_RETRY lan. APP_KEY_ADD va
- * MODEL_APP_BIND deu idempotent (gui lai cung gia tri -> node tra SUCCESS) nen
- * retry an toan. Tra ve true neu co ACK. */
+/* Send one config step and wait for ACK, retrying up to BMT_CFG_RETRY
+ * times. APP_KEY_ADD and MODEL_APP_BIND are both idempotent (resending
+ * the same value -> node replies SUCCESS), so retrying is safe. Returns
+ * true if any ACK arrived. */
 static bool cfg_send_retry(const char* step, uint16_t addr, uint32_t opcode,
                            esp_ble_mesh_client_common_param_t* c,
                            esp_ble_mesh_cfg_client_set_state_t* s)
@@ -90,7 +91,7 @@ static bool cfg_send_retry(const char* step, uint16_t addr, uint32_t opcode,
 		}
 		if (wait_cfg_ack(addr, opcode))
 		{
-			ESP_LOGI(TAG, "%s ACK 0x%04x (lan %d)", step, addr, a);
+			ESP_LOGI(TAG, "%s ACK 0x%04x (attempt %d)", step, addr, a);
 			return true;
 		}
 		ESP_LOGW(TAG, "%s no ACK 0x%04x [%d/%d]", step, addr, a, BMT_CFG_RETRY);
@@ -101,7 +102,7 @@ static bool cfg_send_retry(const char* step, uint16_t addr, uint32_t opcode,
 
 static void cfg_abort_cleanup(uint16_t addr)
 {
-	ESP_LOGE(TAG, "[CFG] Config 0x%04x THAT BAI sau %d lan — xoa entry (tranh zombie chan re-provision)",
+	ESP_LOGE(TAG, "[CFG] Config 0x%04x FAILED after %d attempts — deleting entry (avoids a zombie blocking re-provision)",
 	         addr, BMT_CFG_RETRY);
 	int idx = bmt_node_table_find(addr);
 	if (idx >= 0)
@@ -176,7 +177,7 @@ static void scan_config_task(void* arg)
 {
 	uint16_t addr = (uint16_t)(uint32_t)arg;
 	if (s_cfg_mutex)
-		xSemaphoreTake(s_cfg_mutex, portMAX_DELAY); /* serialize: 1 config task/luc */
+		xSemaphoreTake(s_cfg_mutex, portMAX_DELAY); /* serialize: at most one config task at a time */
 	ESP_LOGI(TAG, "[SCN_CFG] Configuring scan node 0x%04x...", addr);
 	vTaskDelay(pdMS_TO_TICKS(2000));
 
@@ -242,7 +243,7 @@ static void relay_config_task(void* arg)
 {
 	uint16_t addr = (uint16_t)(uint32_t)arg;
 	if (s_cfg_mutex)
-		xSemaphoreTake(s_cfg_mutex, portMAX_DELAY); /* serialize: 1 config task/luc */
+		xSemaphoreTake(s_cfg_mutex, portMAX_DELAY); /* serialize: at most one config task at a time */
 	ESP_LOGI(TAG, "[RLY_CFG] Configuring relay node 0x%04x...", addr);
 	vTaskDelay(pdMS_TO_TICKS(2000));
 
@@ -356,9 +357,9 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble_mesh_prov_c
 			{
 				bmt_node_t* nn = bmt_node_table_get(stale);
 				if (!nn->config_done)
-					break; /* dang config do — bo qua nhu cu */
-				ESP_LOGW(TAG, "Node 0x%04x (%s) beacon unprovisioned tro lai — "
-				              "node da tu reset, xoa entry cu va provision lai",
+					break; /* still configuring — skip as before */
+				ESP_LOGW(TAG, "Node 0x%04x (%s) is beaconing unprovisioned again — "
+				              "the node reset itself; deleting the old entry and re-provisioning",
 				         nn->addr, nn->name);
 				esp_ble_mesh_provisioner_delete_node_with_uuid(uuid);
 				memset(nn, 0, sizeof(*nn));
@@ -547,7 +548,7 @@ static void vnd_client_cb(esp_ble_mesh_model_cb_event_t event,
 		}
 		else
 		{
-			ESP_LOGW(TAG, "[VND] src=0x%04x MAC=? (chua tra ra) tag=0x%04x rssi=%d battery=%u%% (mesh_recv=%" PRIu32 ")",
+			ESP_LOGW(TAG, "[VND] src=0x%04x MAC=? (not resolved yet) tag=0x%04x rssi=%d battery=%u%% (mesh_recv=%" PRIu32 ")",
 			         src, report.tag_id, report.rssi, report.battery, s_mesh_received);
 		}
 
@@ -570,11 +571,11 @@ static void vnd_client_cb(esp_ble_mesh_model_cb_event_t event,
 
 		if (r.status == 0)
 		{
-			ESP_LOGI(TAG, "[OTA] ===== Node 0x%04x (%s) OTA THANH CONG =====", src, name);
+			ESP_LOGI(TAG, "[OTA] ===== Node 0x%04x (%s) OTA SUCCESS =====", src, name);
 		}
 		else
 		{
-			ESP_LOGW(TAG, "[OTA] ===== Node 0x%04x (%s) OTA THAT BAI (status=%u) =====",
+			ESP_LOGW(TAG, "[OTA] ===== Node 0x%04x (%s) OTA FAILED (status=%u) =====",
 			         src, name, r.status);
 		}
 		bmt_tb_pub_ota_result(src, r.status);
@@ -607,7 +608,7 @@ static void node_ping_task(void* arg)
 			if (pe != ESP_OK)
 				ESP_LOGW(TAG, "[PING] send fail to 0x%04x: %s", n->addr, esp_err_to_name(pe));
 			else
-				wait_cfg_ack(n->addr, ESP_BLE_MESH_MODEL_OP_DEFAULT_TTL_GET); /* cho het round-trip roi moi nha mutex */
+				wait_cfg_ack(n->addr, ESP_BLE_MESH_MODEL_OP_DEFAULT_TTL_GET); /* wait for the whole round-trip before releasing the mutex */
 			if (s_cfg_mutex)
 				xSemaphoreGive(s_cfg_mutex);
 			uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -757,6 +758,6 @@ void bmt_mesh_print_keys(void)
 	}
 	printf("\n");
 #else
-	printf("NetKey/AppKey: [an — enable BMT_DEBUG_PRINT_KEYS de in ra hex]\n");
+	printf("NetKey/AppKey: [hidden — define BMT_DEBUG_PRINT_KEYS to print hex]\n");
 #endif
 }

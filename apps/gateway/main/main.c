@@ -45,8 +45,8 @@ void app_main(void)
 	if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
 	{
 		ESP_LOGE(TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-		ESP_LOGE(TAG, "!!! NVS init: %s — PHAI XOA TOAN BO NVS", esp_err_to_name(err));
-		ESP_LOGE(TAG, "!!! => MAT node table + NetKey/AppKey (se sinh key moi)");
+		ESP_LOGE(TAG, "!!! NVS init: %s — MUST WIPE THE ENTIRE NVS", esp_err_to_name(err));
+		ESP_LOGE(TAG, "!!! => LOSES node table + NetKey/AppKey (new keys will be generated)");
 		ESP_LOGE(TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		ESP_ERROR_CHECK(nvs_flash_erase());
 		err = nvs_flash_init();

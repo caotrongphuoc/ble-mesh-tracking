@@ -27,10 +27,11 @@
 
 static const char* TAG = "BMT_OTA";
 
-/* [SECURITY] Cert CA nhung vao firmware de verify HTTPS OTA server — dung
- * chung 1 CA voi MQTTS (cung 1 server vat ly). Truoc day OTA qua HTTP thuan,
- * ai chung LAN cung tai .bin ve doc plaintext secret (WiFi pass, TB token...)
- * ma khong can dung toi vat ly board — day la fix cho lo hong do. */
+/* [SECURITY] CA embedded in firmware to verify the HTTPS OTA server —
+ * shares one CA with MQTTS (same physical server). Previously OTA ran
+ * over plain HTTP: anyone on the LAN could download the .bin and read
+ * plaintext secrets (WiFi pass, TB token, ...) without touching a
+ * board. This is the fix for that hole. */
 extern const uint8_t bmt_ota_ca_pem_start[] asm("_binary_ota_ca_pem_start");
 extern const uint8_t bmt_ota_ca_pem_end[] asm("_binary_ota_ca_pem_end");
 
@@ -187,8 +188,9 @@ static esp_err_t beacon_key_import(const uint8_t* key)
 	psa_set_key_type(&attr, PSA_KEY_TYPE_HMAC);
 	psa_set_key_bits(&attr, 8 * 16);
 
-	/* Import vao slot MOI truoc, chi swap sau khi import OK — rollback-safe:
-	 * neu import fail, key cu (s_beacon_hmac_key_id + raw) van con dung duoc. */
+	/* Import into a NEW slot first, only swap after import succeeds —
+	 * rollback-safe: if the import fails, the old key
+	 * (s_beacon_hmac_key_id + raw) is still usable. */
 	psa_key_id_t new_id = 0;
 	psa_status_t st = psa_import_key(&attr, key, 16, &new_id);
 	if (st != PSA_SUCCESS)
@@ -249,8 +251,9 @@ static void beacon_key_rotate_and_push(void)
 {
 	uint8_t new_key[16];
 	esp_fill_random(new_key, sizeof(new_key));
-	/* Import truoc — neu fail, KHONG persist va KHONG push, giu key cu de tranh
-	 * NVS/PSA/scanner lech key nhau (boot lai gateway se dung key sai). */
+	/* Import first — if it fails, do NOT persist and do NOT push, keep
+	 * the old key so NVS / PSA / scanner do not drift apart (a gateway
+	 * reboot would then load the wrong key). */
 	if (beacon_key_import(new_key) != ESP_OK)
 	{
 		ESP_LOGE(TAG, "[SECURITY] Key rotate ABORTED — keeping the old key, not pushing");
@@ -353,7 +356,7 @@ static esp_err_t beacon_send(uint8_t target_type)
 	if (rc != 0)
 	{
 		ESP_LOGE(TAG, "[OTA] ble_gap_adv_start FAILED rc=%d — the mesh host may already be advertising, "
-		              "fallback sang mesh unicast",
+		              "falling back to mesh unicast",
 		         rc);
 		return ESP_FAIL;
 	}

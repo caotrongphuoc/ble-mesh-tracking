@@ -47,8 +47,8 @@ static void uart_cmd_task(void* arg)
 	uart_param_config(UART_NUM_0, &cfg);
 
 	printf("\n===== BMT RELAY (modular) COMMANDS =====\n");
-	printf("r -> RESET mesh (xoa NVS, ve unprovisioned)\n");
-	printf("1 -> STATUS hien tai\n");
+	printf("r -> RESET mesh (erase NVS, back to unprovisioned)\n");
+	printf("1 -> STATUS (current)\n");
 	printf("=========================================\n");
 
 	uint8_t ch;
@@ -62,9 +62,9 @@ static void uart_cmd_task(void* arg)
 		{
 		case 'r':
 		case 'R':
-			/* bmt_mesh_local_reset() gio tu reboot dung luc reset
-			 * mesh THUC SU xong (qua event), khong con doan mo delay o day. */
-			printf("\n[UART] Resetting mesh — se tu reboot khi xong...\n");
+			/* bmt_mesh_local_reset() now reboots exactly when the mesh
+			 * reset REALLY completes (via event); no more fixed delay here. */
+			printf("\n[UART] Resetting mesh — will reboot when done...\n");
 			bmt_mesh_local_reset();
 			break;
 

@@ -35,8 +35,8 @@ static void print_status(void)
 	printf("4 -> SHOW STATUS\n");
 	printf("u -> [OTA] UPDATE SCANNER/RELAY VIA MESH\n");
 	printf("g -> [OTA] UPDATE GATEWAY FIRMWARE\n");
-	printf("0 -> SOFT RESET (restart, giu tat ca mesh + NVS)\n");
-	printf("9 -> FULL RESET (xoa tat ca, re-provision)\n");
+	printf("0 -> SOFT RESET (restart, keeps mesh + NVS intact)\n");
+	printf("9 -> FULL RESET (erase everything, re-provision)\n");
 	printf("Provision mode: %s\n",
 	       bmt_scan_list_get_mode() == BMT_PROV_MODE_AUTO ? "AUTO" : "MANUAL");
 	printf("=========================================\n");
@@ -121,14 +121,14 @@ static void uart_cmd_task(void* arg)
 			break;
 
 		case '0':
-			printf("\n[UART] SOFT RESET — restart, giu toan bo mesh NVS...\n");
+			printf("\n[UART] SOFT RESET — restart, keeping the whole mesh NVS...\n");
 			bmt_zone_reset_all();
 			vTaskDelay(pdMS_TO_TICKS(300));
 			esp_restart();
 			break;
 
 		case '9':
-			printf("\n[UART] FULL RESET — xoa tat ca, re-provision sau reboot...\n");
+			printf("\n[UART] FULL RESET — erase everything, re-provision after reboot...\n");
 			{
 				int erased = bmt_mesh_wipe_all_provisioned();
 				printf("[UART] Erased %d node(s)\n", erased);

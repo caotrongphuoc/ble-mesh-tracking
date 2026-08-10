@@ -8,25 +8,26 @@
 
 static const char* TAG = "BMT_AUTH";
 
-/* [SECURITY] Master key — KHONG con dung truc tiep de ky payload. Dung de
- * derive 1 key rieng cho tung epoch (xoay vong theo thoi gian, "TOTP-style"
- * receiver-less — Tag khong co mesh/WiFi nen khong the nhan key rotate day
- * xuong nhu OTA-beacon key ben Scanner). Neu key nay bi doc trom tu flash,
- * ke tan cong van phai tu tinh lai epoch key hien hanh — khong the "replay
- * mai mai" 1 key tinh duy nhat. */
+/* [SECURITY] Master key — NOT used directly to sign payloads any more.
+ * It derives one key per epoch (rotates over time, TOTP-style,
+ * receiver-less — the Tag has no mesh/WiFi so it cannot receive a
+ * rotated key pushed down like the Scanner's OTA-beacon key). Even if
+ * this key is stolen from flash, the attacker still has to derive the
+ * current epoch key — a single static key cannot be replayed forever. */
 static const uint8_t BMT_TAG_MASTER_KEY[16] = {
     0x2C, 0x5C, 0xBE, 0x42, 0x87, 0xAE, 0x95, 0x4A,
     0xDE, 0xEE, 0x0C, 0x6C, 0x8B, 0x74, 0x9C, 0x45};
 
-/* Epoch tick = 1h. Tag KHONG co RTC/WiFi nen epoch la bo dem CUC BO tinh tu
- * luc boot (esp_timer_get_time(), khong phai wall-clock) — reset ve 0 moi
- * lan mat nguon (thay pin). Scanner xu ly lech nay bang windowed resync,
- * xem bmt_auth_verify_tag() ben Scanner. PHAI GIONG HET gia tri o Scanner. */
+/* Epoch tick = 1 h. The Tag has NO RTC or WiFi, so the epoch is a LOCAL
+ * counter measured from boot (esp_timer_get_time(), not wall-clock) — it
+ * resets to 0 on every power loss (battery swap). The Scanner absorbs
+ * this drift via windowed resync — see bmt_auth_verify_tag() on the
+ * Scanner side. MUST EXACTLY MATCH the value used on the Scanner. */
 #define BMT_EPOCH_TICK_SEC 3600
 
 static psa_key_id_t s_master_key_id = 0;
 static psa_key_id_t s_epoch_key_id = 0;
-static uint16_t s_cached_epoch = 0xFFFF; /* gia tri khong hop le -> ep derive lan dau */
+static uint16_t s_cached_epoch = 0xFFFF; /* invalid value -> forces derivation on first use */
 
 static uint16_t current_epoch(void)
 {

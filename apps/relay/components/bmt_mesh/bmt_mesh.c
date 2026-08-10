@@ -239,7 +239,7 @@ esp_err_t bmt_mesh_report_ota_result(uint8_t status)
 	s_vnd_models[0].pub->ttl = 7;
 	esp_err_t e = esp_ble_mesh_model_publish(&s_vnd_models[0], BMT_OP_VND_OTA_RESULT,
 	                                         sizeof(r), (uint8_t*)&r, ROLE_NODE);
-	ESP_LOGI(TAG, "[OTA] Bao cao ket qua status=%u: %s", status,
+	ESP_LOGI(TAG, "[OTA] OTA result report status=%u: %s", status,
 	         e == ESP_OK ? "sent" : esp_err_to_name(e));
 	return e;
 }

@@ -26,9 +26,10 @@ static const char* TAG = "BMT_OTA";
 #define BMT_OTA_DEFAULT_WIFI_TIMEOUT_MS 30000
 #define BMT_OTA_DEFAULT_AUTO_CHECK_MS (3 * 60 * 1000)
 
-/* [SECURITY] Khong doi theo app (Scanner/Relay dung chung 1 OTA server) nen
- * de thang o day thay vi them field vao bmt_ota_config_t. Cert CA nhung
- * chung — cung 1 server voi MQTTS ben Gateway. */
+/* [SECURITY] Does not vary per app (Scanner and Relay share one OTA
+ * server), so pin it here instead of adding a field to
+ * bmt_ota_config_t. The embedded CA is shared with MQTTS on the
+ * Gateway — same server. */
 #define BMT_OTA_SERVER_CN "bmt-tb.local"
 extern const uint8_t bmt_ota_ca_pem_start[] asm("_binary_ota_ca_pem_start");
 extern const uint8_t bmt_ota_ca_pem_end[] asm("_binary_ota_ca_pem_end");
@@ -47,7 +48,7 @@ void bmt_ota_init(const bmt_ota_config_t* cfg)
 {
 	if (!cfg || !cfg->url || !cfg->wifi_ssid || !cfg->wifi_pass || !cfg->nvs_namespace)
 	{
-		ESP_LOGE(TAG, "bmt_ota_init: config thieu truong bat buoc");
+		ESP_LOGE(TAG, "bmt_ota_init: config is missing a required field");
 		return;
 	}
 	s_cfg = *cfg;
@@ -191,8 +192,8 @@ static void ota_wifi_tear_down(void)
 	}
 }
 
-/* Return: ESP_OK = flashed OK; ESP_ERR_NOT_FOUND = skip (SHA match hoac
- * version khong moi hon — khong phai loi); other = that su fail. */
+/* Return: ESP_OK = flashed OK; ESP_ERR_NOT_FOUND = skip (SHA match or
+ * server version not newer — not an error); other = real failure. */
 static esp_err_t ota_check_and_flash(void)
 {
 	printf("[OTA] WiFi connected — checking firmware version...\n");
@@ -315,7 +316,7 @@ void bmt_ota_trigger(void)
 {
 	if (!s_inited)
 	{
-		ESP_LOGE(TAG, "bmt_ota_trigger truoc bmt_ota_init — bo qua");
+		ESP_LOGE(TAG, "bmt_ota_trigger called before bmt_ota_init — ignored");
 		return;
 	}
 	if (s_ota_triggered)
@@ -343,7 +344,7 @@ void bmt_ota_start_pending_report_task(void)
 {
 	if (!s_inited)
 	{
-		ESP_LOGE(TAG, "start_pending_report truoc bmt_ota_init — bo qua");
+		ESP_LOGE(TAG, "start_pending_report called before bmt_ota_init — ignored");
 		return;
 	}
 	xTaskCreate(report_pending_task, "ota_rpt", 2048, NULL, 3, NULL);
@@ -363,7 +364,7 @@ void bmt_ota_start_auto_check(void)
 {
 	if (!s_inited)
 	{
-		ESP_LOGE(TAG, "start_auto_check truoc bmt_ota_init — bo qua");
+		ESP_LOGE(TAG, "start_auto_check called before bmt_ota_init — ignored");
 		return;
 	}
 	xTaskCreate(auto_check_task, "bmt_ota_chk", 2048, NULL, 3, NULL);

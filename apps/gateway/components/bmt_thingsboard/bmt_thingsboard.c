@@ -120,7 +120,7 @@ void bmt_tb_pub_node_status(uint16_t addr, const uint8_t* mac, const char* role,
 		snprintf(dev, sizeof(dev), BMT_DEV_NAME_NODE_FMT,
 		         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	else
-		snprintf(dev, sizeof(dev), "bmt_node_addr%04x", addr); /* fallback hiem gap: chua tra ra MAC */
+		snprintf(dev, sizeof(dev), "bmt_node_addr%04x", addr); /* rare fallback: MAC not resolved yet */
 	if (online)
 	{
 		tb_connect_device(dev, BMT_PROFILE_NODE);
@@ -139,8 +139,8 @@ void bmt_tb_pub_tag_report(const bmt_tag_report_t* r, const uint8_t* scanner_mac
 		return;
 
 	bmt_zone_lock();
-	/* Check truoc get_or_add de biet co phai tag moi khong — dung cho quyet
-	 * dinh connect/set_role voi TB o duoi. */
+	/* Check before get_or_add to know whether this is a new tag — used
+	 * to decide connect / set_role against TB below. */
 	bool was_new = (bmt_zone_track_find(r->tag_id) == NULL);
 	bmt_tag_track_t* t = bmt_zone_track_get_or_add(r->tag_id, r->battery);
 	if (!t)
@@ -160,9 +160,10 @@ void bmt_tb_pub_tag_report(const bmt_tag_report_t* r, const uint8_t* scanner_mac
 		t->valid_by_scanner[sidx] = true;
 		t->last_any_report_ms = now;
 
-		/* Zone that su tinh o TB rule chain. Gateway chi track "co telemetry
-		 * gan day khong" de zone_timeout_task biet luc nao bao OOR khi tag
-		 * ngung report. Bat ky scanner_id nao != UNKNOWN cung du. */
+		/* Real zone is computed in the TB rule chain. The gateway only
+		 * tracks "did we hear from this tag recently" so
+		 * zone_timeout_task knows when to publish OUT_OF_RANGE. Any
+		 * scanner_id != UNKNOWN is enough for that. */
 		if (t->current_zone_id == BMT_ZONE_UNKNOWN)
 		{
 			t->current_zone_id = r->scanner_id;
@@ -193,7 +194,7 @@ void bmt_tb_pub_tag_report(const bmt_tag_report_t* r, const uint8_t* scanner_mac
 	else
 	{
 		snprintf(scanner_key, sizeof(scanner_key), "id_0x%02x", r->scanner_id);
-		ESP_LOGW("BMT_TB", "Khong tra ra MAC cho scanner_id=0x%02x, dung fallback", r->scanner_id);
+		ESP_LOGW("BMT_TB", "Could not resolve MAC for scanner_id=0x%02x, using fallback key", r->scanner_id);
 	}
 
 	snprintf(json, sizeof(json),

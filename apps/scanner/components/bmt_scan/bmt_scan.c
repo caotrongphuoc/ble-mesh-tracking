@@ -25,7 +25,7 @@ static int64_t s_last_ota_beacon_us = -((int64_t)BMT_OTA_BEACON_COOLDOWN_US);
 #define BMT_GAP_SCAN_DURATION_MS 800
 #define BMT_MESH_PUBLISH_DURATION_MS 700
 /* Scan window < interval -> leave a gap for the mesh bearer to RX ANNOUNCE
- * window=0x30 (30ms), interval=0x50 (50ms) → 60% duty, 40% cho mesh */
+ * window=0x30 (30ms), interval=0x50 (50ms) → 60% duty, 40% for mesh */
 #define BMT_SCAN_INTERVAL_UNITS 0x0050
 #define BMT_SCAN_WINDOW_UNITS 0x0030
 
@@ -63,8 +63,9 @@ static bool parse_tag_payload(uint8_t* adv_data, uint8_t adv_len, bmt_tag_payloa
 			uint16_t cid = (uint16_t)adv_data[pos + 2] | ((uint16_t)adv_data[pos + 3] << 8);
 			if (cid == BMT_CID_ESPRESSIF && field_len >= (1 + 2 + 24))
 			{
-				/* Copy vao buffer align — adv_data + pos + 4 co the o dia chi
-				 * le, doc uint16_t truc tiep se fault tren Xtensa/RISC-V. */
+				/* Copy into an aligned buffer — adv_data + pos + 4 may sit
+				 * at an odd address; reading uint16_t directly from there
+				 * faults on Xtensa / RISC-V. */
 				bmt_tag_adv_payload_t p;
 				memcpy(&p, adv_data + pos + 4, sizeof(p));
 				if (memcmp(p.uuid, BMT_SYSTEM_UUID_PREFIX, 4) != 0)
@@ -76,7 +77,7 @@ static bool parse_tag_payload(uint8_t* adv_data, uint8_t adv_len, bmt_tag_payloa
 					         p.minor, p.sequence, p.mac16);
 					goto next_field;
 				}
-				/* Field truoc la major (PERSON/ASSET), gio la % pin 0-100 */
+				/* This field used to hold major (PERSON/ASSET); it now holds battery % 0-100 */
 				out->battery = (uint8_t)p.battery;
 				out->tag_id = p.minor;
 				out->tx_power = p.tx_power;
@@ -90,7 +91,7 @@ static bool parse_tag_payload(uint8_t* adv_data, uint8_t adv_len, bmt_tag_payloa
 				uint16_t minor = ((uint16_t)adv_data[pos + 24] << 8) | adv_data[pos + 25];
 				if (major != BMT_TAG_MAJOR_PERSON && major != BMT_TAG_MAJOR_ASSET)
 					goto next_field;
-				/* iPhone-as-tag khong bao % pin cua he thong -> 0 (unknown) */
+				/* iPhone-as-tag does not report a system battery % -> 0 (unknown) */
 				out->battery = 0;
 				out->tag_id = minor | 0x8000;
 				out->tx_power = BMT_PHONE_TX_POWER_1M;
@@ -144,7 +145,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
 					if (recv_mac != calc_mac)
 					{
 						ESP_LOGW(TAG, "[OTA] Beacon HMAC mismatch (got 0x%04x, expect 0x%04x)"
-						              " — ignoring, co the la gia mao",
+						              " — ignoring, possibly a forged beacon",
 						         recv_mac, calc_mac);
 						break;
 					}

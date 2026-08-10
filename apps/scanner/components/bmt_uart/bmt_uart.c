@@ -41,8 +41,8 @@ static void uart_cmd_task(void* arg)
 	printf("\n===== BMT SCAN NODE (modular) =====\n");
 	printf("Scanner ID : 0x%02X\n", bmt_scan_core_scanner_id());
 	printf("Node type  : 0x%02X (scanner)\n", BMT_NODE_TYPE);
-	/* In MAC ngay luc boot — de biet board nay la con nao khi dien
-	 * ZONE_MAP tren ThingsBoard (room_1/2/3 -> MAC nao). */
+	/* Print the MAC at boot — needed to know which board this is when
+	 * filling in ZONE_MAP on ThingsBoard (which MAC maps to room_1/2/3). */
 	{
 		const uint8_t* uuid = bmt_mesh_uuid();
 		printf("MAC        : ");
@@ -69,7 +69,7 @@ static void uart_cmd_task(void* arg)
 		{
 		case 'r':
 		case 'R':
-			printf("\n[UART] Reset mesh — se tu reboot khi xong...\n");
+			printf("\n[UART] Reset mesh — will reboot when done...\n");
 			bmt_mesh_local_reset();
 			break;
 
@@ -89,12 +89,12 @@ static void uart_cmd_task(void* arg)
 				{
 					bmt_scan_core_set_scanner_id(new_id);
 					printf("%d\n[UART] Scanner ID set to 0x%02X\n"
-					       "[UART] Bam 'r' de reset va apply UUID moi\n",
+					       "[UART] Press 'r' to reset and apply the new UUID\n",
 					       new_id, new_id);
 				}
 				else
 				{
-					printf("\n[UART] Invalid ID — phai tu 1 den 8\n");
+					printf("\n[UART] Invalid ID — must be 1 to 8\n");
 				}
 			}
 			break;

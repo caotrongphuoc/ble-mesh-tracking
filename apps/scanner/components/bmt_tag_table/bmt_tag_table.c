@@ -13,16 +13,17 @@ static const char* TAG = "BMT_TAGTBL";
 typedef struct
 {
 	float q, r, x, p, k;
-	float r_var; /* [ADAPTIVE] uoc luong nhieu do (EMA cua innovation^2) */
+	float r_var; /* [ADAPTIVE] measurement-noise estimate (EMA of innovation^2) */
 } bmt_kalman_t;
 
-/* [ADAPTIVE R] R khong con fix cung 2.0 — tu dieu chinh theo do bien thien
- * thuc te cua RSSI (innovation = rssi_do - rssi_da_loc). RSSI cang nhay
- * (multipath, nguoi che tag) -> r_var tang -> K giam -> loc manh hon.
- * RSSI on dinh -> r_var giam -> K tang -> bam sat mau moi nhanh hon, giam
- * do tre. R_ALPHA nho = thich nghi cham (on dinh hon, chong nhieu tuc thoi
- * lam r nhay lung tung); r_min/r_max chan de tranh K=0 (dung yen hoan toan)
- * hoac K=1 (khong loc gi ca) khi gap sample dot bien. */
+/* [ADAPTIVE R] R is no longer fixed at 2.0 — it adapts to the actual
+ * RSSI variability (innovation = measured RSSI - filtered RSSI). The
+ * more RSSI bounces around (multipath, hand blocking the tag) the
+ * higher r_var, the smaller K, the stronger the filter. When RSSI is
+ * stable, r_var shrinks, K grows, and the filter tracks new samples
+ * faster with less lag. A small R_ALPHA = slow adaptation (more
+ * stable, immune to instantaneous noise); r_min / r_max clamp K away
+ * from 0 (fully frozen) and 1 (no filtering at all) on outliers. */
 #define BMT_KALMAN_R_ALPHA 0.1f
 #define BMT_KALMAN_R_MIN 1.0f
 #define BMT_KALMAN_R_MAX 20.0f
@@ -36,15 +37,15 @@ static void kalman_init(bmt_kalman_t* kf, float initial_rssi)
 	kf->x = initial_rssi;
 	kf->p = 1.0f;
 	kf->k = 0.0f;
-	kf->r_var = 2.0f; /* seed = R mac dinh cu, hoi tu dan theo du lieu thuc */
+	kf->r_var = 2.0f; /* seed = old fixed R; converges from real data */
 }
 
 static float kalman_update(bmt_kalman_t* kf, float rssi)
 {
 	float innovation = rssi - kf->x;
 
-	/* [ADAPTIVE R] cap nhat uoc luong nhieu do truoc, roi moi dung no cho
-	 * buoc Kalman ngay ben duoi (thay vi r co dinh 2.0f) */
+	/* [ADAPTIVE R] update the measurement-noise estimate first, then
+	 * feed it to the Kalman step below (instead of the old fixed r = 2.0f). */
 	kf->r_var = (1.0f - BMT_KALMAN_R_ALPHA) * kf->r_var + BMT_KALMAN_R_ALPHA * (innovation * innovation);
 	kf->r = kf->r_var;
 	if (kf->r < BMT_KALMAN_R_MIN)
@@ -105,7 +106,7 @@ int bmt_tag_table_add(uint16_t tag_id, uint8_t battery,
 				memcpy(s_tags[i].mac, mac, 6);
 			kalman_init(&s_kalman[i], (float)rssi);
 			s_tags[i].distance = calculate_distance(tx_power, (float)rssi);
-			ESP_LOGI(TAG, "New tag: 0x%04X (pin %u%%) RSSI=%ddBm",
+			ESP_LOGI(TAG, "New tag: 0x%04X (battery %u%%) RSSI=%ddBm",
 			         tag_id, battery, rssi);
 			return i;
 		}
@@ -126,7 +127,7 @@ void bmt_tag_table_update(int idx, int8_t rssi, uint8_t sequence, uint8_t batter
 	bmt_scan_tag_info_t* t = &s_tags[idx];
 	uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
 
-	t->battery = battery; /* cap nhat % pin moi goi (tag chi add 1 lan) */
+	t->battery = battery; /* refresh battery % on every packet (tag is added only once) */
 
 	if (sequence == t->last_sequence)
 	{
@@ -148,8 +149,8 @@ void bmt_tag_table_update(int idx, int8_t rssi, uint8_t sequence, uint8_t batter
 
 	if (diff < -10 || diff > BMT_MAX_SEQ_JUMP)
 	{
-		ESP_LOGW(TAG, "Tag 0x%04X: sequence nhay bat thuong (%u -> %u, diff=%d)"
-		              " - reset tracking (co the la Tag reboot hoac goi bi replay)",
+		ESP_LOGW(TAG, "Tag 0x%04X: unexpected sequence jump (%u -> %u, diff=%d)"
+		              " - reset tracking (possibly Tag reboot or replayed packet)",
 		         t->tag_id, t->last_sequence, sequence, diff);
 		kalman_init(&s_kalman[idx], (float)rssi);
 		t->rssi_raw = rssi;
@@ -219,7 +220,7 @@ void bmt_tag_table_print(uint8_t scanner_id)
 		float lr = (tot > 0)
 		               ? (float)t->total_missed / tot * 100.0f
 		               : 0.0f;
-		printf("Tag 0x%04X | Pin=%u%% | RSSI=%d | Filt=%.1f | Dist=%.2fm"
+		printf("Tag 0x%04X | Batt=%u%% | RSSI=%d | Filt=%.1f | Dist=%.2fm"
 		       " | Loss=%.1f%% | Epoch=%ld | %lus ago\n",
 		       t->tag_id, t->battery,
 		       t->rssi_raw, t->rssi_filtered, t->distance, lr,

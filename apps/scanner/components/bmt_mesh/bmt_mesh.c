@@ -118,8 +118,8 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
 		xEventGroupClearBits(s_mesh_evgrp, BMT_PROV_COMPLETE_BIT);
 		if (s_reboot_after_reset)
 		{
-			/* Reset mesh NVS THUC SU da xong (event nay la bang
-			 * chung) — gio moi reboot an toan, khong con doan mo 500ms nua. */
+			/* Mesh NVS reset has REALLY completed (this event proves it)
+			 * — reboot is now safe; no more blind 500 ms delay. */
 			ESP_LOGW(TAG, "[RESET] Local reset COMPLETE — rebooting now");
 			s_reboot_after_reset = false;
 			vTaskDelay(pdMS_TO_TICKS(300));
@@ -173,8 +173,8 @@ static void mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
 	}
 	if (opcode == BMT_OP_VND_RESET_CMD)
 	{
-		/* Dung chung bmt_mesh_local_reset() — tu reboot dung luc
-		 * reset THUC SU xong qua event, khong con delay co dinh doan mo. */
+		/* Reuse bmt_mesh_local_reset() — reboots exactly when the mesh
+		 * reset really completes via event, no more blind fixed delay. */
 		ESP_LOGW(TAG, "[VND] RESET_CMD — resetting mesh, will reboot when done...");
 		vTaskDelay(pdMS_TO_TICKS(300));
 		bmt_mesh_local_reset();
@@ -184,12 +184,12 @@ static void mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
 	{
 		if (param->model_operation.length == 16)
 		{
-			ESP_LOGW(TAG, "[SECURITY] OTA_KEY_PUSH nhan tu 0x%04x — rotate key beacon", src);
+			ESP_LOGW(TAG, "[SECURITY] OTA_KEY_PUSH received from 0x%04x — rotating beacon key", src);
 			bmt_auth_set_ota_beacon_key(param->model_operation.msg, 16);
 		}
 		else
 		{
-			ESP_LOGE(TAG, "[SECURITY] OTA_KEY_PUSH sai do dai: %d", param->model_operation.length);
+			ESP_LOGE(TAG, "[SECURITY] OTA_KEY_PUSH bad length: %d", param->model_operation.length);
 		}
 		return;
 	}
@@ -315,7 +315,7 @@ esp_err_t bmt_mesh_report_ota_result(uint8_t status)
 	s_vnd_models[0].pub->ttl = 7;
 	esp_err_t e = esp_ble_mesh_model_publish(&s_vnd_models[0], BMT_OP_VND_OTA_RESULT,
 	                                         sizeof(r), (uint8_t*)&r, ROLE_NODE);
-	ESP_LOGI(TAG, "[OTA] Bao cao ket qua status=%u: %s", status,
+	ESP_LOGI(TAG, "[OTA] OTA result report status=%u: %s", status,
 	         e == ESP_OK ? "sent" : esp_err_to_name(e));
 	return e;
 }
