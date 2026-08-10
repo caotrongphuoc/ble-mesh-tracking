@@ -39,6 +39,30 @@ Numbers behind the filters (Kalman, path loss, anti-replay, HMAC-16) are in [03-
 
 Watchdog exercise procedure: [09-testing.md](09-testing.md) test 7.
 
+```mermaid
+flowchart TD
+    A[Gateway boots] --> B{NVS has<br/>mesh keys?}
+    B -- yes --> C[Restore keys and node table<br/>data flows on its own]
+    B -- no --> D[Fresh mesh<br/>wait for unprovisioned beacons]
+    C --> E[Watchdog arms<br/>wait 15 s]
+    D --> E
+    E --> F{Any scanner<br/>configured?}
+    F -- no --> F1[Idle window<br/>no wipe]
+    F1 --> F
+    F -- yes --> G[30-second window]
+    G --> H{Real mesh traffic<br/>OR node heartbeat<br/>in the window?}
+    H -- yes --> I[Mesh OK<br/>reset the window]
+    I --> G
+    H -- no --> J[Broadcast<br/>RESET_CMD × 5]
+    J --> K{All 5 sends<br/>failed?}
+    K -- yes --> K1[Gateway itself is off-air<br/>keep NVS, retry next window]
+    K1 --> G
+    K -- no --> L[Nodes reboot<br/>send unprovisioned beacon<br/>gateway re-provisions]
+    L --> C
+```
+
+In parallel, `bmt_mesh_ping` polls every configured scanner and relay every 20 s. Ping ACKs with `error_code == 0` also count as "real mesh traffic" in the window above — so an idle-but-healthy mesh is never mistaken for a dead one.
+
 ## OTA and beacon security
 
 - OTA for scanners and relays runs over mesh. Each node downloads its `.bin` from the LAN HTTPS server and reports `OTA_RESULT` back.
@@ -123,7 +147,3 @@ Each app has one `main/main.c` and a set of components under `components/bmt_*/`
 - `rulechain/` — rule chain exports. Main one is `ble_tag_zone_detection.json`.
 - `dashboard/indoor_tracking.json` — the dashboard.
 - `tls/` — dev CA and server certs. `gen_certs.sh` makes new ones.
-
-### `docs/legacy/`
-
-- `gateway_main.c`, `scanner_main.c` — the old monolithic `main.c` files, kept for reference.
