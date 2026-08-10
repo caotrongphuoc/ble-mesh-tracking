@@ -47,8 +47,8 @@ jobs:
 
       # Generate throwaway crypto material — the repo ships none.
       # These keys live only on the CI runner and are discarded when
-      # the job ends; no leak risk. See SECURITY.md for the real
-      # per-deployment regen story.
+      # the job ends; no leak risk. See .github/SECURITY.md for the
+      # real per-deployment regen story.
       - name: Generate throwaway signing key + TLS bundle
         run: |
           mkdir -p keys
@@ -61,35 +61,5 @@ jobs:
           target: ${{ matrix.target }}
           path: apps/${{ matrix.app }}
 
-  zephyr:
-    name: zephyr / ${{ matrix.app }} (${{ matrix.board }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - app: Beacon_ProMicroNrf52840
-            board: promicro_nrf52840/nrf52840/uf2
-          - app: Beacon_XiaoNrf52840
-            board: xiao_ble/nrf52840
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: bmt
-
-      # Throwaway MCUboot signing key — same rationale as the
-      # esp-idf job above.
-      - name: Generate throwaway MCUboot key
-        run: |
-          mkdir -p bmt/keys
-          openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
-              -out bmt/keys/bmt_tag_ecdsa_p256.pem
-
-      - uses: zephyrproject-rtos/action-zephyr-setup@v1
-        with:
-          app-path: bmt/apps/${{ matrix.app }}
-          toolchains: arm-zephyr-eabi
-
-      - name: west build
-        working-directory: bmt/apps/${{ matrix.app }}
-        run: west build -b ${{ matrix.board }} --pristine
+  # Beacon nRF52840 variants (Zephyr / MCUboot) are marked experimental
+  # in their per-app READMEs and built by hand — not covered by CI.
