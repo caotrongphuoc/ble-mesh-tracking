@@ -17,11 +17,11 @@ python3 -m pytest tests/ -v
 | File | Tests | What it locks down |
 |---|---|---|
 | [`test_hmac16_reference.py`](test_hmac16_reference.py) | HMAC-16 truncation, empty input, deterministic output for fixed key | The 16-bit truncation strategy and the byte order the firmware uses. If someone changes `bmt_auth_hmac16` to take the last 2 bytes instead of the first 2, or byte-swaps, these tests break. |
-| [`test_kalman_reference.py`](test_kalman_reference.py) | Convergence on a constant signal, outlier resistance from adaptive R, K stays inside `[0, 1)` | The exact filter behavior documented in [`docs/algorithms.md`](../docs/algorithms.md). If the constants `q=0.1`, `r_alpha=0.1`, `r_min=1.0`, `r_max=20.0` are changed, expected values shift and the tests must be re-baselined. |
+| [`test_kalman_reference.py`](test_kalman_reference.py) | Convergence on a constant signal, outlier resistance from adaptive R, K stays inside `[0, 1)` | The exact filter behavior documented in [`docs/03-algorithms.md`](../docs/03-algorithms.md). If the constants `q=0.1`, `r_alpha=0.1`, `r_min=1.0`, `r_max=20.0` are changed, expected values shift and the tests must be re-baselined. |
 
 ## Not covered yet (help wanted)
 
-- Path-loss distance formula (`docs/algorithms.md#2-distance-from-rssi`).
+- Path-loss distance formula (`docs/03-algorithms.md#2-distance-from-rssi`).
 - Anti-replay sequence-window check in `bmt_tag_table_update`.
 - Hysteresis + leaky-bucket debounce logic in the ThingsBoard rule chain JS (unit-test the JS with Node + a small harness).
 - Watchdog reset flow (harder — needs a mock mesh + timing).

@@ -108,7 +108,7 @@ sequenceDiagram
     G->>G: config_done = true
 ```
 
-Only nodes with `config_done = true` can send or receive vendor opcodes (`TAG_STATUS`, `RESET_CMD`, `OTA_TRIGGER`, …). See [operation.md](operation.md) for what happens if a node reboots mid-config, and for the self-heal path when the gateway restarts.
+Only nodes with `config_done = true` can send or receive vendor opcodes (`TAG_STATUS`, `RESET_CMD`, `OTA_TRIGGER`, …). See [operation.md](05-operation.md) for what happens if a node reboots mid-config, and for the self-heal path when the gateway restarts.
 
 ## Publishing and TTL
 
@@ -129,4 +129,4 @@ TTL 7 allows up to 7 hops. Our mesh is much smaller so this is generous.
 
 `CONFIG_BLE_MESH_SETTINGS=y` saves NetKey, AppKey, devkey, sequence numbers, and node list to NVS. Without it every reboot generates a fresh NetKey and the mesh dies. Sequence numbers matter too — nodes reject packets with a seq lower than expected as replays.
 
-Related docs: [operation.md](operation.md) for runtime, [algorithms.md](algorithms.md) for the math on top.
+Related docs: [operation.md](05-operation.md) for runtime, [algorithms.md](03-algorithms.md) for the math on top.

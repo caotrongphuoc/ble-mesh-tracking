@@ -51,7 +51,7 @@ docker compose up -d
 
 Wait 1-2 minutes. Open `http://localhost:8080`, log in with `tenant@thingsboard.org` / `tenant`, change the password.
 
-Device profiles, rule chain, dashboard, and gateway token: see [thingsboard.md](thingsboard.md). Do these before flashing.
+Device profiles, rule chain, dashboard, and gateway token: see [thingsboard.md](04-thingsboard.md). Do these before flashing.
 
 ## 4. Set firmware config
 
@@ -64,13 +64,13 @@ Edit `apps/*/components/bmt_config/bmt_config.h`:
 | `BMT_TB_GATEWAY_TOKEN` | gateway | Token from step 3. |
 | `BMT_OTA_*_URL` | gateway, scanner, relay | `https://<host-ip>:8443/<name>.bin`. |
 
-Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` embeds (`apps/gateway/components/bmt_mqtt/ca.pem` and `components/bmt_ota/ota_ca.pem`) as part of the same run. Rebuild every affected firmware after a regen. See the *TLS trust chain* section of [thingsboard.md](thingsboard.md#tls-trust-chain).
+Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` embeds (`apps/gateway/components/bmt_mqtt/ca.pem` and `components/bmt_ota/ota_ca.pem`) as part of the same run. Rebuild every affected firmware after a regen. See the *TLS trust chain* section of [thingsboard.md](04-thingsboard.md#tls-trust-chain).
 
 ## 5. Build and flash
 
 Find the serial ports first: Linux `ls /dev/ttyUSB*`, Windows Device Manager under "Ports (COM & LPT)".
 
-All four apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway — that first boot is what burns the signing/encryption eFuses, and it is permanent per chip. Read [secure-boot.md](secure-boot.md) before you flash real hardware, and generate your own `secure_boot_keys/bmt_fleet_rsa3072.pem` first (not committed to the repo).
+All four apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway — that first boot is what burns the signing/encryption eFuses, and it is permanent per chip. Read [secure-boot.md](07-secure-boot.md) before you flash real hardware, and generate your own `secure_boot_keys/bmt_fleet_rsa3072.pem` first (not committed to the repo).
 
 ```
 cd apps/gateway && idf.py -p <port> erase-flash flash
@@ -93,9 +93,9 @@ Linux permission denied on `/dev/ttyUSB*`: `sudo usermod -aG dialout $USER`, the
 4. Power up the tag(s) last. Tags do not provision (they only beacon), so order relative to them does not matter.
 5. Open the Indoor Tracking dashboard in ThingsBoard.
 
-If a node never reaches "fully configured", power-cycle just that node — it will send a fresh unprovisioned beacon and the gateway re-provisions it (see [operation.md](operation.md#self-healing)).
+If a node never reaches "fully configured", power-cycle just that node — it will send a fresh unprovisioned beacon and the gateway re-provisions it (see [operation.md](05-operation.md#self-healing)).
 
-Full command list: [operation.md#uart-commands](operation.md#uart-commands). Test procedures: [testing.md](testing.md).
+Full command list: [operation.md#uart-commands](05-operation.md#uart-commands). Test procedures: [testing.md](06-testing.md).
 
 ## 7. OTA
 
@@ -127,7 +127,7 @@ The nginx OTA fileserver comes up automatically with `docker compose up -d` in s
 cd thingsboard && docker compose up -d ota-fileserver
 ```
 
-On gateway UART: `u` starts OTA for scanners and relays, `g` for gateway self-update. Full procedure: [testing.md#ota](testing.md#ota).
+On gateway UART: `u` starts OTA for scanners and relays, `g` for gateway self-update. Full procedure: [testing.md#ota](06-testing.md#ota).
 
 ## Troubleshooting
 

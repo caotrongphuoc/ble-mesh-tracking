@@ -189,4 +189,4 @@ Only the three network-participant apps have this. Tag does not, because a tag h
 | `BMT_TAG_OUT_OF_RANGE_MS` | gateway `bmt_zone.h` | OOR timeout. |
 | `BMT_WDG_TIMEOUT_MS` | gateway `bmt_watchdog.c` | Watchdog window. |
 
-Runtime behavior: [operation.md](operation.md). Protocol side: [ble-mesh.md](ble-mesh.md).
+Runtime behavior: [operation.md](05-operation.md). Protocol side: [ble-mesh.md](02-ble-mesh.md).

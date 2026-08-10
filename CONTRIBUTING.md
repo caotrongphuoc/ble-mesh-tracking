@@ -4,8 +4,8 @@ Thanks for your interest in improving BLE Mesh Tracking. This document is short 
 
 ## Before you start
 
-- Read [docs/quickstart.md](docs/quickstart.md) to get the system running once. Every contribution assumes you can build and flash all four apps.
-- Skim [docs/architecture.md](docs/architecture.md) so you know where the change you want to make belongs (Tag / Scanner / Relay / Gateway / server-side).
+- Read [docs/00-quickstart.md](docs/00-quickstart.md) to get the system running once. Every contribution assumes you can build and flash all four apps.
+- Skim [docs/01-architecture.md](docs/01-architecture.md) so you know where the change you want to make belongs (Tag / Scanner / Relay / Gateway / server-side).
 
 ## Development setup
 
@@ -45,11 +45,11 @@ Split unrelated changes into separate commits — each commit should stand on it
 
 ## Testing before opening a PR
 
-Run the checks listed in [docs/operation.md#checklists](docs/operation.md#checklists). At minimum:
+Run the checks listed in [docs/05-operation.md#checklists](docs/05-operation.md#checklists). At minimum:
 
 - All four apps build cleanly.
-- If your change touches a runtime path, run the relevant scenario in [docs/testing.md](docs/testing.md).
-- If your change touches OTA, run the fault-injection scenario (Test 16) in [docs/testing.md](docs/testing.md#test-16-fault-injection).
+- If your change touches a runtime path, run the relevant scenario in [docs/06-testing.md](docs/06-testing.md).
+- If your change touches OTA, run the fault-injection scenario (Test 16) in [docs/06-testing.md](docs/06-testing.md#test-16-fault-injection).
 
 ## Pull request flow
 

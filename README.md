@@ -18,21 +18,21 @@ Room-level indoor tracking on ESP32 / ESP32-S3 with BLE Mesh and a self-hosted T
 
 Tags send BLE beacons. Scanners read signal strength. A relay forwards mesh packets. The gateway pushes raw data to ThingsBoard over MQTTS. A ThingsBoard rule chain turns RSSI into a room name.
 
-New to the project? Start with [docs/quickstart.md](docs/quickstart.md) (one-page). For the ThingsBoard side in depth — device profiles, rule chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust, verification, common problems — see [docs/thingsboard.md](docs/thingsboard.md).
+New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). For the ThingsBoard side in depth — device profiles, rule chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust, verification, common problems — see [docs/04-thingsboard.md](docs/04-thingsboard.md).
 
 ## Documentation
 
 | File | Description |
 |---|---|
-| [docs/quickstart.md](docs/quickstart.md) | Clone, install ESP-IDF, run Docker, build and flash, verify. Linux and Windows. |
-| [docs/architecture.md](docs/architecture.md) | System layout and how data moves between nodes. |
-| [docs/ble-mesh.md](docs/ble-mesh.md) | BLE Mesh parts used in this project. |
-| [docs/algorithms.md](docs/algorithms.md) | Kalman filter, HMAC, hysteresis, OTA compare, watchdog. |
-| [docs/thingsboard.md](docs/thingsboard.md) | Whole ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server, troubleshooting. |
-| [docs/operation.md](docs/operation.md) | Runtime behavior, UART commands, factory reset, source layout, checklists (pre-commit, pre-flash, pre-release, deployment). |
-| [docs/testing.md](docs/testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end + fault injection, regression baseline. |
+| [docs/00-quickstart.md](docs/00-quickstart.md) | Clone, install ESP-IDF, run Docker, build and flash, verify. Linux and Windows. |
+| [docs/01-architecture.md](docs/01-architecture.md) | System layout and how data moves between nodes. |
+| [docs/02-ble-mesh.md](docs/02-ble-mesh.md) | BLE Mesh parts used in this project. |
+| [docs/03-algorithms.md](docs/03-algorithms.md) | Kalman filter, HMAC, hysteresis, OTA compare, watchdog. |
+| [docs/04-thingsboard.md](docs/04-thingsboard.md) | Whole ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server, troubleshooting. |
+| [docs/05-operation.md](docs/05-operation.md) | Runtime behavior, UART commands, factory reset, source layout, checklists (pre-commit, pre-flash, pre-release, deployment). |
+| [docs/06-testing.md](docs/06-testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end + fault injection, regression baseline. |
 | [CHANGELOG.md](CHANGELOG.md) | Change log (Keep-a-Changelog + SemVer). |
-| [docs/secure-boot.md](docs/secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
+| [docs/07-secure-boot.md](docs/07-secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
 | [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md), [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) | Optional coin-cell tag variants on nRF52840 (build via Zephyr / west). |
 
 ## Hardware
