@@ -52,6 +52,45 @@ Should print `200`. (`-k` skips CA verification for this manual check; the firmw
 
 MQTT to ThingsBoard uses TLS on port 8883. Protects the gateway token and prevents someone on the network from injecting fake telemetry.
 
+### Trust chain
+
+One dev CA signs one server cert. Both host services present that same server cert; every firmware trust store is a copy of the same `ca.pem`.
+
+```mermaid
+flowchart LR
+    subgraph GEN[gen_certs.sh output]
+        CAK[ca.key + ca.pem<br/>CA]
+        SP[server.pem + server.key<br/>CN = SAN = bmt-tb.local]
+        CAK -->|signs| SP
+    end
+
+    subgraph HOST[Host services on the LAN]
+        TB[ThingsBoard<br/>MQTTS :8883]
+        NGX[nginx OTA<br/>HTTPS :8443]
+    end
+    SP --> TB
+    SP --> NGX
+
+    subgraph FW[Firmware trust stores<br/>EMBED_TXTFILES]
+        MQCA[apps/gateway/…/bmt_mqtt/ca.pem]
+        OTACA[components/bmt_ota/ota_ca.pem]
+    end
+    CAK --> MQCA
+    CAK --> OTACA
+
+    GW[Gateway]
+    NODE[Scanner / Relay]
+
+    GW -->|verify CN + ca| MQCA
+    GW -->|verify CN + ca| OTACA
+    NODE -->|verify CN + ca| OTACA
+
+    MQCA -. trusts .-> TB
+    OTACA -. trusts .-> NGX
+```
+
+Every time `gen_certs.sh` runs, both firmware copies of `ca.pem` must be refreshed together (see the [Regenerate certs](#regenerate-certs-production-deploy) section below), otherwise one of the two verification paths breaks.
+
 ### Cert layout under `thingsboard/tls/`
 
 | File | Role |
