@@ -44,6 +44,17 @@ jobs:
             target: esp32s3
     steps:
       - uses: actions/checkout@v4
+
+      # Generate throwaway crypto material — the repo ships none.
+      # These keys live only on the CI runner and are discarded when
+      # the job ends; no leak risk. See SECURITY.md for the real
+      # per-deployment regen story.
+      - name: Generate throwaway signing key + TLS bundle
+        run: |
+          mkdir -p secure_boot_keys
+          openssl genrsa -out secure_boot_keys/bmt_fleet_rsa3072.pem 3072
+          (cd thingsboard/tls && bash gen_certs.sh)
+
       - uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: latest
@@ -65,6 +76,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: bmt
+
+      # Throwaway MCUboot signing key — same rationale as the
+      # esp-idf job above.
+      - name: Generate throwaway MCUboot key
+        run: |
+          mkdir -p bmt/mcuboot_keys
+          openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
+              -out bmt/mcuboot_keys/bmt_tag_ecdsa_p256.pem
 
       - uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
