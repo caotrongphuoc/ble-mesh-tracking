@@ -18,7 +18,7 @@ unprovisioned nodes together can cause some of them to miss
 `APP_KEY_ADD` / `MODEL_APP_BIND` and get stuck without full config.
 
 NetKey and AppKey are random. They live in NVS. Protocol details in
-[02-ble-mesh.md](02-ble-mesh.md).
+[ble-mesh.md](ble-mesh.md).
 
 ## Tag data flow
 
@@ -34,7 +34,7 @@ forwards `{scanner_mac, tag_id, rssi}` to ThingsBoard.
 The rule chain picks `current_zone`. The dashboard shows it.
 
 Numbers behind the filters (Kalman, path loss, anti-replay, HMAC-16)
-are in [03-algorithms.md](03-algorithms.md).
+are in [algorithms.md](algorithms.md).
 
 ## Self-healing
 
@@ -57,7 +57,7 @@ are in [03-algorithms.md](03-algorithms.md).
   provisioned node for 10 seconds — see [Factory reset](#factory-reset-boot-button)
   below.
 
-Watchdog exercise procedure: [09-testing.md](09-testing.md) test 7.
+Watchdog exercise procedure: [testing.md](testing.md) test 7.
 
 ```mermaid
 flowchart TD
@@ -108,9 +108,9 @@ mesh is never mistaken for a dead one.
   dropped.
 
 HTTPS OTA server and TLS setup:
-[04-thingsboard.md#https-ota-server-nginx-port-8443](04-thingsboard.md#https-ota-server-nginx-port-8443).
-Full OTA test procedure: [09-testing.md#ota](09-testing.md#ota). Key
-derivation and rotation math: [03-algorithms.md](03-algorithms.md).
+[thingsboard.md#https-ota-server-nginx-port-8443](thingsboard.md#https-ota-server-nginx-port-8443).
+Full OTA test procedure: [testing.md#ota](testing.md#ota). Key
+derivation and rotation math: [algorithms.md](algorithms.md).
 
 ## ThingsBoard rule chain
 
@@ -128,8 +128,8 @@ To move a scanner to a different room, edit `ZONE_MAP` on the
 server. No reflash needed.
 
 Hysteresis and leaky-bucket debounce are explained in
-[03-algorithms.md](03-algorithms.md). MQTT topics and payloads used
-by the rule chain: [04-thingsboard.md#mqtt-topics](04-thingsboard.md#mqtt-topics).
+[algorithms.md](algorithms.md). MQTT topics and payloads used
+by the rule chain: [thingsboard.md#mqtt-topics](thingsboard.md#mqtt-topics).
 
 ## UART commands
 
@@ -241,7 +241,7 @@ exactly as flashed). Gone after a reset:
   time.
 - Reset the **gateway**: bring the mesh back up in order — gateway
   first, then relay, then scanners one at a time, tag last — exactly
-  like a fresh flash ([00-quickstart.md](00-quickstart.md#6-run)).
+  like a fresh flash ([quickstart.md](quickstart.md#6-run)).
 
 This is distinct from the UART resets above: `9` (gateway) and `r`
 (scanner / relay) do a software-triggered mesh reset while connected
@@ -366,21 +366,21 @@ Short bullet lists to catch mistakes before they cost a re-flash trip.
 - [ ] `apps/gateway/components/bmt_mqtt/ca.pem` matches `thingsboard/tls/ca.pem` on the server (`diff` returns nothing).
 - [ ] `components/bmt_ota/ota_ca.pem` matches `thingsboard/tls/ca.pem` on the server too — same CA, different embed location.
 - [ ] `BMT_TB_CN` and `BMT_OTA_SERVER_CN` both match the CN inside the server cert (`openssl x509 -in server.pem -text | grep CN`).
-- [ ] `BMT_TAG_MASTER_KEY` regenerated (not the dev default). Same value in tag AND scanner (both derive the epoch key from it — see [03-algorithms.md](03-algorithms.md#4a-tag-key-totp-style-epoch-derivation)).
+- [ ] `BMT_TAG_MASTER_KEY` regenerated (not the dev default). Same value in tag AND scanner (both derive the epoch key from it — see [algorithms.md](algorithms.md#4a-tag-key-totp-style-epoch-derivation)).
 - [ ] `BMT_MESH_STATIC_OOB_VAL` regenerated (not the dev default). Same value in gateway AND scanner AND relay.
 - [ ] `CONFIG_BLE_MESH_SETTINGS=y` in gateway `sdkconfig`.
 - [ ] Firmware `PROJECT_VER` shows the deployment build time. Sanity: it must be later than every previously flashed version.
-- [ ] `secure_boot_keys/bmt_fleet_rsa3072.pem` generated yourself and backed up outside the repo before the first `erase-flash`. See [13-secure-boot.md](13-secure-boot.md) — the eFuse burn on first boot is permanent per board.
+- [ ] `secure_boot_keys/bmt_fleet_rsa3072.pem` generated yourself and backed up outside the repo before the first `erase-flash`. See [secure-boot.md](secure-boot.md) — the eFuse burn on first boot is permanent per board.
 
 ### Pre-release
 
 Before tagging a release:
 
 - [ ] All items in Pre-commit code and Pre-commit docs pass.
-- [ ] Test 1 (bring-up) from [09-testing.md](09-testing.md) passes.
+- [ ] Test 1 (bring-up) from [testing.md](testing.md) passes.
 - [ ] Test 3 (walking) passes.
 - [ ] Test 6 (gateway persistence) passes.
-- [ ] [Fast smoke test](09-testing.md#fast-smoke-test) or the full OTA flow (Tests 9-16) in [09-testing.md](09-testing.md#ota) passes.
+- [ ] [Fast smoke test](testing.md#fast-smoke-test) or the full OTA flow (Tests 9-16) in [testing.md](testing.md#ota) passes.
 - [ ] Changelog entry in [../CHANGELOG.md](../CHANGELOG.md) describes what changed and why.
 - [ ] Tag the commit with the same date the build produces (`YYYYMMDD`).
 
@@ -389,7 +389,7 @@ Before tagging a release:
 At the customer site, in order:
 
 - [ ] ThingsBoard container running: `docker compose ps` shows `Up`.
-- [ ] Certs regenerated for this deployment (see [04-thingsboard.md#regenerate-certs](04-thingsboard.md#regenerate-certs)).
+- [ ] Certs regenerated for this deployment (see [thingsboard.md#regenerate-certs](thingsboard.md#regenerate-certs)).
 - [ ] Firmware flashed with real credentials (see Pre-flash above).
 - [ ] Gateway UART shows `MQTT connected to ThingsBoard` within 30 seconds of boot.
 - [ ] Relay powered on and provisioned (`[RLY_CFG] Relay 0x00xx fully configured`).
@@ -404,5 +404,5 @@ At the customer site, in order:
 - [ ] Reproduce locally with the failing tag / scanner / relay layout.
 - [ ] Add a note in [../CHANGELOG.md](../CHANGELOG.md) describing the symptom.
 - [ ] Fix the root cause, not the symptom. Adding another `if` to paper over a race is a symptom fix.
-- [ ] Add or update a test in [09-testing.md](09-testing.md) so the same regression is caught next time.
+- [ ] Add or update a test in [testing.md](testing.md) so the same regression is caught next time.
 - [ ] OTA the fix to every node in the field. Verify via ThingsBoard `ota_result` attribute.

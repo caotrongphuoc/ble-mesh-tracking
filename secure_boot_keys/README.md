@@ -8,7 +8,7 @@ CONFIG_SECURE_BOOT_SIGNING_KEY="../../secure_boot_keys/bmt_fleet_rsa3072.pem"
 ```
 
 The key is `.gitignore`d — every deployment must generate its own.
-See [docs/13-secure-boot.md](../docs/13-secure-boot.md) for the
+See [docs/secure-boot.md](../docs/secure-boot.md) for the
 full Secure Boot flow.
 
 ## Generate

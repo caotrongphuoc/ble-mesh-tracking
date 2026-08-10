@@ -60,7 +60,7 @@ Goal: hysteresis and debounce prevent zone flapping.
    zone beats current by ≥ 5 dBm for 2 telemetry frames in a row.
 
 If it flaps: raise `HYSTERESIS_DBM` (see
-[03-algorithms.md](03-algorithms.md)).
+[algorithms.md](algorithms.md)).
 
 ### Test 4: Out-of-range
 
@@ -186,7 +186,7 @@ curl -sk -o /dev/null -w "%{http_code}\n" https://<host-ip>:8443/Scanner.bin
 Should print `200`. `-k` skips CA verification for this manual check
 (the firmware itself verifies against embedded `ota_ca.pem`). Fix
 firewall if not `200` (see
-[04-thingsboard.md#firewall](04-thingsboard.md#firewall)).
+[thingsboard.md#firewall](thingsboard.md#firewall)).
 
 Open serial monitors on every board.
 

@@ -17,10 +17,10 @@ firmware expects.
 ## Getting started
 
 - One-page end-to-end setup (host + firmware + ThingsBoard):
-  [`../docs/00-quickstart.md`](../docs/00-quickstart.md).
+  [`../docs/quickstart.md`](../docs/quickstart.md).
 - Detailed ThingsBoard reference — setup, device profiles, rule
   chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust,
   HTTPS OTA server, troubleshooting:
-  [`../docs/04-thingsboard.md`](../docs/04-thingsboard.md).
+  [`../docs/thingsboard.md`](../docs/thingsboard.md).
 - Daily operation (start / stop, docker commands, troubleshooting):
   [`operations.md`](operations.md).
