@@ -21,7 +21,7 @@ Thumbs.db
 # Personal review / defense notes kept alongside the repo
 ON_TAP*.txt
 
-# Local deployment config with real secrets — copy from deploy-config.example.txt
+# Local deployment notes with real secrets
 deploy-config.txt
 
 # Cryptographic material — every deployment generates its own.
