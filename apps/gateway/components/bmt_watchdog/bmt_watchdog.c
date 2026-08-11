@@ -18,7 +18,7 @@
 
 static const char* TAG = "BMT_WDG";
 
-#define BMT_WDG_TIMEOUT_MS 300000
+#define BMT_WDG_TIMEOUT_MS 30000
 #define BMT_WDG_RESET_TRIES 5
 #define BMT_WDG_RESET_GAP_MS 1500
 #define BMT_WDG_NODE_WAIT_MS 12000
