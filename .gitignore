@@ -38,5 +38,8 @@ components/bmt_ota/ota_ca.pem
 
 # OTA payloads — build locally, CMake POST_BUILD copies them here
 firmware/*.bin
+# nRF52840 Beacon signed images — build locally with make_uf2.ps1
+*.uf2
+*.hex
 __pycache__/
 *.pyc

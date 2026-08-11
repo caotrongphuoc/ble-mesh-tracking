@@ -89,20 +89,7 @@ not clear the bootloader's stuck state; only a cold boot does.
 
 ---
 
-## 3. Saved firmware files
-
-| File | Contents |
-|---|---|
-| `_fw_backup/tag_WORKING_v5equiv_SIGNED.uf2` | **Safe baseline** — guaranteed to boot (equivalent to v5, no timer optimisation) |
-| `tag_OPTIMIZED_SIGNED.uf2` | Optimised build (timer fix + SPI2 disabled) — verified to boot |
-
-Files named `tag_v5rebuild_*.uf2` are intermediate debug builds.
-**Do not flash them** (the `_app` / `_mcuboot` files are the raw
-unsigned pieces).
-
----
-
-## 4. Hardware status (as of 2026-07-25)
+## 3. Hardware status (as of 2026-07-25)
 
 > **The current XIAO board has a BLOWN CHARGER IC (BQ25101).** Symptoms:
 > the charge LED is on constantly whether powered by battery only or by
