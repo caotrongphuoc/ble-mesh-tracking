@@ -165,7 +165,7 @@ Counter increments on `TAG_STATUS` AND ping ACKs, so "alive" is not tied only to
 
 ## 13. Factory reset button
 
-Where: `apps/{gateway,scanner,relay}/components/bmt_factory_reset/bmt_factory_reset.c`.
+Where: `components/bmt_factory_reset/bmt_factory_reset.c` (shared across gateway, scanner and relay).
 
 Manual escape hatch for a mesh that got so stuck that watchdog cannot help (bad NVS, wrong keys, half-committed provision, etc.).
 
