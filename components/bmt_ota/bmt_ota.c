@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_ota.h"
 
 #include <stdio.h>
@@ -320,7 +321,7 @@ void bmt_ota_trigger(void)
 		return;
 	}
 	s_ota_triggered = true;
-	xTaskCreate(ota_wifi_task, "bmt_ota_wifi", 8192, NULL, 5, NULL);
+	assert(xTaskCreate(ota_wifi_task, "bmt_ota_wifi", 8192, NULL, 5, NULL) == pdPASS);
 }
 
 static void report_pending_task(void* arg)
@@ -342,7 +343,7 @@ void bmt_ota_start_pending_report_task(void)
 		ESP_LOGE(TAG, "start_pending_report called before bmt_ota_init — ignored");
 		return;
 	}
-	xTaskCreate(report_pending_task, "ota_rpt", 2048, NULL, 3, NULL);
+	assert(xTaskCreate(report_pending_task, "ota_rpt", 2048, NULL, 3, NULL) == pdPASS);
 }
 
 static void auto_check_task(void* arg)
@@ -362,5 +363,5 @@ void bmt_ota_start_auto_check(void)
 		ESP_LOGE(TAG, "start_auto_check called before bmt_ota_init — ignored");
 		return;
 	}
-	xTaskCreate(auto_check_task, "bmt_ota_chk", 2048, NULL, 3, NULL);
+	assert(xTaskCreate(auto_check_task, "bmt_ota_chk", 2048, NULL, 3, NULL) == pdPASS);
 }

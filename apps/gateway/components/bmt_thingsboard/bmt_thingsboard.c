@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_thingsboard.h"
 
 #include <stdio.h>
@@ -259,5 +260,5 @@ static void zone_timeout_task(void* arg)
 
 void bmt_tb_start_zone_timeout_task(void)
 {
-	xTaskCreate(zone_timeout_task, "bmt_zone_timer", 3072, NULL, 3, NULL);
+	assert(xTaskCreate(zone_timeout_task, "bmt_zone_timer", 3072, NULL, 3, NULL) == pdPASS);
 }

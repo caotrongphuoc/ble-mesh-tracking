@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_uart.h"
 
 #include <stdio.h>
@@ -160,5 +161,5 @@ void bmt_uart_start(void)
 	};
 	ESP_ERROR_CHECK(uart_driver_install(BMT_UART_NUM, BMT_UART_RX_BUF_SIZE, 0, 0, NULL, 0));
 	ESP_ERROR_CHECK(uart_param_config(BMT_UART_NUM, &cfg));
-	xTaskCreate(uart_cmd_task, "bmt_uart", 6144, NULL, 4, NULL);
+	assert(xTaskCreate(uart_cmd_task, "bmt_uart", 6144, NULL, 4, NULL) == pdPASS);
 }

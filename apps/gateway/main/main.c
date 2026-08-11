@@ -1,4 +1,5 @@
 
+#include <assert.h>
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
@@ -117,7 +118,7 @@ void app_main(void)
 	bmt_tb_start_zone_timeout_task();
 	bmt_watchdog_start();
 	bmt_ota_start_auto_check();
-	xTaskCreate(wdt_feed_task, "bmt_wdt_feed", 2048, NULL, 2, NULL);
+	assert(xTaskCreate(wdt_feed_task, "bmt_wdt_feed", 2048, NULL, 2, NULL) == pdPASS);
 
 	ESP_LOGI(TAG, "=== BMT Gateway v5.0-modular-nimble READY ===");
 	printf("Gateway Ready\n");

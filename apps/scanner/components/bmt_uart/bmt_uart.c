@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_uart.h"
 
 #include <inttypes.h>
@@ -143,6 +144,6 @@ static void uart_cmd_task(void* arg)
 
 esp_err_t bmt_uart_init(void)
 {
-	xTaskCreate(uart_cmd_task, "bmt_uart", 2048, NULL, 3, NULL);
+	assert(xTaskCreate(uart_cmd_task, "bmt_uart", 2048, NULL, 3, NULL) == pdPASS);
 	return ESP_OK;
 }

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_uart.h"
 
 #include <stdio.h>
@@ -134,7 +135,7 @@ static void relay_monitor_task(void* arg)
 
 esp_err_t bmt_uart_init(void)
 {
-	xTaskCreate(uart_cmd_task, "bmt_uart", 2048, NULL, 3, NULL);
-	xTaskCreate(relay_monitor_task, "bmt_relay_mon", 2048, NULL, 3, NULL);
+	assert(xTaskCreate(uart_cmd_task, "bmt_uart", 2048, NULL, 3, NULL) == pdPASS);
+	assert(xTaskCreate(relay_monitor_task, "bmt_relay_mon", 2048, NULL, 3, NULL) == pdPASS);
 	return ESP_OK;
 }

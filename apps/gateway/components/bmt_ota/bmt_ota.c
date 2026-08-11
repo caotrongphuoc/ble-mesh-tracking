@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_ota.h"
 
 #include <inttypes.h>
@@ -296,7 +297,7 @@ static void key_rotate_task(void* arg)
 
 void bmt_ota_start_key_rotation(void)
 {
-	xTaskCreate(key_rotate_task, "bmt_key_rot", 3072, NULL, 3, NULL);
+	assert(xTaskCreate(key_rotate_task, "bmt_key_rot", 3072, NULL, 3, NULL) == pdPASS);
 }
 
 static uint16_t beacon_hmac16(const uint8_t* data, size_t len)
@@ -501,5 +502,5 @@ static void gateway_auto_check_task(void* arg)
 
 void bmt_ota_start_auto_check(void)
 {
-	xTaskCreate(gateway_auto_check_task, "bmt_ota_chk", 3072, NULL, 3, NULL);
+	assert(xTaskCreate(gateway_auto_check_task, "bmt_ota_chk", 3072, NULL, 3, NULL) == pdPASS);
 }

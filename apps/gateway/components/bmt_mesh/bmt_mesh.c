@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_mesh.h"
 
 #include <inttypes.h>
@@ -405,7 +406,7 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble_mesh_prov_c
 			ESP_LOGI(TAG, "Node 0x%04x = RELAY, launching config task...", addr);
 			bmt_node_table_save();
 			bmt_node_table_print();
-			xTaskCreate(relay_config_task, "relay_cfg", 3072, (void*)(uint32_t)addr, 5, NULL);
+			assert(xTaskCreate(relay_config_task, "relay_cfg", 3072, (void*)(uint32_t)addr, 5, NULL) == pdPASS);
 			break;
 		}
 
@@ -418,7 +419,7 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble_mesh_prov_c
 			ESP_LOGI(TAG, "Node 0x%04x = SCAN, launching config task...", addr);
 			bmt_node_table_save();
 			bmt_node_table_print();
-			xTaskCreate(scan_config_task, "scan_cfg", 3072, (void*)(uint32_t)addr, 5, NULL);
+			assert(xTaskCreate(scan_config_task, "scan_cfg", 3072, (void*)(uint32_t)addr, 5, NULL) == pdPASS);
 			break;
 		}
 
@@ -702,7 +703,7 @@ esp_err_t bmt_mesh_init(void)
 
 void bmt_mesh_start_node_ping(void)
 {
-	xTaskCreate(node_ping_task, "bmt_node_ping", 4096, NULL, 3, NULL);
+	assert(xTaskCreate(node_ping_task, "bmt_node_ping", 4096, NULL, 3, NULL) == pdPASS);
 }
 
 esp_err_t bmt_mesh_publish(uint16_t dst, uint32_t opcode, const void* data, uint16_t len)

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "bmt_mqtt.h"
 
 #include <inttypes.h>
@@ -109,7 +110,7 @@ void bmt_mqtt_start_worker(void)
 		ESP_LOGE(TAG, "MQTT queue create failed");
 		return;
 	}
-	xTaskCreate(mqtt_worker_task, "bmt_mqtt_wkr", 4096, NULL, 5, NULL);
+	assert(xTaskCreate(mqtt_worker_task, "bmt_mqtt_wkr", 4096, NULL, 5, NULL) == pdPASS);
 }
 
 static void mqtt_event_handler(void* args, esp_event_base_t base, int32_t id, void* data)
