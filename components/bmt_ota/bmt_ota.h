@@ -6,6 +6,7 @@
 typedef struct
 {
 	const char* url;                 /* URL of the .bin on the OTA HTTP server */
+	const char* server_cn;           /* Common Name to verify on the server cert (e.g. "bmt-tb.local") */
 	const char* wifi_ssid;           /* WiFi SSID (used only for OTA) */
 	const char* wifi_pass;           /* WiFi password */
 	const char* nvs_namespace;       /* NVS namespace for the "OTA just succeeded, must report to Gateway" flag */

@@ -101,6 +101,7 @@ esp_err_t bmt_scan_core_init(void)
 
 	bmt_ota_init(&(bmt_ota_config_t){
 	    .url = BMT_OTA_SCANNER_URL,
+	    .server_cn = BMT_OTA_SERVER_CN,
 	    .wifi_ssid = BMT_WIFI_SSID,
 	    .wifi_pass = BMT_WIFI_PASS,
 	    .nvs_namespace = BMT_SCAN_NVS_NAMESPACE,

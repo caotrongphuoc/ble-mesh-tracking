@@ -84,6 +84,7 @@ void app_main(void)
 
 	bmt_ota_init(&(bmt_ota_config_t){
 	    .url = BMT_OTA_RELAY_URL,
+	    .server_cn = BMT_OTA_SERVER_CN,
 	    .wifi_ssid = BMT_WIFI_SSID,
 	    .wifi_pass = BMT_WIFI_PASS,
 	    .nvs_namespace = BMT_RELAY_NVS_NAMESPACE,

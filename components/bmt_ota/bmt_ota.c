@@ -26,11 +26,6 @@ static const char* TAG = "BMT_OTA";
 #define BMT_OTA_DEFAULT_WIFI_TIMEOUT_MS 30000
 #define BMT_OTA_DEFAULT_AUTO_CHECK_MS (3 * 60 * 1000)
 
-/* [SECURITY] Does not vary per app (Scanner and Relay share one OTA
- * server), so pin it here instead of adding a field to
- * bmt_ota_config_t. The embedded CA is shared with MQTTS on the
- * Gateway — same server. */
-#define BMT_OTA_SERVER_CN "bmt-tb.local"
 extern const uint8_t bmt_ota_ca_pem_start[] asm("_binary_ota_ca_pem_start");
 extern const uint8_t bmt_ota_ca_pem_end[] asm("_binary_ota_ca_pem_end");
 
@@ -46,7 +41,7 @@ static esp_event_handler_instance_t s_evt_got_ip = NULL;
 
 void bmt_ota_init(const bmt_ota_config_t* cfg)
 {
-	if (!cfg || !cfg->url || !cfg->wifi_ssid || !cfg->wifi_pass || !cfg->nvs_namespace)
+	if (!cfg || !cfg->url || !cfg->server_cn || !cfg->wifi_ssid || !cfg->wifi_pass || !cfg->nvs_namespace)
 	{
 		ESP_LOGE(TAG, "bmt_ota_init: config is missing a required field");
 		return;
@@ -203,7 +198,7 @@ static esp_err_t ota_check_and_flash(void)
 	    .keep_alive_enable = true,
 	    .cert_pem = (const char*)bmt_ota_ca_pem_start,
 	    .cert_len = (size_t)(bmt_ota_ca_pem_end - bmt_ota_ca_pem_start),
-	    .common_name = BMT_OTA_SERVER_CN,
+	    .common_name = s_cfg.server_cn,
 	};
 	esp_https_ota_config_t ota_cfg = {.http_config = &http_cfg};
 	esp_https_ota_handle_t ota_handle = NULL;
