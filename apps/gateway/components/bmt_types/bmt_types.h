@@ -6,6 +6,7 @@
 #define BMT_CID_ESP 0x02E5
 #define BMT_VND_MODEL_ID 0x0000
 
+/* Opcodes must match Scanner and Relay byte-for-byte. */
 #define BMT_OP_VND_TAG_STATUS ESP_BLE_MESH_MODEL_OP_3(0x00, BMT_CID_ESP)
 #define BMT_OP_VND_RESET_CMD ESP_BLE_MESH_MODEL_OP_3(0x05, BMT_CID_ESP)
 #define BMT_OP_VND_OTA_TRIGGER ESP_BLE_MESH_MODEL_OP_3(0x06, BMT_CID_ESP)  /* WiFi OTA command */
@@ -20,7 +21,7 @@
 typedef struct
 {
 	uint8_t scanner_id;
-	uint8_t battery; /* tag battery %  (0-100). Was tag_type before. MUST match
+	uint8_t battery; /* tag battery % (0-100). Was tag_type before. MUST match
 	                  * the Scanner-side struct (apps/scanner bmt_types.h) byte
 	                  * for byte. */
 	uint16_t tag_id;
