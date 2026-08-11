@@ -30,6 +30,8 @@ message(STATUS "PROJECT_VER (newest source mtime) = ${PROJECT_VER}")
 # changed).
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BMT_VER_SRC_FILES})
 
+set(EXTRA_COMPONENT_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../components")
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(Gateway)
 
