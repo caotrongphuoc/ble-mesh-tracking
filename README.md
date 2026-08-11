@@ -22,18 +22,23 @@ New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (o
 
 ## Documentation
 
-| File | Description |
-|---|---|
-| [docs/00-quickstart.md](docs/00-quickstart.md) | Clone, install ESP-IDF, run Docker, build and flash, verify. Linux and Windows. |
-| [docs/01-architecture.md](docs/01-architecture.md) | System layout and how data moves between nodes. |
-| [docs/02-ble-mesh.md](docs/02-ble-mesh.md) | BLE Mesh parts used in this project. |
-| [docs/03-algorithms.md](docs/03-algorithms.md) | Kalman filter, HMAC, hysteresis, OTA compare, watchdog. |
-| [docs/04-thingsboard.md](docs/04-thingsboard.md) | Whole ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server, troubleshooting. |
-| [docs/05-operation.md](docs/05-operation.md) | Runtime behavior, UART commands, factory reset, source layout, checklists (pre-commit, pre-flash, pre-release, deployment). |
-| [docs/06-testing.md](docs/06-testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end + fault injection, regression baseline. |
-| [CHANGELOG.md](CHANGELOG.md) | Change log (Keep-a-Changelog + SemVer). |
-| [docs/07-secure-boot.md](docs/07-secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
-| [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md), [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) | Optional coin-cell tag variants on nRF52840 (build via Zephyr / west). |
+Read in order — each doc assumes the previous ones:
+
+| # | File | Description |
+|---|---|---|
+| 00 | [docs/00-quickstart.md](docs/00-quickstart.md) | Clone, install ESP-IDF, run Docker, build and flash, verify. Linux and Windows. |
+| 01 | [docs/01-architecture.md](docs/01-architecture.md) | System layout and how data moves between nodes. |
+| 02 | [docs/02-ble-mesh.md](docs/02-ble-mesh.md) | BLE Mesh parts used in this project. |
+| 03 | [docs/03-algorithms.md](docs/03-algorithms.md) | Kalman filter, HMAC, hysteresis, OTA compare, watchdog. |
+| 04 | [docs/04-thingsboard.md](docs/04-thingsboard.md) | Whole ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server, troubleshooting. |
+| 05 | [docs/05-operation.md](docs/05-operation.md) | Runtime behavior, UART commands, factory reset, source layout, checklists (pre-commit, pre-flash, pre-release, deployment). |
+| 06 | [docs/06-testing.md](docs/06-testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end + fault injection, regression baseline. |
+| 07 | [docs/07-secure-boot.md](docs/07-secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
+
+### Other references
+
+- [CHANGELOG.md](CHANGELOG.md) — release history (Keep-a-Changelog + SemVer).
+- [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) — optional coin-cell tag variants on nRF52840 (build via Zephyr / west).
 
 ## Hardware
 
