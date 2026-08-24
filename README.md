@@ -1,43 +1,67 @@
 <div align="center">
 
-![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0.1-red?style=flat-square)
-![Target](https://img.shields.io/badge/target-ESP32%20%7C%20ESP32--S3-informational?style=flat-square)
+![Repo Traffic](https://komarev.com/ghpvc/?username=ble-mesh-tracking&label=Repo+Traffic&color=blue&style=flat-square)
 
 </div>
 
-# BLE Mesh Tracking
+<p align="center">
+  <img src="https://img.shields.io/badge/language-C-red?style=flat-square&logo=c" alt="Language">
+  <img src="https://img.shields.io/badge/mcu-ESP32%20%7C%20ESP32--S3-red?style=flat-square" alt="MCU">
+  <img src="https://img.shields.io/badge/framework-ESP--IDF%20v6.0.1-red?style=flat-square" alt="Framework">
+  <img src="https://img.shields.io/badge/backend-ThingsBoard%20CE-red?style=flat-square" alt="Backend">
+</p>
+
+# BLE Mesh Tracking - Room-level Indoor Tracking on ESP32
 
 <center><img width="1280" height="640" alt="BLE Mesh Tracking" src="docs/images/banner_ble_mesh_tracking_1280x640.png" />
 </center>
 
 <hr>
 
-Room-level indoor tracking on ESP32 / ESP32-S3 with BLE Mesh and a self-hosted ThingsBoard CE.
+## Demo
 
-Tags send BLE beacons. Scanners read signal strength. A relay forwards mesh packets. The gateway pushes raw data to ThingsBoard over MQTTS. A ThingsBoard rule chain turns RSSI into a room name.
-
-New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). For the ThingsBoard side in depth - device profiles, rule chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust, verification, common problems - see [docs/04-thingsboard.md](docs/04-thingsboard.md).
+<div align="center">
+  <em>Demo video coming soon. The banner above shows the deployed hardware setup.</em>
+</div>
 
 ## Documentation
 
-Read in order - each doc assumes the previous ones:
+| File | Description |
+| --- | --- |
+| [README.md](README.md) | Project overview, hardware, firmware layout, data flow. |
+| [docs/00-quickstart.md](docs/00-quickstart.md) | Clone, install ESP-IDF, run Docker, build and flash, verify. Linux and Windows. |
+| [docs/01-architecture.md](docs/01-architecture.md) | System layout and how data moves between nodes. |
+| [docs/02-ble-mesh.md](docs/02-ble-mesh.md) | BLE Mesh parts used in this project. |
+| [docs/03-algorithms.md](docs/03-algorithms.md) | Kalman filter, HMAC, hysteresis, OTA compare, watchdog. |
+| [docs/04-thingsboard.md](docs/04-thingsboard.md) | ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server. |
+| [docs/05-operation.md](docs/05-operation.md) | Runtime behavior, UART commands, factory reset, source layout, checklists. |
+| [docs/06-testing.md](docs/06-testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end, regression baseline. |
+| [docs/07-secure-boot.md](docs/07-secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
+| [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) | Optional coin-cell tag variant on nRF52840 ProMicro (Zephyr / west). |
+| [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) | Optional coin-cell tag variant on nRF52840 XIAO (Zephyr / west). |
 
-| # | File | Description |
-|---|---|---|
-| 00 | [docs/00-quickstart.md](docs/00-quickstart.md) | Clone, install ESP-IDF, run Docker, build and flash, verify. Linux and Windows. |
-| 01 | [docs/01-architecture.md](docs/01-architecture.md) | System layout and how data moves between nodes. |
-| 02 | [docs/02-ble-mesh.md](docs/02-ble-mesh.md) | BLE Mesh parts used in this project. |
-| 03 | [docs/03-algorithms.md](docs/03-algorithms.md) | Kalman filter, HMAC, hysteresis, OTA compare, watchdog. |
-| 04 | [docs/04-thingsboard.md](docs/04-thingsboard.md) | Whole ThingsBoard stack: install, profiles, rule chain, dashboard, MQTT topics, TLS trust, HTTPS OTA server, troubleshooting. |
-| 05 | [docs/05-operation.md](docs/05-operation.md) | Runtime behavior, UART commands, factory reset, source layout, checklists (pre-commit, pre-flash, pre-release, deployment). |
-| 06 | [docs/06-testing.md](docs/06-testing.md) | 16 tests: bring-up, walking, self-heal, watchdog, OTA end-to-end + fault injection, regression baseline. |
-| 07 | [docs/07-secure-boot.md](docs/07-secure-boot.md) | Secure Boot V2 and Flash Encryption: concept, fleet signing key, first-flash caveats. |
+## Introduction
 
-### Other references
+Room-level indoor tracking on ESP32 / ESP32-S3 with BLE Mesh and a self-hosted ThingsBoard CE. Tags send BLE beacons, scanners read signal strength, a relay forwards mesh packets, the gateway pushes raw data to ThingsBoard over MQTTS, and a ThingsBoard rule chain turns RSSI into a room name.
 
-- [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) - optional coin-cell tag variants on nRF52840 (build via Zephyr / west).
+The project puts several embedded engineering ideas into practice:
 
-## Hardware
+- **BLE Mesh:** Provisioning, vendor opcodes, network-layer relay, key rotation.
+- **Secure firmware:** Secure Boot V2 (RSA-3072), Flash Encryption (AES-128), HMAC-16 beacon authentication.
+- **Signal processing:** Adaptive Kalman filter on RSSI, hysteresis + leaky-bucket debounce on zone switching.
+- **Server-side rules:** ThingsBoard rule chain that maps `scanner_id` to a room and pushes updates over WebSocket.
+- **OTA over mesh:** HTTPS fileserver on nginx, per-node result reporting, SHA256 self-check on the gateway.
+
+### I. Hardware
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/images/banner_ble_mesh_tracking_1280x640.png" alt="BLE Mesh Tracking hardware" width="900"/></td>
+  </tr>
+</table>
+<p align="center"><strong><em>Figure 1:</em></strong> Node roles across the deployed mesh</p>
+
+<div align="center">
 
 | Node | Board | What it does |
 |---|---|---|
@@ -46,9 +70,15 @@ Read in order - each doc assumes the previous ones:
 | Relay | ESP32-S3 | Forwards mesh packets between far scanners and the gateway. |
 | Gateway | ESP32-S3 | Provisions mesh, forwards data to ThingsBoard, runs OTA. |
 
-## Firmware layout
+</div>
 
-Four apps under `apps/`. Each is a standard ESP-IDF project with modules under `components/bmt_*/`.
+Coin-cell battery variants of the Tag on **nRF52840** are documented in the two Beacon READMEs linked in the Documentation table.
+
+### II. Firmware Layout
+
+Four ESP-IDF apps under `apps/`. Each is a standard ESP-IDF project with modules under `components/bmt_*/`.
+
+<div align="center">
 
 | App | Modules | What it does |
 |---|---|---|
@@ -57,9 +87,13 @@ Four apps under `apps/`. Each is a standard ESP-IDF project with modules under `
 | **relay** | 6 (config, types, mesh, ota, uart, factory_reset) | Forwards mesh packets at the Network Layer between far scanners and the gateway. Handles `RESET_CMD` and `OTA_TRIGGER`. |
 | **tag** | 4 (config, auth, beacon, uart) | Sends a 24-byte BLE beacon every 500 ms with a sequence number and HMAC-16. |
 
-Shared code (relay and scanner OTA) lives at repo root under `components/bmt_ota/`.
+</div>
 
-## Data flow
+Shared code (relay and scanner OTA) lives at repo root under [`components/bmt_ota/`](components/bmt_ota/).
+
+### III. Data Flow
+
+End-to-end path from a tag beacon to a highlighted room on the dashboard:
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'fontSize':'18px','primaryColor':'#1565c0','primaryTextColor':'#ffffff','primaryBorderColor':'#0d47a1','lineColor':'#90a4ae','signalColor':'#ffc107','signalTextColor':'#ffc107','actorBkg':'#1565c0','actorBorder':'#0d47a1','actorTextColor':'#ffffff','actorLineColor':'#90caf9','noteBkgColor':'#fff59d','noteTextColor':'#000000','noteBorderColor':'#f57f17','activationBkgColor':'#66bb6a','activationBorderColor':'#2e7d32','sequenceNumberColor':'#ffffff','loopTextColor':'#ffc107','labelBoxBkgColor':'#37474f','labelBoxBorderColor':'#90a4ae','labelTextColor':'#ffffff'},'sequence':{'actorMargin':90,'messageFontSize':16,'noteFontSize':14,'actorFontSize':16,'boxMargin':12,'boxTextMargin':6,'noteMargin':10,'useMaxWidth':true}}}%%
@@ -101,9 +135,23 @@ sequenceDiagram
     D->>D: Highlight room on floor plan<br/>update RSSI chart
 ```
 
-## Contact
+<p align="center"><strong><em>Figure 2:</em></strong> End-to-end data flow (Tag -> Scanner -> Relay -> Gateway -> ThingsBoard -> Dashboard)</p>
 
-<p><strong>Cao Trong Phuoc</strong> - Software Engineer - Embedded Systems</p>
+### IV. Runtime and OTA
+
+- **Provisioning:** Gateway runs in AUTO mode and provisions each unprovisioned node one at a time with Static OOB auth. Details in [docs/02-ble-mesh.md](docs/02-ble-mesh.md).
+- **Self-healing:** A 30-second window watchdog broadcasts `RESET_CMD` if the mesh goes silent, and nodes rejoin on their own. Full flow in [docs/05-operation.md](docs/05-operation.md#self-healing).
+- **OTA over mesh:** Gateway broadcasts an OTA-beacon, each node downloads its `.bin` from the LAN HTTPS server (nginx). Test procedure in [docs/06-testing.md](docs/06-testing.md#ota).
+- **Security:** Secure Boot V2 + Flash Encryption on all four apps, TOTP-style HMAC-16 on tag beacons, TLS with CN pinning on MQTTS. See [docs/07-secure-boot.md](docs/07-secure-boot.md).
+
+## Contact & Support
+
+<p style="font-size: 20px;"><strong>Cao Trong Phuoc</strong> - Software Engineer - Embedded Systems</p>
+
+``` Note
+Thank you for visiting this repository.
+If you have any questions, suggestions, or feedback about this project or firmware development, feel free to contact me directly.
+```
 
 <a href="https://github.com/caotrongphuoc">
   <img src="https://img.shields.io/badge/GitHub-caotrongphuoc-181717?style=for-the-badge&logo=github&logoColor=white"/>
