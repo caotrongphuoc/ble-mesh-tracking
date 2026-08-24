@@ -52,6 +52,19 @@ The project puts several embedded engineering ideas into practice:
 - **Server-side rules:** ThingsBoard rule chain that maps `scanner_id` to a room and pushes updates over WebSocket.
 - **OTA over mesh:** HTTPS fileserver on nginx, per-node result reporting, SHA256 self-check on the gateway.
 
+## Getting Started
+
+New to the repo? Pick the trail that matches what you want to do:
+
+- **Just want to see it run on real hardware.** Follow [docs/00-quickstart.md](docs/00-quickstart.md) end to end - clone, install ESP-IDF, `docker compose up`, build the four apps, flash, verify on the dashboard. Works on Linux and Windows.
+- **Want to understand the design first.** Read [docs/01-architecture.md](docs/01-architecture.md) (system layout and data flow), then [docs/02-ble-mesh.md](docs/02-ble-mesh.md) (BLE Mesh parts used) and [docs/03-algorithms.md](docs/03-algorithms.md) (Kalman, HMAC-16, hysteresis, watchdog).
+- **Setting up the server side.** [docs/04-thingsboard.md](docs/04-thingsboard.md) covers Docker install, device profiles, the `ble_tag_zone_detection` rule chain, the dashboard, MQTT topics, TLS trust and the HTTPS OTA server (nginx on port 8443).
+- **Running or operating a deployment.** [docs/05-operation.md](docs/05-operation.md) has the UART command reference, factory-reset procedure and pre-commit / pre-flash / pre-release / deployment checklists. [docs/06-testing.md](docs/06-testing.md) has the 16 test scenarios (bring-up, walking, self-heal, OTA end-to-end + fault injection).
+- **Hardening for production.** [docs/07-secure-boot.md](docs/07-secure-boot.md) covers Secure Boot V2 + Flash Encryption + signing-key regeneration; switch to `CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE` before shipping.
+- **Building the coin-cell nRF52840 tag.** [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) (Seeed XIAO) or [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) (ProMicro / nice!nano) - Zephyr + MCUboot, signed UF2 flash flow.
+
+> First-time build tip: the signing keys are **not** in the repo (see [docs/07-secure-boot.md#signing-keys](docs/07-secure-boot.md#signing-keys)). Run the two `espsecure.py` / `imgtool keygen` commands from that section into a fresh `keys/` folder before the first `idf.py build`, otherwise the build fails with `keys/bmt_fleet_rsa3072.pem: No such file or directory`.
+
 ### I. Hardware
 
 <table align="center">
