@@ -160,3 +160,18 @@ If you have any questions, suggestions, or feedback about this project or firmwa
 <a href="https://www.linkedin.com/in/cao-trong-phuoc/">
   <img src="https://img.shields.io/badge/LinkedIn-Cao%20Trong%20Phuoc-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white"/>
 </a>
+
+<p style="font-size: 20px;"><strong>Tang Si Thong</strong> - Software Engineer - Embedded Systems</p>
+
+``` Note
+Contributor on this project.
+Reach out on GitHub or LinkedIn for questions about the parts of the firmware I worked on.
+```
+
+<a href="https://github.com/tangsithong">
+  <img src="https://img.shields.io/badge/GitHub-tangsithong-181717?style=for-the-badge&logo=github&logoColor=white"/>
+</a>
+
+<a href="https://www.linkedin.com/in/si-thong-undefined-6a187142b/">
+  <img src="https://img.shields.io/badge/LinkedIn-Tang%20Si%20Thong-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white"/>
+</a>
