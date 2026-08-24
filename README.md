@@ -20,9 +20,19 @@
 
 ## Demo
 
-<div align="center">
-  <em>Demo video coming soon.</em>
-</div>
+<table align="center">
+  <tr>
+    <td align="center"><img src="resources/images/thingsboard/dashboard-indoor-tracking-overview.png" alt="Indoor Tracking dashboard - overview" width="900"/></td>
+  </tr>
+</table>
+<p align="center"><strong><em>Figure 1:</em></strong> Live overview - tracked tags, floor plan with the current room highlighted, and system health</p>
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="resources/images/thingsboard/dashboard-indoor-tracking-charts.png" alt="Indoor Tracking dashboard - time-series analytics" width="900"/></td>
+  </tr>
+</table>
+<p align="center"><strong><em>Figure 2:</em></strong> Time-series view - zone timeline, per-scanner RSSI (Scanner 01-03), rule-chain decision diagnostics, scanner freshness</p>
 
 ## Documentation
 
@@ -71,7 +81,7 @@ Pick the trail that fits your goal:
     <td align="center"><strong>Scanner</strong> (x3)<br/>ESP32-DevKitC-V4</td>
   </tr>
 </table>
-<p align="center"><strong><em>Figure 1:</em></strong> Boards used for each node role</p>
+<p align="center"><strong><em>Figure 3:</em></strong> Boards used for each node role</p>
 
 Gateway and Relay share the same ESP32-S3 hardware with different firmware. [apps/tag/](apps/tag/) is an ESP32-S3 reference build kept for bench testing.
 
@@ -135,7 +145,7 @@ sequenceDiagram
     D->>D: Highlight room on floor plan<br/>update RSSI chart
 ```
 
-<p align="center"><strong><em>Figure 2:</em></strong> End-to-end data flow</p>
+<p align="center"><strong><em>Figure 4:</em></strong> End-to-end data flow</p>
 
 ### IV. Runtime and OTA
 
