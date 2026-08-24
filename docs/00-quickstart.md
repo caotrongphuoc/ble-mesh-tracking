@@ -4,13 +4,26 @@ Common flow first, then OS-specific notes. Assumes you have a workstation on the
 
 ## What you need
 
-- ESP-IDF v6.0.1.
-- Docker (Desktop on Windows, native on Linux).
-- Python 3.
-- Git.
-- **3x ESP32-S3** (gateway + relay + tag) and **3x ESP32** (3 scanners). Six boards total. See the hardware table in the [README](../README.md#hardware) for the reasoning behind the split (S3 for BLE + WiFi coexistence on gateway/relay/tag; plain ESP32 is enough for the scanner role).
-- One USB-serial cable per board.
-- Optional: 1x nRF52840 board (nice!nano v2, XIAO BLE Sense) if you want to run the coin-cell battery Beacon variant of the tag - see [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
+**Toolchains:**
+
+- **ESP-IDF v6.0.1** - gateway, relay, scanner, and the optional ESP32-S3 bench tag.
+- **Zephyr + west** (recent LTS) - the primary Tag on nRF52840 XIAO. Install via the [Zephyr getting-started guide](https://docs.zephyrproject.org/latest/develop/getting_started/index.html).
+- **Docker** (Desktop on Windows, native on Linux) - ThingsBoard CE + nginx OTA server.
+- **Python 3** - `espsecure.py` and `imgtool` (both come with their respective toolchains once installed).
+- **Git**.
+
+**Boards** (5 ESP32 + 1 nRF52840, see the Hardware section of the [README](../README.md#i-hardware)):
+
+- **2x ESP32-S3-DevKitC-1** - one flashed as gateway, one as relay.
+- **3x ESP32-DevKitC-V4** - the three scanners.
+- **1x Seeed XIAO nRF52840** - the coin-cell Tag (primary). ProMicro nRF52840 works too; see [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md).
+- *Optional bench tag:* one extra **ESP32-S3-DevKitC-1** if you want to run [apps/tag/](../apps/tag/) side by side with the XIAO to compare beacon output.
+
+**Cables and power:**
+
+- One USB(-serial) cable per ESP32 board.
+- One USB-C cable for the XIAO tag (also acts as the flashing interface).
+- A LiPo or LIR coin cell for the tag if you want to run it off-battery after flashing.
 
 ## 1. Clone
 
