@@ -90,10 +90,16 @@ disables the bootloader's console).
 
 ### How to flash: merge MCUboot + SIGNED app, then convert to UF2
 
-Run the helper script:
+Run the helper script for your host OS (both do the same merge + uf2conv):
 
 ```powershell
+# Windows (PowerShell, Zephyr / nRF Connect env activated)
 .\make_uf2.ps1
+```
+
+```bash
+# Linux / macOS (Zephyr venv activated)
+./make_uf2.sh
 ```
 
 It produces `tag_ProMicro_SIGNED.uf2`. Then:

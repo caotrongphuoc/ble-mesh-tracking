@@ -86,7 +86,7 @@ docker compose up -d
 
 Wait 1-2 minutes. Open `http://localhost:8080`, log in with `tenant@thingsboard.org` / `tenant`, change the password.
 
-Device profiles, rule chain, dashboard, and gateway token: see [thingsboard.md](04-thingsboard.md). Do these before flashing.
+> **Do this before step 6 (flashing).** In [thingsboard.md](04-thingsboard.md), create the two device profiles, import the `ble_tag_zone_detection` rule chain, load the Indoor Tracking dashboard, and copy the gateway access token. If you skip these, the gateway will still connect via MQTTS but the dashboard stays empty (no rule chain to map RSSI to a room), which looks exactly like a broken deployment.
 
 ## 5. Set firmware config
 

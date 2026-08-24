@@ -61,8 +61,16 @@ dead"):
 
 ### How to flash
 
+Run the helper script for your host OS (both call `west` outputs + `uf2conv.py` under the hood):
+
 ```powershell
+# Windows (PowerShell, Zephyr / nRF Connect env activated)
 .\make_uf2.ps1
+```
+
+```bash
+# Linux / macOS (Zephyr venv activated)
+./make_uf2.sh
 ```
 
 The script produces `tag_Xiao_SIGNED.uf2`. Then:
