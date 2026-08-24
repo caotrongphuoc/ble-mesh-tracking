@@ -50,7 +50,29 @@ Add `. ~/esp/esp-idf/export.sh` to your shell rc to get `idf.py` in every sessio
 
 Download the ESP-IDF Installer v6.0.1 from `https://dl.espressif.com/dl/esp-idf/` and run it. Pick a short path like `C:\esp`. The installer creates a Start Menu shortcut "ESP-IDF v6.0.1 CMD" that opens a shell with `idf.py` on PATH.
 
-## 3. Start ThingsBoard
+## 3. Generate signing keys
+
+Two signing keys are required before the first firmware build. **Neither is committed** - `keys/*.pem` is `.gitignore`d, and the `keys/` folder does not exist in a fresh clone. Create it, then run both commands from the repo root:
+
+```
+mkdir -p keys
+```
+
+**Secure Boot V2** (`gateway`, `relay`, `scanner`, and the bench `apps/tag`). Requires ESP-IDF to be sourced first so `espsecure.py` is on PATH (`. ~/esp/esp-idf/export.sh`):
+
+```
+espsecure.py generate_signing_key --version 2 --scheme rsa3072 keys/bmt_fleet_rsa3072.pem
+```
+
+**MCUboot** (nRF52840 Tag). Requires Zephyr / west installed (`imgtool` ships with the Zephyr Python venv):
+
+```
+imgtool keygen -t ecdsa-p256 -k keys/bmt_tag_ecdsa_p256.pem
+```
+
+Back both keys up outside the repo (password manager, offline drive). If you lose the Secure Boot key after a board has been flashed with Secure Boot on, that board can no longer receive a new signed image; see [secure-boot.md](07-secure-boot.md#one-signing-key-for-the-whole-fleet) and [keys/README.md](../keys/README.md).
+
+## 4. Start ThingsBoard
 
 Install Docker first. Linux: `sudo apt install docker.io docker-compose-plugin`. Windows: Docker Desktop (needs WSL2 on first run).
 
@@ -66,7 +88,7 @@ Wait 1-2 minutes. Open `http://localhost:8080`, log in with `tenant@thingsboard.
 
 Device profiles, rule chain, dashboard, and gateway token: see [thingsboard.md](04-thingsboard.md). Do these before flashing.
 
-## 4. Set firmware config
+## 5. Set firmware config
 
 Edit `apps/*/components/bmt_config/bmt_config.h`:
 
@@ -74,12 +96,12 @@ Edit `apps/*/components/bmt_config/bmt_config.h`:
 |---|---|---|
 | `BMT_WIFI_SSID` / `BMT_WIFI_PASS` | gateway, scanner, relay | Your WiFi. |
 | `BMT_TB_IP` | gateway | Docker host IP. |
-| `BMT_TB_GATEWAY_TOKEN` | gateway | Token from step 3. |
+| `BMT_TB_GATEWAY_TOKEN` | gateway | Token from step 4. |
 | `BMT_OTA_*_URL` | gateway, scanner, relay | `https://<host-ip>:8443/<name>.bin`. |
 
 Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` embeds (`apps/gateway/components/bmt_mqtt/ca.pem` and `components/bmt_ota/ota_ca.pem`) as part of the same run. Rebuild every affected firmware after a regen. See the *TLS trust chain* section of [thingsboard.md](04-thingsboard.md#tls-trust-chain).
 
-## 5. Build and flash
+## 6. Build and flash
 
 Find the serial ports first: Linux `ls /dev/ttyUSB*`, Windows Device Manager under "Ports (COM & LPT)".
 
@@ -98,7 +120,7 @@ Each build copies its `.bin` into `firmware/`. Override with `idf.py -DBMT_OTA_D
 
 Linux permission denied on `/dev/ttyUSB*`: `sudo usermod -aG dialout $USER`, then log out and back in.
 
-## 6. Run
+## 7. Run
 
 1. Power up the gateway first. Gateway is in AUTO mode and provisions each node on its own.
 2. Power up the relay, wait for it to fully provision, **then** power up scanners **one at a time**, waiting for each to finish before powering the next. Provisioning is event-driven: the gateway handles one node's provision/config sequence (`APP_KEY_ADD` -> `MODEL_APP_BIND`) at a time, and powering multiple unprovisioned nodes together can cause some of them to miss their config step and never reach "fully configured".
@@ -110,7 +132,7 @@ If a node never reaches "fully configured", power-cycle just that node - it will
 
 Full command list: [operation.md#uart-commands](05-operation.md#uart-commands). Test procedures: [testing.md](06-testing.md).
 
-## 7. OTA
+## 8. OTA
 
 ### Where OTA `.bin` files come from
 
@@ -134,7 +156,7 @@ Rebuild any time you change config (`bmt_config.h`) or source - otherwise the no
 
 ### Serving OTA over HTTPS
 
-The nginx OTA fileserver comes up automatically with `docker compose up -d` in step 3 (it is one of the services in the stack). It serves `firmware/` over HTTPS on port `8443` using the same TLS cert as MQTTS. To restart just it:
+The nginx OTA fileserver comes up automatically with `docker compose up -d` in step 4 (it is one of the services in the stack). It serves `firmware/` over HTTPS on port `8443` using the same TLS cert as MQTTS. To restart just it:
 
 ```
 cd thingsboard && docker compose up -d ota-fileserver
