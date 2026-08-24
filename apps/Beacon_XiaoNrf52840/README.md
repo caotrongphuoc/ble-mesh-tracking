@@ -26,8 +26,9 @@ key lives in `../../keys/` (see
 regen command; the repo ships none).
 
 For interop the master HMAC key must match byte-for-byte across every
-tag variant and the Scanner — see
-[`../../.github/SECURITY.md`](../../.github/SECURITY.md).
+tag variant and the Scanner — the 16 bytes live in
+`apps/*/components/bmt_auth/bmt_auth.c` (`BMT_TAG_MASTER_KEY`) and
+must be identical in every app that uses it.
 
 **Status: experimental.** No OTA-over-mesh support (the OTA path in
 `apps/tag` is not shared with this variant); flashing is manual via

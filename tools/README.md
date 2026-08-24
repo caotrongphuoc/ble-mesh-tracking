@@ -10,7 +10,7 @@ Reformats every `.c` and `.h` under `apps/` in place, using the root [`.clang-fo
 tools/format.sh
 ```
 
-The [CONTRIBUTING guide](../.github/CONTRIBUTING.md) requires this to be clean before you open a PR.
+Run this before committing so the tree stays `clang-format --dry-run --Werror` clean.
 
 ## `build-all.sh`
 
