@@ -101,7 +101,7 @@ Full command list: [operation.md#uart-commands](05-operation.md#uart-commands). 
 
 ### Where OTA `.bin` files come from
 
-The repo does **not** ship pre-built firmware images. `firmware/*.bin` is gitignored on purpose — pre-built binaries drift out of sync with source (private WiFi/IP baked in, wrong TLS keys, etc.) and are not safe to distribute in an opensource project.
+The repo does **not** ship pre-built firmware images. `firmware/*.bin` is gitignored on purpose — pre-built binaries drift out of sync with source (private WiFi/IP baked in, wrong TLS keys, etc.).
 
 `.bin` files appear in `firmware/` automatically as a side-effect of building each app:
 
