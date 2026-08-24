@@ -48,13 +48,13 @@ static void data_watchdog_task(void* arg)
 		 * monitoring as soon as the first configured scanner is available. */
 		if (!has_configured_scanner())
 		{
-			ESP_LOGI(TAG, "No configured scanner — watchdog waiting");
+			ESP_LOGI(TAG, "No configured scanner - watchdog waiting");
 			vTaskDelay(pdMS_TO_TICKS(BMT_WDG_TIMEOUT_MS));
 			continue;
 		}
 
 		uint32_t snap = bmt_mesh_get_received_count();
-		ESP_LOGI(TAG, "Configured scanner detected — watching %ds... (snap=%" PRIu32 ")",
+		ESP_LOGI(TAG, "Configured scanner detected - watching %ds... (snap=%" PRIu32 ")",
 		         BMT_WDG_TIMEOUT_MS / 1000, snap);
 
 		vTaskDelay(pdMS_TO_TICKS(BMT_WDG_TIMEOUT_MS));
@@ -62,13 +62,13 @@ static void data_watchdog_task(void* arg)
 		uint32_t current = bmt_mesh_get_received_count();
 		if (current != snap)
 		{
-			ESP_LOGI(TAG, "Mesh OK (%" PRIu32 " -> %" PRIu32 ") — continue monitoring",
+			ESP_LOGI(TAG, "Mesh OK (%" PRIu32 " -> %" PRIu32 ") - continue monitoring",
 			         snap, current);
 			continue;
 		}
 
 		ESP_LOGW(TAG, "============================================");
-		ESP_LOGW(TAG, "No mesh data in %ds — starting reset cycle", BMT_WDG_TIMEOUT_MS / 1000);
+		ESP_LOGW(TAG, "No mesh data in %ds - starting reset cycle", BMT_WDG_TIMEOUT_MS / 1000);
 		ESP_LOGW(TAG, "============================================");
 
 		uint8_t dummy = 0;
@@ -92,7 +92,7 @@ static void data_watchdog_task(void* arg)
 
 		if (sent_ok == 0)
 		{
-			ESP_LOGE(TAG, "RESET_CMD failed all %d attempts — mesh/radio not ready, "
+			ESP_LOGE(TAG, "RESET_CMD failed all %d attempts - mesh/radio not ready, "
 			              "retry after %ds",
 			         BMT_WDG_RESET_TRIES, BMT_WDG_TIMEOUT_MS / 1000);
 			continue;
@@ -103,14 +103,14 @@ static void data_watchdog_task(void* arg)
 	ESP_LOGW(TAG, "Waiting %ds for nodes to complete reset + reboot...", BMT_WDG_NODE_WAIT_MS / 1000);
 	vTaskDelay(pdMS_TO_TICKS(BMT_WDG_NODE_WAIT_MS));
 
-	ESP_LOGW(TAG, "Gateway FULL RESET — wiping all mesh state...");
+	ESP_LOGW(TAG, "Gateway FULL RESET - wiping all mesh state...");
 	int n = bmt_mesh_wipe_all_provisioned();
 	ESP_LOGW(TAG, "Erased %d node(s) from provisioner table", n);
 
 	bmt_node_table_clear();
 	bmt_zone_reset_all();
 	vTaskDelay(pdMS_TO_TICKS(1000));
-	ESP_LOGW(TAG, "Rebooting — auto provision on next boot...");
+	ESP_LOGW(TAG, "Rebooting - auto provision on next boot...");
 	esp_restart();
 }
 

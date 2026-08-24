@@ -21,7 +21,7 @@ static void print_version(void)
 	printf("Version   : %s (build %s %s)\n", desc->version, desc->date, desc->time);
 }
 
-/* Periodically print a health log to UART — purely for on-site debug
+/* Periodically print a health log to UART - purely for on-site debug
  * cable monitoring. Has no effect on the Relay's forward / OTA /
  * reset logic. */
 #define BMT_RELAY_MONITOR_INTERVAL_MS 30000
@@ -65,7 +65,7 @@ static void uart_cmd_task(void* arg)
 		case 'R':
 			/* bmt_mesh_local_reset() now reboots exactly when the mesh
 			 * reset REALLY completes (via event); no more fixed delay here. */
-			printf("\n[UART] Resetting mesh — will reboot when done...\n");
+			printf("\n[UART] Resetting mesh - will reboot when done...\n");
 			bmt_mesh_local_reset();
 			break;
 
@@ -95,7 +95,7 @@ static void uart_cmd_task(void* arg)
 }
 
 /* Wait until provisioning is complete, then start counting uptime
- * and print a health log every BMT_RELAY_MONITOR_INTERVAL_MS — for
+ * and print a health log every BMT_RELAY_MONITOR_INTERVAL_MS - for
  * on-site UART monitoring only. */
 static void relay_monitor_task(void* arg)
 {

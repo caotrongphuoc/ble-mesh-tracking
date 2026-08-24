@@ -8,12 +8,12 @@
 
 LOG_MODULE_REGISTER(bmt_auth, LOG_LEVEL_INF);
 
-/* [SECURITY] Master key — NOT used directly to sign the payload. It
+/* [SECURITY] Master key - NOT used directly to sign the payload. It
  * derives a separate key per epoch (rotated over time, TOTP-style,
  * receiver-less: Tag has no mesh / WiFi, so it cannot receive a
  * pushed rotation like the OTA-beacon key does on Scanner). If this
  * key is stolen from flash, the attacker still has to recompute the
- * current epoch key — they cannot "replay a single static key
+ * current epoch key - they cannot "replay a single static key
  * forever".
  * MUST match BMT_TAG_MASTER_KEY on the ESP32 Tag byte-for-byte. */
 static const uint8_t BMT_TAG_MASTER_KEY[16] = {
@@ -21,7 +21,7 @@ static const uint8_t BMT_TAG_MASTER_KEY[16] = {
     0x12, 0x7F, 0xDB, 0xC0, 0xCB, 0xFF, 0xF8, 0xB1};
 
 /* Epoch tick = 1 h. Tag has no RTC / WiFi, so the epoch is a LOCAL
- * counter measured from boot (k_uptime_get(), not wall-clock) —
+ * counter measured from boot (k_uptime_get(), not wall-clock) - 
  * resets to 0 on every power loss (CR2032 swap). Scanner deals with
  * the drift via windowed resync. MUST match the value on the
  * Scanner (ESP32). */
@@ -33,7 +33,7 @@ static uint16_t s_cached_epoch = 0xFFFF; /* invalid value -> forces derivation o
 
 static uint16_t current_epoch(void)
 {
-	/* k_uptime_get() returns milliseconds (int64_t) since boot —
+	/* k_uptime_get() returns milliseconds (int64_t) since boot - 
 	 * different from ESP-IDF's esp_timer_get_time() which is
 	 * microseconds. Adjust the scale factor accordingly. */
 	return (uint16_t)(k_uptime_get() / (1000LL * BMT_EPOCH_TICK_SEC));

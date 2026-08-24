@@ -8,20 +8,20 @@
 
 static const char* TAG = "BMT_AUTH";
 
-/* [SECURITY] Master key — NOT used directly to sign payloads any more.
+/* [SECURITY] Master key - NOT used directly to sign payloads any more.
  * It derives one key per epoch (rotates over time, TOTP-style,
- * receiver-less — the Tag has no mesh/WiFi so it cannot receive a
+ * receiver-less - the Tag has no mesh/WiFi so it cannot receive a
  * rotated key pushed down like the Scanner's OTA-beacon key). Even if
  * this key is stolen from flash, the attacker still has to derive the
- * current epoch key — a single static key cannot be replayed forever. */
+ * current epoch key - a single static key cannot be replayed forever. */
 static const uint8_t BMT_TAG_MASTER_KEY[16] = {
     0x76, 0x9F, 0xD5, 0x0D, 0xDF, 0x25, 0xA7, 0x7B,
     0x12, 0x7F, 0xDB, 0xC0, 0xCB, 0xFF, 0xF8, 0xB1};
 
 /* Epoch tick = 1 h. The Tag has NO RTC or WiFi, so the epoch is a LOCAL
- * counter measured from boot (esp_timer_get_time(), not wall-clock) — it
+ * counter measured from boot (esp_timer_get_time(), not wall-clock) - it
  * resets to 0 on every power loss (battery swap). The Scanner absorbs
- * this drift via windowed resync — see bmt_auth_verify_tag() on the
+ * this drift via windowed resync - see bmt_auth_verify_tag() on the
  * Scanner side. MUST EXACTLY MATCH the value used on the Scanner. */
 #define BMT_EPOCH_TICK_SEC 3600
 

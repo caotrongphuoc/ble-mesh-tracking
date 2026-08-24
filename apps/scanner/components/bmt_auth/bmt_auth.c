@@ -14,7 +14,7 @@ static const char* TAG = "BMT_AUTH";
 
 #define BMT_AUTH_NVS_KEY_OTA_BKN_KEY "ota_bkn_key"
 
-/* [SECURITY] Master key used to derive the Tag epoch key — MUST match
+/* [SECURITY] Master key used to derive the Tag epoch key - MUST match
  * BMT_TAG_MASTER_KEY in apps/tag/components/bmt_auth/bmt_auth.c byte-for-byte.
  * A single-byte drift breaks all authentication silently. */
 static const uint8_t BMT_TAG_MASTER_KEY[16] = {
@@ -27,7 +27,7 @@ static const uint8_t BMT_TAG_MASTER_KEY[16] = {
  * once the tag is "locked". */
 #define BMT_EPOCH_NARROW_WINDOW 1
 /* Wide resync on first sight of a tag or after it loses sync (battery
- * change): scan epoch 0..MAX — covers about 8 days of continuous Tag
+ * change): scan epoch 0..MAX - covers about 8 days of continuous Tag
  * uptime before hitting any scanner again. Only paid when a resync is
  * actually needed, not per packet. */
 #define BMT_EPOCH_WIDE_MAX 200
@@ -44,7 +44,7 @@ typedef struct
 static bmt_auth_epoch_state_t s_epoch_state[BMT_AUTH_MAX_TAGS];
 static psa_key_id_t s_tag_master_key_id = 0;
 
-/* [SECURITY] Dedicated HMAC key for the OTA-beacon from Gateway — does NOT
+/* [SECURITY] Dedicated HMAC key for the OTA-beacon from Gateway - does NOT
  * share the key with Tag beacons. MUST match BMT_OTA_BEACON_HMAC_KEY in
  * Gateway/main/main.c. */
 static const uint8_t BMT_OTA_BEACON_HMAC_KEY[16] = {
@@ -172,7 +172,7 @@ static bmt_auth_epoch_state_t* find_or_alloc_epoch_state(uint16_t tag_id)
 }
 
 /* [SECURITY] Tags have no mesh/WiFi, so they cannot receive a pushed key
- * rotation — instead Tag and Scanner both rotate the key by local epoch
+ * rotation - instead Tag and Scanner both rotate the key by local epoch
  * ticks (TOTP-style, receiver-less). Scanner does not know the Tag's real
  * current epoch (Tag resets epoch to 0 on every power loss / battery swap),
  * so it must:

@@ -60,7 +60,7 @@ void bmt_wifi_init(void)
 	                                       pdMS_TO_TICKS(BMT_WIFI_INIT_TIMEOUT_MS));
 	if (!(bits & WIFI_CONNECTED_BIT))
 	{
-		ESP_LOGW(TAG, "WiFi connect timeout %ds — boot continues, MQTT will retry when WiFi comes up",
+		ESP_LOGW(TAG, "WiFi connect timeout %ds - boot continues, MQTT will retry when WiFi comes up",
 		         BMT_WIFI_INIT_TIMEOUT_MS / 1000);
 	}
 }

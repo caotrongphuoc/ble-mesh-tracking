@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "esp_bt.h"
 
-/* System UUID — IDENTICAL across all tags (ESP32 + iPhone).
+/* System UUID - IDENTICAL across all tags (ESP32 + iPhone).
  * Scanner checks the first 4 bytes (AB 00 00 00) to recognise
  * "our system's tag". */
 static const uint8_t BMT_SYSTEM_UUID[16] = {

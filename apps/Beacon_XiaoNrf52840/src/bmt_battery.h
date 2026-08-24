@@ -19,7 +19,7 @@ uint8_t bmt_battery_percent(int mv);
 /* true when the charger IC is charging (P0.17 LOW). */
 bool bmt_battery_is_charging(void);
 
-/* Cached % from the most recent periodic read — used by the beacon
+/* Cached % from the most recent periodic read - used by the beacon
  * to embed in each ADV payload without re-reading the ADC. Refreshed
  * by a 30 s timer in bmt_battery.c and once synchronously at init. */
 uint8_t bmt_battery_last_percent(void);

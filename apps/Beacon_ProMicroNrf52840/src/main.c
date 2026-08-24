@@ -12,7 +12,7 @@
 LOG_MODULE_REGISTER(bmt_main, LOG_LEVEL_INF);
 
 /* [POWER] Soft switch that cuts power to the external VCC pin
- * (P0.13) — full explanation in
+ * (P0.13) - full explanation in
  * boards/promicro_nrf52840_nrf52840_uf2.overlay.
  * Summary: the 3.3 V branch routed to the external pin is powered
  * by default (Zephyr does not declare a control pin, so it stays
@@ -50,7 +50,7 @@ static void bt_ready(int err)
 	}
 	LOG_INF("Bluetooth initialized");
 
-	/* MUST be called before bmt_beacon_start() — the beacon needs
+	/* MUST be called before bmt_beacon_start() - the beacon needs
 	 * the HMAC key ready so it can compute mac16 for the very
 	 * first ADV. */
 	bmt_auth_init();
@@ -68,7 +68,7 @@ int main(void)
 {
 	printk("=== BMT Tag (nRF52840) starting ===\n");
 
-	/* As EARLY as possible — every millisecond of delay lets current
+	/* As EARLY as possible - every millisecond of delay lets current
 	 * waste on the external VCC rail. */
 	ext_vcc_off();
 

@@ -38,7 +38,7 @@ static uint8_t s_scan_uuid[16] = {
     0x53,
     0x43,
     0x41,
-    0x4E, /* "SCAN" — Gateway looks at these bytes to identify a scanner. */
+    0x4E, /* "SCAN" - Gateway looks at these bytes to identify a scanner. */
     0x00,
     0x00,
     0x00,
@@ -120,8 +120,8 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
 		if (s_reboot_after_reset)
 		{
 			/* Mesh NVS reset has REALLY completed (this event proves it)
-			 * — reboot is now safe; no more blind 500 ms delay. */
-			ESP_LOGW(TAG, "[RESET] Local reset COMPLETE — rebooting now");
+			 * - reboot is now safe; no more blind 500 ms delay. */
+			ESP_LOGW(TAG, "[RESET] Local reset COMPLETE - rebooting now");
 			s_reboot_after_reset = false;
 			vTaskDelay(pdMS_TO_TICKS(300));
 			esp_restart();
@@ -144,7 +144,7 @@ static void mesh_cfg_server_cb(esp_ble_mesh_cfg_server_cb_event_t event,
 	{
 	case ESP_BLE_MESH_MODEL_OP_APP_KEY_ADD:
 		s_app_idx = param->value.state_change.appkey_add.app_idx;
-		ESP_LOGI(TAG, "=== AppKey received! idx=0x%04x — Ready! ===", s_app_idx);
+		ESP_LOGI(TAG, "=== AppKey received! idx=0x%04x - Ready! ===", s_app_idx);
 		break;
 	case ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND:
 		ESP_LOGI(TAG, "Model AppKey bind done");
@@ -164,19 +164,19 @@ static void mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
 	uint16_t src = param->model_operation.ctx->addr;
 
 	/* OTA_TRIGGER: on receipt, have bmt_ota spawn its own WiFi task.
-	 * Do NOT do the OTA inside this callback — it would block the
+	 * Do NOT do the OTA inside this callback - it would block the
 	 * BLE host task. */
 	if (opcode == BMT_OP_VND_OTA_TRIGGER)
 	{
-		ESP_LOGW(TAG, "[OTA] OTA_TRIGGER received from 0x%04x — starting WiFi OTA", src);
+		ESP_LOGW(TAG, "[OTA] OTA_TRIGGER received from 0x%04x - starting WiFi OTA", src);
 		bmt_ota_trigger();
 		return;
 	}
 	if (opcode == BMT_OP_VND_RESET_CMD)
 	{
-		/* Reuse bmt_mesh_local_reset() — reboots exactly when the mesh
+		/* Reuse bmt_mesh_local_reset() - reboots exactly when the mesh
 		 * reset really completes via event, no more blind fixed delay. */
-		ESP_LOGW(TAG, "[VND] RESET_CMD — resetting mesh, will reboot when done...");
+		ESP_LOGW(TAG, "[VND] RESET_CMD - resetting mesh, will reboot when done...");
 		vTaskDelay(pdMS_TO_TICKS(300));
 		bmt_mesh_local_reset();
 		return;
@@ -185,7 +185,7 @@ static void mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
 	{
 		if (param->model_operation.length == 16)
 		{
-			ESP_LOGW(TAG, "[SECURITY] OTA_KEY_PUSH received from 0x%04x — rotating beacon key", src);
+			ESP_LOGW(TAG, "[SECURITY] OTA_KEY_PUSH received from 0x%04x - rotating beacon key", src);
 			bmt_auth_set_ota_beacon_key(param->model_operation.msg, 16);
 		}
 		else
@@ -327,7 +327,7 @@ static void reset_reboot_fallback_task(void* arg)
 	vTaskDelay(pdMS_TO_TICKS(5000));
 	if (s_reboot_after_reset)
 	{
-		ESP_LOGW(TAG, "[RESET] Fallback timeout — reset event did not arrive within 5s, "
+		ESP_LOGW(TAG, "[RESET] Fallback timeout - reset event did not arrive within 5s, "
 		              "forcing reboot (NVS may not have been fully written yet)");
 		esp_restart();
 	}

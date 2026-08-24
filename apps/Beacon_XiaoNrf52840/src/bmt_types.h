@@ -12,7 +12,7 @@ typedef struct
 {
 	uint8_t uuid[16];    /* 16B: system UUID (AB000000-...) */
 	uint16_t battery;    /*  2B: remaining battery % (0-100). Was "major"
-	                      *      (PERSON/ASSET) — dropped because worn
+	                      *      (PERSON/ASSET) - dropped because worn
 	                      *      tags don't need the classification.
 	                      *      Position and size kept, so HMAC and the
 	                      *      24 B layout are unchanged. */

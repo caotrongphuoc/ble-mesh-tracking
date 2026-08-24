@@ -9,7 +9,7 @@
 LOG_MODULE_REGISTER(bmt_battery, LOG_LEVEL_INF);
 
 /* Battery wires directly into nRF52840's VDDH (nice!nano v2
- * high-voltage mode). Read via the SAADC's internal VDDHDIV5 —
+ * high-voltage mode). Read via the SAADC's internal VDDHDIV5 - 
  * no external divider and no GPIO enable needed (unlike XIAO,
  * which needs P0.31 + P0.14). */
 static const struct adc_dt_spec battery_adc = ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zephyr_user), 0);
@@ -21,10 +21,10 @@ static const struct adc_dt_spec battery_adc = ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zep
 
 /* Voltage -> percent lookup for Li-ion / LiPo. The Li-ion SoC-vs-
  * voltage curve is strongly non-linear, so a single linear formula
- * would be wrong across the range — use a table and interpolate
+ * would be wrong across the range - use a table and interpolate
  * between adjacent points. 4200 mV = 100% (full), 3300 mV = 0%
  * (safe lower cutoff; below this the cell degrades). Identical to
- * the XIAO variant — same battery chemistry, same curve. */
+ * the XIAO variant - same battery chemistry, same curve. */
 typedef struct
 {
 	uint16_t mv;
@@ -51,7 +51,7 @@ static const batt_point_t BATT_CURVE[] = {
 static struct k_timer batt_log_timer;
 static struct k_work batt_log_work;
 
-/* Cached % — the beacon reads this and embeds it in each ADV
+/* Cached % - the beacon reads this and embeds it in each ADV
  * (instead of hitting the ADC per packet). Refreshed by the work
  * handler (30 s) and once synchronously during init. */
 static uint8_t s_last_percent = 0;
@@ -120,12 +120,12 @@ uint8_t bmt_battery_percent(int mv)
 bool bmt_battery_is_charging(void)
 {
 	/* This board does NOT route the charger IC's ~CHG pin to any
-	 * readable GPIO — unlike XIAO (P0.17). Return false to keep the
+	 * readable GPIO - unlike XIAO (P0.17). Return false to keep the
 	 * API parity with the XIAO variant.
 	 *
 	 * Could be inferred indirectly from VDDH itself: when USB is
 	 * connected, VDDH climbs to ~5 V, well above a full battery
-	 * (4.2 V). Not implemented — need a real board to calibrate
+	 * (4.2 V). Not implemented - need a real board to calibrate
 	 * the threshold first. */
 	return false;
 }

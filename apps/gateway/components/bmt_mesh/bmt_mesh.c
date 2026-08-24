@@ -103,7 +103,7 @@ static bool cfg_send_retry(const char* step, uint16_t addr, uint32_t opcode,
 
 static void cfg_abort_cleanup(uint16_t addr)
 {
-	ESP_LOGE(TAG, "[CFG] Config 0x%04x FAILED after %d attempts — deleting entry (avoids a zombie blocking re-provision)",
+	ESP_LOGE(TAG, "[CFG] Config 0x%04x FAILED after %d attempts - deleting entry (avoids a zombie blocking re-provision)",
 	         addr, BMT_CFG_RETRY);
 	int idx = bmt_node_table_find(addr);
 	if (idx >= 0)
@@ -297,7 +297,7 @@ static void relay_config_task(void* arg)
 		bmt_node_table_get(idx)->config_done = true;
 		bmt_node_table_save();
 	}
-	ESP_LOGI(TAG, "[RLY_CFG] Relay 0x%04x fully configured — RESET_CMD enabled!", addr);
+	ESP_LOGI(TAG, "[RLY_CFG] Relay 0x%04x fully configured - RESET_CMD enabled!", addr);
 	bmt_node_table_print();
 	if (s_cfg_mutex)
 		xSemaphoreGive(s_cfg_mutex);
@@ -358,8 +358,8 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble_mesh_prov_c
 			{
 				bmt_node_t* nn = bmt_node_table_get(stale);
 				if (!nn->config_done)
-					break; /* still configuring — skip as before */
-				ESP_LOGW(TAG, "Node 0x%04x (%s) is beaconing unprovisioned again — "
+					break; /* still configuring - skip as before */
+				ESP_LOGW(TAG, "Node 0x%04x (%s) is beaconing unprovisioned again - "
 				              "the node reset itself; deleting the old entry and re-provisioning",
 				         nn->addr, nn->name);
 				esp_ble_mesh_provisioner_delete_node_with_uuid(uuid);
@@ -470,7 +470,7 @@ static void cfg_client_cb(esp_ble_mesh_cfg_client_cb_event_t event,
 			xEventGroupSetBits(s_cfg_ack_evgrp, BMT_CFG_ACK_BIT);
 		if (param->error_code != 0)
 		{
-			ESP_LOGW(TAG, "[PING] 0x%04x FAILED (err=%d) — not counted as ACK",
+			ESP_LOGW(TAG, "[PING] 0x%04x FAILED (err=%d) - not counted as ACK",
 			         addr, param->error_code);
 			return;
 		}
@@ -557,7 +557,7 @@ static void vnd_client_cb(esp_ble_mesh_model_cb_event_t event,
 		return;
 	}
 
-	/* Node reports its own OTA result — replaces the earlier
+	/* Node reports its own OTA result - replaces the earlier
 	 * "fire-and-wait-fixed-time" approach that never actually learned
 	 * whether the update succeeded. */
 	if (opcode == BMT_OP_VND_OTA_RESULT)
@@ -689,7 +689,7 @@ esp_err_t bmt_mesh_init(void)
 	}
 	else if (err == ESP_ERR_INVALID_STATE)
 	{
-		ESP_LOGI(TAG, "AppKey already bound (restored from NVS) — OK");
+		ESP_LOGI(TAG, "AppKey already bound (restored from NVS) - OK");
 	}
 	else
 	{
@@ -759,6 +759,6 @@ void bmt_mesh_print_keys(void)
 	}
 	printf("\n");
 #else
-	printf("NetKey/AppKey: [hidden — define BMT_DEBUG_PRINT_KEYS to print hex]\n");
+	printf("NetKey/AppKey: [hidden - define BMT_DEBUG_PRINT_KEYS to print hex]\n");
 #endif
 }

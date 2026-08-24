@@ -152,7 +152,7 @@ static esp_err_t bluetooth_init(void)
 	ESP_ERROR_CHECK(esp_bluedroid_init_with_cfg(&cfg));
 	ESP_ERROR_CHECK(esp_bluedroid_enable());
 
-	/* Set radio TX power — affects range and battery life. */
+	/* Set radio TX power - affects range and battery life. */
 	esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, BMT_TAG_RADIO_PWR);
 
 	return ESP_OK;
@@ -190,7 +190,7 @@ bool bmt_beacon_is_active(void)
 
 uint16_t bmt_beacon_last_mac16(void)
 {
-	/* Copy into an aligned local — s_adv_raw + ADV_PAYLOAD_OFF may sit at an odd address. */
+	/* Copy into an aligned local - s_adv_raw + ADV_PAYLOAD_OFF may sit at an odd address. */
 	bmt_tag_adv_payload_t p;
 	memcpy(&p, s_adv_raw + ADV_PAYLOAD_OFF, sizeof(p));
 	return p.mac16;

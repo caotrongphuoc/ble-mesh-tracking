@@ -51,7 +51,7 @@ static esp_ble_mesh_cfg_srv_t s_cfg_server = {
     .default_ttl = 7,
 };
 
-/* Vendor server model — receives RESET_CMD / OTA_TRIGGER and
+/* Vendor server model - receives RESET_CMD / OTA_TRIGGER and
  * publishes OTA_RESULT. */
 ESP_BLE_MESH_MODEL_PUB_DEFINE(s_vnd_pub, sizeof(bmt_ota_result_t) + 4, ROLE_NODE);
 
@@ -113,7 +113,7 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
 		xEventGroupClearBits(s_mesh_evgrp, BMT_PROV_COMPLETE_BIT);
 		if (s_reboot_after_reset)
 		{
-			ESP_LOGW(TAG, "[RESET] Local reset COMPLETE — rebooting now");
+			ESP_LOGW(TAG, "[RESET] Local reset COMPLETE - rebooting now");
 			s_reboot_after_reset = false;
 			vTaskDelay(pdMS_TO_TICKS(300));
 			esp_restart();
@@ -164,13 +164,13 @@ static void mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
 
 	if (opcode == BMT_OP_VND_OTA_TRIGGER)
 	{
-		ESP_LOGW(TAG, "[OTA] OTA_TRIGGER from 0x%04x — starting WiFi OTA", src);
+		ESP_LOGW(TAG, "[OTA] OTA_TRIGGER from 0x%04x - starting WiFi OTA", src);
 		bmt_ota_trigger();
 		return;
 	}
 	if (opcode == BMT_OP_VND_RESET_CMD)
 	{
-		ESP_LOGW(TAG, "[VND] RESET_CMD from gateway — resetting mesh, will reboot when done...");
+		ESP_LOGW(TAG, "[VND] RESET_CMD from gateway - resetting mesh, will reboot when done...");
 		vTaskDelay(pdMS_TO_TICKS(300));
 		bmt_mesh_local_reset();
 	}
@@ -251,7 +251,7 @@ static void reset_reboot_fallback_task(void* arg)
 	vTaskDelay(pdMS_TO_TICKS(5000));
 	if (s_reboot_after_reset)
 	{
-		ESP_LOGW(TAG, "[RESET] Fallback timeout — reset event did not arrive within 5s, "
+		ESP_LOGW(TAG, "[RESET] Fallback timeout - reset event did not arrive within 5s, "
 		              "forcing reboot");
 		esp_restart();
 	}

@@ -11,7 +11,7 @@
 
 static const char* TAG = "BMT_FACTORY_RST";
 
-/* BOOT button (GPIO0) — available on most ESP32 / ESP32-S3 dev boards.
+/* BOOT button (GPIO0) - available on most ESP32 / ESP32-S3 dev boards.
  * Only special at power-on (bootloader download mode); once the app is
  * running, it reads as a plain GPIO input. The EN/RST button will not
  * work for this because holding it keeps the chip in reset, so no code
@@ -58,7 +58,7 @@ static void factory_reset_task(void* arg)
 			if (held_ticks >= BMT_FACTORY_RESET_TICKS_NEEDED)
 			{
 				do_factory_reset();
-				/* Never reaches here — esp_restart() already rebooted. */
+				/* Never reaches here - esp_restart() already rebooted. */
 			}
 		}
 		else

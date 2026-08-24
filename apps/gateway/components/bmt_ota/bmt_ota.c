@@ -28,7 +28,7 @@
 
 static const char* TAG = "BMT_OTA";
 
-/* [SECURITY] CA embedded in firmware to verify the HTTPS OTA server —
+/* [SECURITY] CA embedded in firmware to verify the HTTPS OTA server - 
  * shares one CA with MQTTS (same physical server). Previously OTA ran
  * over plain HTTP: anyone on the LAN could download the .bin and read
  * plaintext secrets (WiFi pass, TB token, ...) without touching a
@@ -88,20 +88,20 @@ static void self_update_task(void* arg)
 
 	if (memcmp(new_desc.app_elf_sha256, cur_desc->app_elf_sha256, sizeof(new_desc.app_elf_sha256)) == 0)
 	{
-		printf("[OTA] SHA256 match — node firmware is IDENTICAL to server firmware, skip.\n");
+		printf("[OTA] SHA256 match - node firmware is IDENTICAL to server firmware, skip.\n");
 		esp_https_ota_abort(ota_handle);
 		atomic_store(&s_running, false);
 		vTaskDelete(NULL);
 		return;
 	}
-	printf("[OTA] SHA256 differ — node firmware DIFFERS from server firmware, checking version...\n");
+	printf("[OTA] SHA256 differ - node firmware DIFFERS from server firmware, checking version...\n");
 
 	printf("[OTA] Node   version: %s\n", cur_desc->version);
 	printf("[OTA] Server version: %s\n", new_desc.version);
 
 	if (strncmp(new_desc.version, cur_desc->version, sizeof(new_desc.version)) <= 0)
 	{
-		printf("[OTA] Server version is NOT newer — skip, no downgrade.\n");
+		printf("[OTA] Server version is NOT newer - skip, no downgrade.\n");
 		esp_https_ota_abort(ota_handle);
 		atomic_store(&s_running, false);
 		vTaskDelete(NULL);
@@ -129,7 +129,7 @@ static void self_update_task(void* arg)
 
 	if (err == ESP_OK)
 	{
-		printf("[OTA] ===== OTA SUCCESS — rebooting =====\n");
+		printf("[OTA] ===== OTA SUCCESS - rebooting =====\n");
 		bmt_tb_pub_gateway_ota_result(true);
 		vTaskDelay(pdMS_TO_TICKS(1000));
 		esp_restart();
@@ -189,14 +189,14 @@ static esp_err_t beacon_key_import(const uint8_t* key)
 	psa_set_key_type(&attr, PSA_KEY_TYPE_HMAC);
 	psa_set_key_bits(&attr, 8 * 16);
 
-	/* Import into a NEW slot first, only swap after import succeeds —
+	/* Import into a NEW slot first, only swap after import succeeds - 
 	 * rollback-safe: if the import fails, the old key
 	 * (s_beacon_hmac_key_id + raw) is still usable. */
 	psa_key_id_t new_id = 0;
 	psa_status_t st = psa_import_key(&attr, key, 16, &new_id);
 	if (st != PSA_SUCCESS)
 	{
-		ESP_LOGE(TAG, "[SECURITY] psa_import_key failed: %d — keeping the old key", (int)st);
+		ESP_LOGE(TAG, "[SECURITY] psa_import_key failed: %d - keeping the old key", (int)st);
 		return ESP_FAIL;
 	}
 
@@ -252,16 +252,16 @@ static void beacon_key_rotate_and_push(void)
 {
 	uint8_t new_key[16];
 	esp_fill_random(new_key, sizeof(new_key));
-	/* Import first — if it fails, do NOT persist and do NOT push, keep
+	/* Import first - if it fails, do NOT persist and do NOT push, keep
 	 * the old key so NVS / PSA / scanner do not drift apart (a gateway
 	 * reboot would then load the wrong key). */
 	if (beacon_key_import(new_key) != ESP_OK)
 	{
-		ESP_LOGE(TAG, "[SECURITY] Key rotate ABORTED — keeping the old key, not pushing");
+		ESP_LOGE(TAG, "[SECURITY] Key rotate ABORTED - keeping the old key, not pushing");
 		return;
 	}
 	beacon_key_persist(new_key);
-	ESP_LOGW(TAG, "[SECURITY] OTA-beacon key ROTATED (key_id=%" PRIu32 ") — pushing to all scanners...",
+	ESP_LOGW(TAG, "[SECURITY] OTA-beacon key ROTATED (key_id=%" PRIu32 ") - pushing to all scanners...",
 	         (uint32_t)s_beacon_hmac_key_id);
 
 	int pushed = 0;
@@ -321,8 +321,8 @@ static uint8_t s_beacon_raw[14] = {
     0xE5, 0x02,       /* CID Espressif (little-endian) */
     'B', 'M', 'T',    /* Magic "BMT" */
     0xFA,             /* Command: OTA trigger */
-    0x01,             /* target_type — filled in before send */
-    0x00, 0x00,       /* mac16 — HMAC-16 filled in before send */
+    0x01,             /* target_type - filled in before send */
+    0x00, 0x00,       /* mac16 - HMAC-16 filled in before send */
 };
 
 static int adv_gap_event(struct ble_gap_event* event, void* arg)
@@ -356,7 +356,7 @@ static esp_err_t beacon_send(uint8_t target_type)
 	rc = ble_gap_adv_start(BLE_OWN_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params, adv_gap_event, NULL);
 	if (rc != 0)
 	{
-		ESP_LOGE(TAG, "[OTA] ble_gap_adv_start FAILED rc=%d — the mesh host may already be advertising, "
+		ESP_LOGE(TAG, "[OTA] ble_gap_adv_start FAILED rc=%d - the mesh host may already be advertising, "
 		              "falling back to mesh unicast",
 		         rc);
 		return ESP_FAIL;
@@ -405,7 +405,7 @@ static void distribute_task(void* arg)
 
 	if (is_scan)
 	{
-		printf("[OTA] Broadcasting NimBLE beacon (%ds) — all %d scanners OTA simultaneously\n",
+		printf("[OTA] Broadcasting NimBLE beacon (%ds) - all %d scanners OTA simultaneously\n",
 		       BMT_OTA_BEACON_DURATION_MS / 1000, node_count);
 		if (beacon_send(target_type) == ESP_OK)
 		{
@@ -416,7 +416,7 @@ static void distribute_task(void* arg)
 			vTaskDelete(NULL);
 			return;
 		}
-		printf("[OTA] Beacon broadcast failed — falling back to mesh unicast (slower but reliable)\n");
+		printf("[OTA] Beacon broadcast failed - falling back to mesh unicast (slower but reliable)\n");
 	}
 
 	int idx = 0;
@@ -440,7 +440,7 @@ static void distribute_task(void* arg)
 			       e == ESP_OK ? "sent" : esp_err_to_name(e));
 			vTaskDelay(pdMS_TO_TICKS(500));
 		}
-		printf("[OTA] %s 0x%04x triggered — waiting %ds...\n", type_str, n->addr, BMT_OTA_NODE_GAP_MS / 1000);
+		printf("[OTA] %s 0x%04x triggered - waiting %ds...\n", type_str, n->addr, BMT_OTA_NODE_GAP_MS / 1000);
 		vTaskDelay(pdMS_TO_TICKS(BMT_OTA_NODE_GAP_MS));
 	}
 

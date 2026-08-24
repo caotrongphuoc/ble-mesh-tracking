@@ -140,7 +140,7 @@ void bmt_tb_pub_tag_report(const bmt_tag_report_t* r, const uint8_t* scanner_mac
 		return;
 
 	bmt_zone_lock();
-	/* Check before get_or_add to know whether this is a new tag — used
+	/* Check before get_or_add to know whether this is a new tag - used
 	 * to decide connect / set_role against TB below. */
 	bool was_new = (bmt_zone_track_find(r->tag_id) == NULL);
 	bmt_tag_track_t* t = bmt_zone_track_get_or_add(r->tag_id, r->battery);

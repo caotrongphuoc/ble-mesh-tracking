@@ -64,7 +64,7 @@ static bool parse_tag_payload(uint8_t* adv_data, uint8_t adv_len, bmt_tag_payloa
 			uint16_t cid = (uint16_t)adv_data[pos + 2] | ((uint16_t)adv_data[pos + 3] << 8);
 			if (cid == BMT_CID_ESPRESSIF && field_len >= (1 + 2 + 24))
 			{
-				/* Copy into an aligned buffer — adv_data + pos + 4 may sit
+				/* Copy into an aligned buffer - adv_data + pos + 4 may sit
 				 * at an odd address; reading uint16_t directly from there
 				 * faults on Xtensa / RISC-V. */
 				bmt_tag_adv_payload_t p;
@@ -146,7 +146,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
 					if (recv_mac != calc_mac)
 					{
 						ESP_LOGW(TAG, "[OTA] Beacon HMAC mismatch (got 0x%04x, expect 0x%04x)"
-						              " — ignoring, possibly a forged beacon",
+						              " - ignoring, possibly a forged beacon",
 						         recv_mac, calc_mac);
 						break;
 					}
@@ -160,7 +160,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
 					s_last_ota_beacon_mac = recv_mac;
 					s_last_ota_beacon_us = now;
 
-					printf("[OTA] BLE beacon from Gateway (HMAC OK) — triggering WiFi OTA!\n");
+					printf("[OTA] BLE beacon from Gateway (HMAC OK) - triggering WiFi OTA!\n");
 					bmt_ota_trigger();
 					break;
 				}

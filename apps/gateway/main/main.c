@@ -46,7 +46,7 @@ void app_main(void)
 	if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
 	{
 		ESP_LOGE(TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-		ESP_LOGE(TAG, "!!! NVS init: %s — MUST WIPE THE ENTIRE NVS", esp_err_to_name(err));
+		ESP_LOGE(TAG, "!!! NVS init: %s - MUST WIPE THE ENTIRE NVS", esp_err_to_name(err));
 		ESP_LOGE(TAG, "!!! => LOSES node table + NetKey/AppKey (new keys will be generated)");
 		ESP_LOGE(TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		ESP_ERROR_CHECK(nvs_flash_erase());
@@ -64,7 +64,7 @@ void app_main(void)
 	 * them to the mesh stack. */
 	bmt_mesh_generate_keys_if_needed();
 
-	/* [SECURITY] Import the OTA-beacon HMAC key early — OTA can be
+	/* [SECURITY] Import the OTA-beacon HMAC key early - OTA can be
 	 * triggered at any moment via UART ('u') or RPC from ThingsBoard. */
 	bmt_ota_beacon_key_init();
 	bmt_ota_start_key_rotation();

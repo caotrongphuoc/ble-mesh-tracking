@@ -43,7 +43,7 @@ bmt_tag_track_t* bmt_zone_track_get_or_add(uint16_t tag_id, uint8_t battery);
 
 const char* bmt_zone_name(uint8_t scanner_id);
 
-/* UART '2' — print the tracked-tag table and the current zone. */
+/* UART '2' - print the tracked-tag table and the current zone. */
 void bmt_zone_log_tracked(void);
 
 /* Wipe the entire tag-track table. Used by UART '0' / '9' and by

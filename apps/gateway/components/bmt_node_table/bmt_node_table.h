@@ -14,7 +14,7 @@ typedef struct
 	char name[32];
 } bmt_node_t;
 
-/* Table capacity — used by callers that want to iterate through
+/* Table capacity - used by callers that want to iterate through
  * bmt_node_table_get(i). */
 int bmt_node_table_capacity(void);
 bmt_node_t* bmt_node_table_get(int idx);

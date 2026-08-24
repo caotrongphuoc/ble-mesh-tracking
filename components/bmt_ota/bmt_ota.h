@@ -20,15 +20,15 @@ typedef struct
  * struct alive. */
 void bmt_ota_init(const bmt_ota_config_t* cfg);
 
-/* Start WiFi OTA if it is not already running (idempotent) — called from
+/* Start WiFi OTA if it is not already running (idempotent) - called from
  * bmt_mesh.c when OTA_TRIGGER arrives over mesh, or from UART / beacon. */
 void bmt_ota_trigger(void);
 
-/* true while OTA is in progress — bmt_scan uses it to pause GAP scan
+/* true while OTA is in progress - bmt_scan uses it to pause GAP scan
  * (hands the whole radio to WiFi); bmt_uart uses it to display status. */
 bool bmt_ota_is_triggered(void);
 
-/* Call once at boot (after bmt_ota_init + the mesh is up) — if the NVS
+/* Call once at boot (after bmt_ota_init + the mesh is up) - if the NVS
  * flag "OTA just succeeded and the reboot completed" is set, this task
  * reports SUCCESS back to the Gateway. */
 void bmt_ota_start_pending_report_task(void);

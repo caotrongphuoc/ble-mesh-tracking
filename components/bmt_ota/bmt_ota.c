@@ -19,7 +19,7 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 
-#include "bmt_mesh.h" /* bmt_mesh_report_ota_result — provided by each app */
+#include "bmt_mesh.h" /* bmt_mesh_report_ota_result - provided by each app */
 
 static const char* TAG = "BMT_OTA";
 
@@ -189,10 +189,10 @@ static void ota_wifi_tear_down(void)
 }
 
 /* Return: ESP_OK = flashed OK; ESP_ERR_NOT_FOUND = skip (SHA match or
- * server version not newer — not an error); other = real failure. */
+ * server version not newer - not an error); other = real failure. */
 static esp_err_t ota_check_and_flash(void)
 {
-	printf("[OTA] WiFi connected — checking firmware version...\n");
+	printf("[OTA] WiFi connected - checking firmware version...\n");
 	esp_http_client_config_t http_cfg = {
 	    .url = s_cfg.url,
 	    .timeout_ms = 120000,
@@ -226,16 +226,16 @@ static esp_err_t ota_check_and_flash(void)
 
 	if (memcmp(new_desc.app_elf_sha256, cur_desc->app_elf_sha256, sizeof(new_desc.app_elf_sha256)) == 0)
 	{
-		printf("[OTA] SHA256 match — node firmware is IDENTICAL to server firmware, skip.\n");
+		printf("[OTA] SHA256 match - node firmware is IDENTICAL to server firmware, skip.\n");
 		esp_https_ota_abort(ota_handle);
 		return ESP_ERR_NOT_FOUND;
 	}
-	printf("[OTA] SHA256 differ — node firmware DIFFERS from server firmware, checking version...\n");
+	printf("[OTA] SHA256 differ - node firmware DIFFERS from server firmware, checking version...\n");
 	printf("[OTA] Node   version: %s\n", cur_desc->version);
 	printf("[OTA] Server version: %s\n", new_desc.version);
 	if (strncmp(new_desc.version, cur_desc->version, sizeof(new_desc.version)) <= 0)
 	{
-		printf("[OTA] Server version is NOT newer — skip, no downgrade.\n");
+		printf("[OTA] Server version is NOT newer - skip, no downgrade.\n");
 		esp_https_ota_abort(ota_handle);
 		return ESP_ERR_NOT_FOUND;
 	}
@@ -279,7 +279,7 @@ static void ota_wifi_task(void* arg)
 		err = ota_check_and_flash();
 		if (err == ESP_OK)
 		{
-			printf("[OTA] ===== OTA SUCCESS — rebooting =====\n");
+			printf("[OTA] ===== OTA SUCCESS - rebooting =====\n");
 			mark_pending();
 			vTaskDelay(pdMS_TO_TICKS(1000));
 			esp_restart();
@@ -298,11 +298,11 @@ static void ota_wifi_task(void* arg)
 	if (do_report_fail)
 	{
 		bmt_mesh_report_ota_result(1);
-		printf("[OTA] failed — back to BLE-only\n");
+		printf("[OTA] failed - back to BLE-only\n");
 	}
 	else
 	{
-		printf("[OTA] No update needed — back to BLE-only\n");
+		printf("[OTA] No update needed - back to BLE-only\n");
 	}
 	s_ota_triggered = false;
 	vTaskDelete(NULL);
@@ -312,7 +312,7 @@ void bmt_ota_trigger(void)
 {
 	if (!s_inited)
 	{
-		ESP_LOGE(TAG, "bmt_ota_trigger called before bmt_ota_init — ignored");
+		ESP_LOGE(TAG, "bmt_ota_trigger called before bmt_ota_init - ignored");
 		return;
 	}
 	if (s_ota_triggered)
@@ -330,7 +330,7 @@ static void report_pending_task(void* arg)
 	vTaskDelay(pdMS_TO_TICKS(5000));
 	if (check_and_clear_pending())
 	{
-		ESP_LOGI(TAG, "Detected a fresh OTA + successful reboot — reporting back to Gateway");
+		ESP_LOGI(TAG, "Detected a fresh OTA + successful reboot - reporting back to Gateway");
 		bmt_mesh_report_ota_result(0);
 	}
 	vTaskDelete(NULL);
@@ -340,7 +340,7 @@ void bmt_ota_start_pending_report_task(void)
 {
 	if (!s_inited)
 	{
-		ESP_LOGE(TAG, "start_pending_report called before bmt_ota_init — ignored");
+		ESP_LOGE(TAG, "start_pending_report called before bmt_ota_init - ignored");
 		return;
 	}
 	assert(xTaskCreate(report_pending_task, "ota_rpt", 2048, NULL, 3, NULL) == pdPASS);
@@ -360,7 +360,7 @@ void bmt_ota_start_auto_check(void)
 {
 	if (!s_inited)
 	{
-		ESP_LOGE(TAG, "start_auto_check called before bmt_ota_init — ignored");
+		ESP_LOGE(TAG, "start_auto_check called before bmt_ota_init - ignored");
 		return;
 	}
 	assert(xTaskCreate(auto_check_task, "bmt_ota_chk", 2048, NULL, 3, NULL) == pdPASS);

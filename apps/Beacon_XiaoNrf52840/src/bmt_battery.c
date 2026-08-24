@@ -14,7 +14,7 @@ LOG_MODULE_REGISTER(bmt_battery, LOG_LEVEL_INF);
  *
  * Why NOT read VDD directly: when the cell feeds through the
  * on-board regulator, VDD is pinned at ~3.3 V regardless of whether
- * the cell is at 4.2 V or 3.4 V — so reading VDD tells us nothing
+ * the cell is at 4.2 V or 3.4 V - so reading VDD tells us nothing
  * useful. Read the voltage at the BAT+ node through the on-board
  * 1M/510k divider brought out to P0.31 (AIN7). Formula and resistor
  * values follow the Tjoms99/xiao_sense_nrf52840_battery_lib
@@ -22,7 +22,7 @@ LOG_MODULE_REGISTER(bmt_battery, LOG_LEVEL_INF);
  *
  * (If later switching back to a CR2032 wired straight to 3V3,
  * change this to read NRF_SAADC_VDD in the overlay and drop the
- * divider — different supply, different measurement path.) */
+ * divider - different supply, different measurement path.) */
 static const struct adc_dt_spec battery_adc = ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zephyr_user), 0);
 
 /* On-board divider: BAT+ --[R1]-- P0.31 --[R2]-- (P0.14 pulls GND).
@@ -42,7 +42,7 @@ static const struct device* gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 
 /* Voltage -> percent lookup for Li-ion (LIR2032 / LiPo). The Li-ion
  * SoC-vs-voltage curve is strongly non-linear, so a single linear
- * formula would be wrong across the range — use a table and
+ * formula would be wrong across the range - use a table and
  * interpolate between adjacent points. 4200 mV = 100% (full),
  * 3300 mV = 0% (safe cutoff; below this the cell degrades).
  * Curve from the Tjoms99 library and the Nordic SoC blog. */
@@ -72,7 +72,7 @@ static const batt_point_t BATT_CURVE[] = {
 static struct k_timer batt_log_timer;
 static struct k_work batt_log_work;
 
-/* Cached % — the beacon reads this and embeds it in each ADV
+/* Cached % - the beacon reads this and embeds it in each ADV
  * (instead of hitting the ADC per packet). Refreshed by the work
  * handler (30 s) and once synchronously during init. */
 static uint8_t s_last_percent = 0;
@@ -178,7 +178,7 @@ int bmt_battery_init(void)
 
 	/* P0.14 VBAT_ENABLE active-low: OUTPUT_ACTIVE -> drive LOW ->
 	 * close the divider into the measurement path. Keep LOW for
-	 * the whole lifetime (see the overlay note) — MUST NOT be
+	 * the whole lifetime (see the overlay note) - MUST NOT be
 	 * HIGH (even briefly): Seeed officially warns that P0.31 can
 	 * overshoot the ADC input limit when P0.14 is HIGH. */
 	int err = gpio_pin_configure(gpio0, BMT_BATT_ENABLE_PIN,

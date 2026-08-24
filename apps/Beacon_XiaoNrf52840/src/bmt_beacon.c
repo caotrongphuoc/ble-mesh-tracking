@@ -16,7 +16,7 @@
 
 LOG_MODULE_REGISTER(bmt_beacon, LOG_LEVEL_INF);
 
-/* Espressif Company ID (0x02E5) — kept so existing Scanners (ESP32)
+/* Espressif Company ID (0x02E5) - kept so existing Scanners (ESP32)
  * still recognise the tag, even though the Tag now runs a Nordic
  * chip. Scanner filters by this CID in the manufacturer data; the
  * actual chip vendor is unrelated. */
@@ -27,7 +27,7 @@ static bool s_adv_active = false;
 
 /* Manufacturer-data buffer = 2 B CID (little-endian) + 24 B payload.
  * Backed by a static buffer (not stack) because bt_le_adv_start()
- * needs a valid data pointer at call time — same approach as
+ * needs a valid data pointer at call time - same approach as
  * s_adv_raw on ESP32. */
 static uint8_t s_mfg_data[2 + sizeof(bmt_tag_adv_payload_t)];
 
@@ -42,14 +42,14 @@ static void build_adv_data(void)
 	/* This field used to be major (PERSON / ASSET); now carries
 	 * battery % (0-100). Reads the cached value (bmt_battery
 	 * refreshes it every 30 s) instead of hitting the ADC on every
-	 * ADV — lighter on the battery. */
+	 * ADV - lighter on the battery. */
 	p.battery = bmt_battery_last_percent();
 	p.minor = BMT_TAG_MINOR;
 	p.tx_power = BMT_TAG_TX_POWER;
 	p.sequence = s_sequence;
 	p.mac16 = 0; /* must be 0 before computing HMAC */
 
-	/* HMAC covers every field except the last 2 mac16 bytes —
+	/* HMAC covers every field except the last 2 mac16 bytes - 
 	 * exactly the same formula as ESP32, only the API call differs
 	 * (bmt_auth_hmac16 is shared naming). */
 	p.mac16 = bmt_auth_hmac16((uint8_t*)&p, sizeof(p) - sizeof(p.mac16));
@@ -66,14 +66,14 @@ static void start_adv_random_interval(void)
 	uint32_t ms = BMT_ADV_INTERVAL_MIN_MS +
 	              (sys_rand32_get() % (BMT_ADV_INTERVAL_MAX_MS - BMT_ADV_INTERVAL_MIN_MS + 1));
 
-	/* One-shot: timer fires exactly after "ms" ms — in sync with
+	/* One-shot: timer fires exactly after "ms" ms - in sync with
 	 * the radio interval currently in use (900-1100 ms). A fixed
 	 * 500 ms auto-reload timer would sit in the middle of a radio
 	 * cycle and adv_stop / start incorrectly, doubling the average
 	 * transmit rate. */
 	k_timer_start(&s_seq_timer, K_MSEC(ms), K_NO_WAIT);
 
-	/* BLE unit = 0.625 ms — same unit as ESP-IDF, formula identical. */
+	/* BLE unit = 0.625 ms - same unit as ESP-IDF, formula identical. */
 	uint16_t units = (uint16_t)((ms * 1000) / 625);
 
 	build_adv_data();
@@ -89,7 +89,7 @@ static void start_adv_random_interval(void)
 	};
 
 	const struct bt_data ad[] = {
-	    /* Flags = 0x06 (LE General Discoverable | No BR/EDR) — same
+	    /* Flags = 0x06 (LE General Discoverable | No BR/EDR) - same
 	     * hardcoded value as ESP32. */
 	    BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 	    BT_DATA(BT_DATA_MANUFACTURER_DATA, s_mfg_data, sizeof(s_mfg_data)),
@@ -118,7 +118,7 @@ static void seq_work_handler(struct k_work* work)
 
 static void seq_timer_handler(struct k_timer* timer)
 {
-	/* [IMPORTANT] k_timer callbacks run in ISR context — must NOT
+	/* [IMPORTANT] k_timer callbacks run in ISR context - must NOT
 	 * call bt_le_adv_stop / start here (they can block and would
 	 * fault). Dispatch the real work to the system workqueue via
 	 * k_work, same principle as "FreeRTOS timer callback stays
@@ -135,7 +135,7 @@ int bmt_beacon_start(void)
 	/* One-shot: interval is reset inside start_adv_random_interval(). */
 	k_timer_init(&s_seq_timer, seq_timer_handler, NULL);
 
-	/* First advertise — this function calls k_timer_start() itself. */
+	/* First advertise - this function calls k_timer_start() itself. */
 	start_adv_random_interval();
 
 	return 0;

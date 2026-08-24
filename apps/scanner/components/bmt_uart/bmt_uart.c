@@ -42,7 +42,7 @@ static void uart_cmd_task(void* arg)
 	printf("\n===== BMT SCAN NODE (modular) =====\n");
 	printf("Scanner ID : 0x%02X\n", bmt_scan_core_scanner_id());
 	printf("Node type  : 0x%02X (scanner)\n", BMT_NODE_TYPE);
-	/* Print the MAC at boot — needed to know which board this is when
+	/* Print the MAC at boot - needed to know which board this is when
 	 * filling in ZONE_MAP on ThingsBoard (which MAC maps to room_1/2/3). */
 	{
 		const uint8_t* uuid = bmt_mesh_uuid();
@@ -70,7 +70,7 @@ static void uart_cmd_task(void* arg)
 		{
 		case 'r':
 		case 'R':
-			printf("\n[UART] Reset mesh — will reboot when done...\n");
+			printf("\n[UART] Reset mesh - will reboot when done...\n");
 			bmt_mesh_local_reset();
 			break;
 
@@ -95,7 +95,7 @@ static void uart_cmd_task(void* arg)
 				}
 				else
 				{
-					printf("\n[UART] Invalid ID — must be 1 to 8\n");
+					printf("\n[UART] Invalid ID - must be 1 to 8\n");
 				}
 			}
 			break;
@@ -131,7 +131,7 @@ static void uart_cmd_task(void* arg)
 				printf("\n[OTA] Already running!\n");
 				break;
 			}
-			printf("\n[UART] Manual OTA trigger — starting WiFi OTA...\n");
+			printf("\n[UART] Manual OTA trigger - starting WiFi OTA...\n");
 			bmt_ota_trigger();
 			break;
 

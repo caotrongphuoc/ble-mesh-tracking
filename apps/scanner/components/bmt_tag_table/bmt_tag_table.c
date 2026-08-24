@@ -16,7 +16,7 @@ typedef struct
 	float r_var; /* [ADAPTIVE] measurement-noise estimate (EMA of innovation^2) */
 } bmt_kalman_t;
 
-/* [ADAPTIVE R] R is no longer fixed at 2.0 — it adapts to the actual
+/* [ADAPTIVE R] R is no longer fixed at 2.0 - it adapts to the actual
  * RSSI variability (innovation = measured RSSI - filtered RSSI). The
  * more RSSI bounces around (multipath, hand blocking the tag) the
  * higher r_var, the smaller K, the stronger the filter. When RSSI is

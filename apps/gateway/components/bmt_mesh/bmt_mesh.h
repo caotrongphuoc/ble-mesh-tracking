@@ -24,5 +24,5 @@ uint32_t bmt_mesh_get_received_count(void);
 int bmt_mesh_wipe_all_provisioned(void);
 
 /* Print NetKey / AppKey as hex on UART at boot (banner). The keys stay
- * private inside this module — not exposed via pointers or arrays. */
+ * private inside this module - not exposed via pointers or arrays. */
 void bmt_mesh_print_keys(void);

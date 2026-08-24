@@ -52,7 +52,7 @@ static void uart_task(void* arg)
 			       BMT_TAG_MAJOR == 0x0001 ? "PERSON" : "ASSET");
 			printf("Minor     : 0x%04X  (Tag ID = %u)\n",
 			       BMT_TAG_MINOR, BMT_TAG_MINOR);
-			printf("TX Power  : %d dBm  (measured power ref — calibrate!)\n",
+			printf("TX Power  : %d dBm  (measured power ref - calibrate!)\n",
 			       BMT_TAG_TX_POWER);
 			printf("Sequence  : %u\n", bmt_beacon_sequence());
 			printf("MAC-16    : 0x%04X\n", bmt_beacon_last_mac16());

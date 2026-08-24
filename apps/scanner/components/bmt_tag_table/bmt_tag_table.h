@@ -11,7 +11,7 @@
 #define BMT_LOG_RSSI_THRESHOLD_DBM 3
 #define BMT_LOG_MIN_INTERVAL_MS 2000
 
-/* [SECURITY] Anti-replay — the maximum sequence jump treated as valid
+/* [SECURITY] Anti-replay - the maximum sequence jump treated as valid
  * while continuously tracking a tag. See the full explanation in
  * bmt_tag_table.c. */
 #define BMT_MAX_SEQ_JUMP 30
@@ -42,7 +42,7 @@ int bmt_tag_table_add(uint16_t tag_id, uint8_t battery, int8_t tx_power,
                       int8_t rssi, uint8_t sequence, const uint8_t* mac);
 void bmt_tag_table_update(int idx, int8_t rssi, uint8_t sequence, uint8_t battery);
 /* Record the epoch the Scanner is currently locked to for the tag at
- * this idx — called from bmt_scan.c right after HMAC verification
+ * this idx - called from bmt_scan.c right after HMAC verification
  * succeeds. Display / debug only. */
 void bmt_tag_table_set_epoch(int idx, int32_t epoch);
 void bmt_tag_table_check_timeouts(void);

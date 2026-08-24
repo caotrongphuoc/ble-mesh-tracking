@@ -1,5 +1,5 @@
 #pragma once
-/* User config — edit before building. See docs/00-quickstart.md. */
+/* User config - edit before building. See docs/00-quickstart.md. */
 #define BMT_WIFI_SSID "YOUR_WIFI_SSID"
 #define BMT_WIFI_PASS "YOUR_WIFI_PASSWORD"
 #define BMT_TB_IP "192.168.1.100" /* Replace with your ThingsBoard host IP on the LAN */

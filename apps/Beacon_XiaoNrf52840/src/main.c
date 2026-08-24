@@ -19,7 +19,7 @@ static void bt_ready(int err)
 	}
 	LOG_INF("Bluetooth initialized");
 
-	/* MUST be called before bmt_beacon_start() — the beacon needs
+	/* MUST be called before bmt_beacon_start() - the beacon needs
 	 * the HMAC key ready so it can compute mac16 for the very
 	 * first ADV. */
 	bmt_auth_init();

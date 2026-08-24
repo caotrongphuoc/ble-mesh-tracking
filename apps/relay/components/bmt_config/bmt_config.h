@@ -7,7 +7,7 @@ static const uint8_t BMT_RELAY_UUID[16] = {
     0x52, 0x45, 0x4C, 0x41, 0x59, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02};
 
-/* User config — edit before building. See docs/00-quickstart.md. */
+/* User config - edit before building. See docs/00-quickstart.md. */
 #define BMT_WIFI_SSID "YOUR_WIFI_SSID"
 #define BMT_WIFI_PASS "YOUR_WIFI_PASSWORD"
 /* Replace 192.168.1.100 with your OTA server IP on the LAN. */

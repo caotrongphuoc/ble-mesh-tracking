@@ -136,7 +136,7 @@ static void mqtt_event_handler(void* args, esp_event_base_t base, int32_t id, vo
 		esp_mqtt_event_handle_t ev = (esp_mqtt_event_handle_t)data;
 		if (!ev->topic || !ev->data)
 			break;
-		/* ev->topic is NOT guaranteed to be null-terminated — check
+		/* ev->topic is NOT guaranteed to be null-terminated - check
 		 * topic_len first so strncmp does not read past the buffer. */
 		if (ev->topic_len < 26)
 			break;

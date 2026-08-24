@@ -122,14 +122,14 @@ static void uart_cmd_task(void* arg)
 			break;
 
 		case '0':
-			printf("\n[UART] SOFT RESET — restart, keeping the whole mesh NVS...\n");
+			printf("\n[UART] SOFT RESET - restart, keeping the whole mesh NVS...\n");
 			bmt_zone_reset_all();
 			vTaskDelay(pdMS_TO_TICKS(300));
 			esp_restart();
 			break;
 
 		case '9':
-			printf("\n[UART] FULL RESET — erase everything, re-provision after reboot...\n");
+			printf("\n[UART] FULL RESET - erase everything, re-provision after reboot...\n");
 			{
 				int erased = bmt_mesh_wipe_all_provisioned();
 				printf("[UART] Erased %d node(s)\n", erased);
