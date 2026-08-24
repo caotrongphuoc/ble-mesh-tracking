@@ -341,7 +341,7 @@ Short bullet lists to catch mistakes before they cost a re-flash trip.
 ### Pre-commit code
 
 - [ ] `clang-format --dry-run --Werror apps/*/components/*/*.c apps/*/main/*.c` returns clean.
-- [ ] All 4 apps build: `tools/build-all.sh`.
+- [ ] All 4 apps build: `for a in apps/gateway apps/scanner apps/relay apps/tag; do (cd "$a" && idf.py build) || break; done`.
 - [ ] `grep -R "TODO\|FIXME\|XXX" apps/` - either finish them or file an issue.
 - [ ] No stray `printf` debug lines left in hot paths (mesh callback, radio manager, MQTT worker).
 - [ ] Any new `esp_err_t`-returning call is checked, or the return is deliberately ignored with `(void)`.
