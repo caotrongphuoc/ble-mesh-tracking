@@ -1,6 +1,6 @@
 # tests/
 
-Test skeleton for the algorithmic logic used by the firmware. These are **reference tests in Python** that run on any host machine without ESP-IDF — they encode the expected behavior of the two algorithms most likely to silently drift (HMAC-16 beacon signing and the adaptive-R Kalman filter) as golden vectors, so a future refactor can catch regressions.
+Test skeleton for the algorithmic logic used by the firmware. These are **reference tests in Python** that run on any host machine without ESP-IDF - they encode the expected behavior of the two algorithms most likely to silently drift (HMAC-16 beacon signing and the adaptive-R Kalman filter) as golden vectors, so a future refactor can catch regressions.
 
 Full on-target Unity tests are not wired up yet. Add them under an ESP-IDF test app when doing so.
 
@@ -24,7 +24,7 @@ python3 -m pytest tests/ -v
 - Path-loss distance formula (`docs/03-algorithms.md#2-distance-from-rssi`).
 - Anti-replay sequence-window check in `bmt_tag_table_update`.
 - Hysteresis + leaky-bucket debounce logic in the ThingsBoard rule chain JS (unit-test the JS with Node + a small harness).
-- Watchdog reset flow (harder — needs a mock mesh + timing).
+- Watchdog reset flow (harder - needs a mock mesh + timing).
 
 ## How to add an on-target Unity test
 

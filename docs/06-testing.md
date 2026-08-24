@@ -13,7 +13,7 @@ Indoor Tracking dashboard.
 
 Goal: gateway provisions every node, telemetry reaches ThingsBoard.
 
-Provisioning is event-driven and handles one node at a time — power
+Provisioning is event-driven and handles one node at a time - power
 on nodes one at a time, waiting for each to reach "fully configured"
 before powering the next. Powering multiple unprovisioned nodes
 together can cause some of them to miss
@@ -65,7 +65,7 @@ If it flaps: raise `HYSTERESIS_DBM` (see
 ### Test 4: Out-of-range
 
 1. Tag reporting normally. Remove its battery.
-2. Wait 10–15 s.
+2. Wait 10 - 15 s.
 3. Gateway: `[BMT_TB] Tag 0x0001 OUT OF RANGE`.
 4. Dashboard: `current_zone` becomes `out_of_range`.
 
@@ -75,7 +75,7 @@ If it flaps: raise `HYSTERESIS_DBM` (see
 2. Log shows `Already provisioned (restored from NVS)` and traffic
    resumes within seconds.
 3. If NVS was cleared (rare brownout), log shows
-   `Waiting provision...` and gateway re-provisions it (10–20 s).
+   `Waiting provision...` and gateway re-provisions it (10 - 20 s).
 
 Same test for the relay.
 
@@ -84,8 +84,8 @@ Same test for the relay.
 1. Yank gateway power for 5 s. Plug back in.
 2. Boot log: `Node table loaded (N nodes)`, `NetKey already exists`,
    `AppKey already exists`.
-3. Telemetry resumes within 15–30 s.
-4. Press `1` — every previously provisioned node shows with
+3. Telemetry resumes within 15 - 30 s.
+4. Press `1` - every previously provisioned node shows with
    `Config done: YES`.
 
 If log says `NetKey added` (fresh), something wiped NVS. Confirm
@@ -98,7 +98,7 @@ scanner needing the relay path.
 
 1. Confirm normal telemetry via the relay.
 2. Unplug the relay.
-3. Wait 30–40 s.
+3. Wait 30 - 40 s.
 4. Gateway: `No mesh data in 30s -- starting reset cycle`, then 5
    `RESET_CMD` broadcasts, then
    `Gateway FULL RESET -- wiping all mesh state`, then reboot.
@@ -106,7 +106,7 @@ scanner needing the relay path.
 
 ### Test 8: Multiple tags
 
-1. Flash 3–5 tags with different `BMT_TAG_MINOR`.
+1. Flash 3 - 5 tags with different `BMT_TAG_MINOR`.
 2. Every tag shows up in scanner log with different `tag_id`.
 3. Every tag on dashboard.
 4. Scanner `1` command lists all of them.
@@ -134,12 +134,12 @@ sequenceDiagram
     OP->>G: 'u' or {"method":"ota_scanner"}
     Note over G: s_running CAS<br/>rejects concurrent runs
 
-    par Scanners — NimBLE beacon
+    par Scanners - NimBLE beacon
         loop 15 s window
             G-->>S: BLE advert<br/>marker + HMAC-16
         end
         S->>S: Verify HMAC (rejects rogue triggers)
-    and Relays — mesh unicast
+    and Relays - mesh unicast
         G->>R: OTA_TRIGGER (per node, up to 5 retries)
         R-->>G: mesh ACK
     end
@@ -252,7 +252,7 @@ Natural test: wait 24 h. Force test:
 2. After 60 s, gateway logs
    `OTA-beacon key ROTATED ... pushing to all scanners...`.
 3. Each scanner logs
-   `OTA_KEY_PUSH received from 0x0001 — rotating beacon key`.
+   `OTA_KEY_PUSH received from 0x0001 - rotating beacon key`.
 4. Trigger OTA (`u`). Scanners accept the new beacon.
 5. Restore 24 h interval and reflash.
 
@@ -302,7 +302,7 @@ for `ota_relay` and `ota_gateway`.
 ## Fast smoke test
 
 1. `cd thingsboard && docker compose up -d ota-fileserver`.
-2. Rebuild gateway (`idf.py build`) — copies new `.bin`.
+2. Rebuild gateway (`idf.py build`) - copies new `.bin`.
 3. UART `g`. Either "not newer, skip" (just built) or flash + reboot
    (older running). Both mean the path works.
 

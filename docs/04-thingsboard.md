@@ -3,30 +3,30 @@
 Only the gateway talks to ThingsBoard. It publishes telemetry for
 itself and every sub-device (scan nodes, relay, tags) via the
 ThingsBoard Gateway API, and subscribes to the RPC topic for OTA
-commands. This is the single reference for the whole TB stack —
+commands. This is the single reference for the whole TB stack - 
 setup, MQTT topics, TLS trust, HTTPS OTA, troubleshooting.
 
 ## What is in `thingsboard/`
 
-- `docker-compose.yml` — three containers: ThingsBoard CE 3.7,
+- `docker-compose.yml` - three containers: ThingsBoard CE 3.7,
   PostgreSQL, and an nginx OTA fileserver on port 8443.
 - `rulechain/`:
-  - `ble_tag_zone_detection.json` — zone algorithm (hysteresis +
+  - `ble_tag_zone_detection.json` - zone algorithm (hysteresis +
     leaky-bucket debounce). Default chain for the `ble_tag` profile.
-  - `ble_mesh_node.json` — persists `ota_last_result` and
+  - `ble_mesh_node.json` - persists `ota_last_result` and
     `ota_last_time` attributes per node. Default chain for the
     `ble_mesh_node` profile.
-- `dashboard/indoor_tracking.json` — dashboard, ready to import.
+- `dashboard/indoor_tracking.json` - dashboard, ready to import.
   6 widgets, includes an OTA status panel.
-- `tls/` — CA + server certs (CN and SAN both = `bmt-tb.local`;
+- `tls/` - CA + server certs (CN and SAN both = `bmt-tb.local`;
   firmware verifies CN, so switching machines or IPs does not require
   re-issuing certs). Repo ships no key material; run `tls/gen_certs.sh`
-  once — see below.
-- `ota-nginx.conf` — nginx config for the OTA fileserver.
+  once - see below.
+- `ota-nginx.conf` - nginx config for the OTA fileserver.
 
 ## Setup
 
-Do the steps in order — later steps depend on earlier ones.
+Do the steps in order - later steps depend on earlier ones.
 
 ### 1. Install Docker
 
@@ -54,7 +54,7 @@ time certs expire or if you change the hostname inside the script.
 docker compose up -d
 ```
 
-First run takes 1–2 minutes for image download and database init.
+First run takes 1 - 2 minutes for image download and database init.
 Check status:
 
 ```
@@ -81,12 +81,12 @@ Menu Device profiles → `+`. Names must match **character-for-character**:
 | `ble_tag` | Tracked tags |
 | `ble_mesh_node` | Scanner and Relay (online / offline state) |
 
-You do not create a device per tag or node — the gateway self-declares
+You do not create a device per tag or node - the gateway self-declares
 them over MQTT Gateway API (`v1/gateway/connect`) with a
 `"type": "ble_tag"` or `"ble_mesh_node"` field defined in
 `apps/gateway/components/bmt_config/bmt_config.h`
 (`BMT_PROFILE_TAG` / `BMT_PROFILE_NODE`). ThingsBoard looks up the
-profile **by name** — a one-character mismatch drops the device into
+profile **by name** - a one-character mismatch drops the device into
 the `default` profile and the zone rule chain never runs for it.
 
 ### 6. Create the gateway device and copy the token
@@ -107,16 +107,16 @@ running Docker.
 
 Menu Rule chains → `+ Import`:
 
-- `thingsboard/rulechain/ble_tag_zone_detection.json` — **set as
+- `thingsboard/rulechain/ble_tag_zone_detection.json` - **set as
   default** for the `ble_tag` profile (Profiles → Device profiles →
   `ble_tag` → ✏ → Rule chain → Save).
-- `thingsboard/rulechain/ble_mesh_node.json` — set as default for the
+- `thingsboard/rulechain/ble_mesh_node.json` - set as default for the
   `ble_mesh_node` profile.
 
 Setting the default is easy to forget. Importing a rule chain just
 places it in the library; **which chain a device's telemetry flows
 into is decided by the device's profile**. Skip this step and tag
-telemetry only passes through the Root chain (raw storage) — the
+telemetry only passes through the Root chain (raw storage) - the
 zone attribute is never computed.
 
 ### 8. Update `ZONE_MAP` with real scanner MACs
@@ -134,7 +134,7 @@ var ZONE_MAP = {
 
 Replace the keys with your scanner MACs (lowercase, no `:`) and set
 the values to room labels. To read a MAC, power the scanner, open the
-serial port at 115200, press `1` — the `MAC` line is right there.
+serial port at 115200, press `1` - the `MAC` line is right there.
 Save the script (✓), then **Save rule chain** (top-right).
 
 Editing `ZONE_MAP` in the browser instead of firmware is the main
@@ -148,13 +148,13 @@ Menu Dashboards → `+ Import dashboard` → pick
 
 Map the entity aliases:
 
-- `Selected Tag` — `Entity from dashboard state`; populated when a
+- `Selected Tag` - `Entity from dashboard state`; populated when a
   row in the tracked-tags table is clicked.
-- `All Tags` — filter by `Device profile = ble_tag`, resolving
+- `All Tags` - filter by `Device profile = ble_tag`, resolving
   multiple entities for the summary table.
-- `All Mesh Devices` — include the `default`, `ble_tag`, and
+- `All Mesh Devices` - include the `default`, `ble_tag`, and
   `ble_mesh_node` profiles (used by the all-devices table).
-- `Mesh Nodes` — include the `ble_mesh_node` and `default` profiles
+- `Mesh Nodes` - include the `ble_mesh_node` and `default` profiles
   so the node-status table also includes the gateway.
 
 In view mode, click a row in **Tracked Tags** to load that tag into
@@ -169,14 +169,14 @@ right profile.
 
 ## Verification
 
-Power all boards (order does not matter), then check the chain — if
+Power all boards (order does not matter), then check the chain - if
 anything is off, stop and fix it there:
 
 1. **Gateway serial** at 115200 prints `WiFi connected` →
    `MQTTS -> mqtts://<ip>:8883 (verify CN=bmt-tb.local)` →
    `MQTT connected to ThingsBoard`.
 2. Gateway auto-provisions: `Provision complete addr=0x000X` for each
-   node. Press `1` — every node shows `ACTIVE` / `ONLINE` and a
+   node. Press `1` - every node shows `ACTIVE` / `ONLINE` and a
    `Node table saved to NVS (N nodes)` line follows.
 3. Regular `[VND] src=... MAC=... tag=0x0001 rssi=...` lines flow →
    mesh + tag OK.
@@ -191,7 +191,7 @@ anything is off, stop and fix it there:
 
 **Self-heal check.** Unplug the gateway for 10 s → plug it back in →
 the log should print `Node table loaded (N nodes)` →
-`NVS nodes detected — watching 30s` → `Mesh OK`, and data resumes on
+`NVS nodes detected - watching 30s` → `Mesh OK`, and data resumes on
 its own with no board touched.
 
 ## MQTT topics
@@ -242,7 +242,7 @@ flowchart LR
     SP --> NGX
 
     subgraph FW[Firmware trust stores<br/>EMBED_TXTFILES]
-        MQCA[apps/gateway/…/bmt_mqtt/ca.pem]
+        MQCA[apps/gateway/.../bmt_mqtt/ca.pem]
         OTACA[components/bmt_ota/ota_ca.pem]
     end
     CAK --> MQCA
@@ -277,9 +277,9 @@ the same run, so the two verification paths never drift apart.
 Two firmware locations embed the CA via `EMBED_TXTFILES`, both
 copies of the same `thingsboard/tls/ca.pem`:
 
-- `apps/gateway/components/bmt_mqtt/ca.pem` — for MQTTS. Symbols
+- `apps/gateway/components/bmt_mqtt/ca.pem` - for MQTTS. Symbols
   `bmt_ca_pem_start/end`.
-- `components/bmt_ota/ota_ca.pem` — for the shared OTA client used by
+- `components/bmt_ota/ota_ca.pem` - for the shared OTA client used by
   gateway / scanner / relay. Symbols `bmt_ota_ca_pem_start/end`.
 
 `gen_certs.sh` writes both.
@@ -290,7 +290,7 @@ copies of the same `thingsboard/tls/ca.pem`:
 against `BMT_TB_CN = "bmt-tb.local"`. Not SAN. That means:
 
 - Server cert must have CN = `bmt-tb.local`.
-- IP of the server does not matter — you can change it without
+- IP of the server does not matter - you can change it without
   regenerating certs.
 
 Why CN and not SAN: the gateway has no DNS resolution, only IP. CN
@@ -300,7 +300,7 @@ mode fits that constraint.
 
 `docker compose up -d` also starts an `nginx` container serving the
 repo's `firmware/` directory over HTTPS. Config:
-[`thingsboard/ota-nginx.conf`](../thingsboard/ota-nginx.conf) — nginx
+[`thingsboard/ota-nginx.conf`](../thingsboard/ota-nginx.conf) - nginx
 listens on 443 inside the container, mapped to host port 8443. Both
 the cert / key pair and CA come from `thingsboard/tls/`.
 
@@ -316,7 +316,7 @@ Why 8443 and not 443 or 8080: 8080 is the ThingsBoard Web UI (the OTA
 HTTP server used to sit there and clashed). 8443 is the conventional
 "HTTPS alternate" port, avoids the privileged sub-1024 range so the
 container needs no extra capabilities, and does not collide with TB
-UI (8080) or MQTTS (8883). The port is not special to the firmware —
+UI (8080) or MQTTS (8883). The port is not special to the firmware - 
 just the second half of `BMT_OTA_SERVER_BASE`; change it in
 `docker-compose.yml` and change it in `bmt_config.h` too.
 
@@ -392,14 +392,14 @@ docker compose restart
 Watch the gateway serial log at boot for MQTTS, and at OTA time on
 gateway / scanner / relay for the OTA client:
 
-- `MQTT connected to ThingsBoard` — MQTTS good.
-- `[OTA] esp_https_ota_begin FAILED` — OTA handshake or HTTP error.
+- `MQTT connected to ThingsBoard` - MQTTS good.
+- `[OTA] esp_https_ota_begin FAILED` - OTA handshake or HTTP error.
   Look one line above for the mbedtls reason.
-- `mbedtls: X509 - Certificate verification failed` — embedded CA does
+- `mbedtls: X509 - Certificate verification failed` - embedded CA does
   not match server's cert. Common cause: regenerated certs on the
   server but forgot to rebuild firmware, so an old CA is still
   embedded.
-- `mbedtls: X509 - The CRT/CRL/CSR verification failed` — CN
+- `mbedtls: X509 - The CRT/CRL/CSR verification failed` - CN
   mismatch. Check `BMT_TB_CN` / `BMT_OTA_SERVER_CN` against the actual
   server cert CN.
 
@@ -418,7 +418,7 @@ firmware side (wrong embedded `ca.pem` or wrong CN define).
 | Symptom | Cause | Fix |
 |---|---|---|
 | Gateway prints `MQTT disconnected` repeatedly | TB not running, wrong `BMT_TB_IP`, or wrong token | `docker compose ps`, ping the IP, re-check the token |
-| Tag ends up in the `default` profile | Profile created after the gateway first connected, or a name typo | Delete that device — the gateway recreates it under the right profile |
+| Tag ends up in the `default` profile | Profile created after the gateway first connected, or a name typo | Delete that device - the gateway recreates it under the right profile |
 | Tag has telemetry but no `current_zone` | Missed the "set default rule chain" part of step 7 | Set it, then wait for the next telemetry packet |
 | Zone stuck on one room | `ZONE_MAP` MAC is wrong (case, colons) | Compare with `1` on the scanner serial |
 | Node provisions but says `Failed to find Dst` after reboot | Gateway was reflashed without erasing (NVS layout drift) | `idf.py erase-flash flash` on the gateway, then `r` on each node |
@@ -426,19 +426,19 @@ firmware side (wrong embedded `ca.pem` or wrong CN define).
 
 ## Optional: carry historical data across hosts
 
-The two JSON exports carry logical config only — not telemetry or
+The two JSON exports carry logical config only - not telemetry or
 position history. Data lives in the Docker PostgreSQL volume. To
 migrate it too:
 
 ```bash
-# Old host — back up the volume to a tarball:
+# Old host - back up the volume to a tarball:
 docker run --rm -v thingsboard_postgres-data:/data -v ${PWD}:/backup alpine tar czf /backup/tb-data.tar.gz -C /data .
 
-# New host — after `docker compose up -d`, stop the stack and restore:
+# New host - after `docker compose up -d`, stop the stack and restore:
 docker compose down
 docker run --rm -v thingsboard_postgres-data:/data -v ${PWD}:/backup alpine sh -c "rm -rf /data/* && tar xzf /backup/tb-data.tar.gz -C /data"
 docker compose up -d
 ```
 
 Find the volume name with `docker volume ls`. Rarely needed for a
-demo — a new deployment just starts writing fresh data.
+demo - a new deployment just starts writing fresh data.

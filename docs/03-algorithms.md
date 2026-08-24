@@ -20,7 +20,7 @@ x     = x + k * innovation
 p     = (1 - k) * p
 ```
 
-`x` is the smoothed value we send over mesh. Adaptive `r` filters harder when RSSI gets noisy (multipath, someone blocking the tag) and tracks new samples faster when RSSI is stable — no manual retuning per environment. The clamps prevent `k` from collapsing to 0 (frozen) or shooting to 1 (unfiltered) on a single outlier.
+`x` is the smoothed value we send over mesh. Adaptive `r` filters harder when RSSI gets noisy (multipath, someone blocking the tag) and tracks new samples faster when RSSI is stable - no manual retuning per environment. The clamps prevent `k` from collapsing to 0 (frozen) or shooting to 1 (unfiltered) on a single outlier.
 
 ## 2. Distance from RSSI
 
@@ -32,7 +32,7 @@ BLE ADV includes `tx_power` (the RSSI at 1 m). Log-distance path loss:
 distance = 10 ^ ((tx_power - rssi_filtered) / (10 * n))
 ```
 
-`n` is the path-loss exponent. We use `BMT_PATH_LOSS_N = 2.5f` (typical indoor with walls). Result is noisy — use it for "close" vs "far room", not precise distance.
+`n` is the path-loss exponent. We use `BMT_PATH_LOSS_N = 2.5f` (typical indoor with walls). Result is noisy - use it for "close" vs "far room", not precise distance.
 
 ## 3. Anti-replay via sequence number
 
@@ -40,10 +40,10 @@ Where: `bmt_tag_table_update()`.
 
 Each tag ADV carries a 1-byte sequence that increments every 500 ms. On a new packet:
 
-- Same seq — duplicate. Log and skip.
-- `diff <= -10` or `diff > BMT_MAX_SEQ_JUMP (30)` — tag reboot or replay attack. Reset filter, log warn.
-- Small backward (1..9) — late packet from advertising overlap. Drop.
-- Forward but skipped — count missed for loss stats.
+- Same seq - duplicate. Log and skip.
+- `diff <= -10` or `diff > BMT_MAX_SEQ_JUMP (30)` - tag reboot or replay attack. Reset filter, log warn.
+- Small backward (1..9) - late packet from advertising overlap. Drop.
+- Forward but skipped - count missed for loss stats.
 
 The forward jump limit stops replay of an ADV captured hours ago.
 

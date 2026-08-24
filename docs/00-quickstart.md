@@ -10,7 +10,7 @@ Common flow first, then OS-specific notes. Assumes you have a workstation on the
 - Git.
 - **3x ESP32-S3** (gateway + relay + tag) and **3x ESP32** (3 scanners). Six boards total. See the hardware table in the [README](../README.md#hardware) for the reasoning behind the split (S3 for BLE + WiFi coexistence on gateway/relay/tag; plain ESP32 is enough for the scanner role).
 - One USB-serial cable per board.
-- Optional: 1x nRF52840 board (nice!nano v2, XIAO BLE Sense) if you want to run the coin-cell battery Beacon variant of the tag — see [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
+- Optional: 1x nRF52840 board (nice!nano v2, XIAO BLE Sense) if you want to run the coin-cell battery Beacon variant of the tag - see [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
 
 ## 1. Clone
 
@@ -41,7 +41,7 @@ Download the ESP-IDF Installer v6.0.1 from `https://dl.espressif.com/dl/esp-idf/
 
 Install Docker first. Linux: `sudo apt install docker.io docker-compose-plugin`. Windows: Docker Desktop (needs WSL2 on first run).
 
-The repo ships no key material. Generate the dev CA + server cert once (`openssl` required — Git Bash on Windows already has it), then bring the stack up:
+The repo ships no key material. Generate the dev CA + server cert once (`openssl` required - Git Bash on Windows already has it), then bring the stack up:
 
 ```
 cd thingsboard
@@ -70,7 +70,7 @@ Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` 
 
 Find the serial ports first: Linux `ls /dev/ttyUSB*`, Windows Device Manager under "Ports (COM & LPT)".
 
-All four apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway — that first boot is what burns the signing/encryption eFuses, and it is permanent per chip. Read [secure-boot.md](07-secure-boot.md) before you flash real hardware, and generate your own `keys/bmt_fleet_rsa3072.pem` first (not committed to the repo).
+All four apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway - that first boot is what burns the signing/encryption eFuses, and it is permanent per chip. Read [secure-boot.md](07-secure-boot.md) before you flash real hardware, and generate your own `keys/bmt_fleet_rsa3072.pem` first (not committed to the repo).
 
 ```
 cd apps/gateway && idf.py -p <port> erase-flash flash
@@ -79,7 +79,7 @@ cd apps/relay   && idf.py -p <port> erase-flash flash
 cd apps/tag     && idf.py -p <port> erase-flash flash
 ```
 
-After that first flash, plain `idf.py -p <port> flash` is enough for the same board — it stays signed/encrypted with the same key.
+After that first flash, plain `idf.py -p <port> flash` is enough for the same board - it stays signed/encrypted with the same key.
 
 Each build copies its `.bin` into `firmware/`. Override with `idf.py -DBMT_OTA_DIR=/some/dir build`.
 
@@ -89,11 +89,11 @@ Linux permission denied on `/dev/ttyUSB*`: `sudo usermod -aG dialout $USER`, the
 
 1. Power up the gateway first. Gateway is in AUTO mode and provisions each node on its own.
 2. Power up the relay, wait for it to fully provision, **then** power up scanners **one at a time**, waiting for each to finish before powering the next. Provisioning is event-driven: the gateway handles one node's provision/config sequence (`APP_KEY_ADD` -> `MODEL_APP_BIND`) at a time, and powering multiple unprovisioned nodes together can cause some of them to miss their config step and never reach "fully configured".
-3. Open the gateway serial monitor at 115200: `idf.py -p <port> monitor`. Press `1` to see the node table — confirm every node shows `Config done: YES` before moving to the next one.
+3. Open the gateway serial monitor at 115200: `idf.py -p <port> monitor`. Press `1` to see the node table - confirm every node shows `Config done: YES` before moving to the next one.
 4. Power up the tag(s) last. Tags do not provision (they only beacon), so order relative to them does not matter.
 5. Open the Indoor Tracking dashboard in ThingsBoard.
 
-If a node never reaches "fully configured", power-cycle just that node — it will send a fresh unprovisioned beacon and the gateway re-provisions it (see [operation.md](05-operation.md#self-healing)).
+If a node never reaches "fully configured", power-cycle just that node - it will send a fresh unprovisioned beacon and the gateway re-provisions it (see [operation.md](05-operation.md#self-healing)).
 
 Full command list: [operation.md#uart-commands](05-operation.md#uart-commands). Test procedures: [testing.md](06-testing.md).
 
@@ -101,7 +101,7 @@ Full command list: [operation.md#uart-commands](05-operation.md#uart-commands). 
 
 ### Where OTA `.bin` files come from
 
-The repo does **not** ship pre-built firmware images. `firmware/*.bin` is gitignored on purpose — pre-built binaries drift out of sync with source (private WiFi/IP baked in, wrong TLS keys, etc.).
+The repo does **not** ship pre-built firmware images. `firmware/*.bin` is gitignored on purpose - pre-built binaries drift out of sync with source (private WiFi/IP baked in, wrong TLS keys, etc.).
 
 `.bin` files appear in `firmware/` automatically as a side-effect of building each app:
 
@@ -117,7 +117,7 @@ The copy step is a CMake `POST_BUILD` command in each app (see `apps/*/CMakeList
 idf.py -DBMT_OTA_DIR=/some/dir build
 ```
 
-Rebuild any time you change config (`bmt_config.h`) or source — otherwise the node that boots after OTA still runs the old code.
+Rebuild any time you change config (`bmt_config.h`) or source - otherwise the node that boots after OTA still runs the old code.
 
 ### Serving OTA over HTTPS
 
@@ -131,7 +131,7 @@ On gateway UART: `u` starts OTA for scanners and relays, `g` for gateway self-up
 
 ## Troubleshooting
 
-- **Gateway stuck at "MQTT connecting..."** — wrong `BMT_TB_IP` or `BMT_TB_GATEWAY_TOKEN`, or firewall blocks port 8883.
-- **Scanners never provision** — check gateway is in AUTO mode (press `a`). Move the relay closer if scanners are far.
-- **`idf.py flash` "port not found"** on Windows — reboot to pick up new USB drivers, or check Device Manager for a yellow triangle.
-- **`docker compose up -d` fails** — on Linux, `sudo systemctl start docker`.
+- **Gateway stuck at "MQTT connecting..."** - wrong `BMT_TB_IP` or `BMT_TB_GATEWAY_TOKEN`, or firewall blocks port 8883.
+- **Scanners never provision** - check gateway is in AUTO mode (press `a`). Move the relay closer if scanners are far.
+- **`idf.py flash` "port not found"** on Windows - reboot to pick up new USB drivers, or check Device Manager for a yellow triangle.
+- **`docker compose up -d` fails** - on Linux, `sudo systemctl start docker`.

@@ -1,4 +1,4 @@
-# Beacon — XIAO nRF52840 (Seeed Studio)
+# Beacon - XIAO nRF52840 (Seeed Studio)
 
 BLE beacon tag firmware for the **Seeed XIAO nRF52840** board.
 
@@ -14,19 +14,19 @@ identical byte-for-byte**; only the hardware-dependent parts differ
 An **optional coin-cell variant** of [`../tag`](../tag) (ESP-IDF).
 Same wire protocol byte-for-byte (CID `0x02E5`, 24-byte payload,
 HMAC-16, TOTP-style epoch key) so ESP32 scanners recognise it out of
-the box — no scanner-side change needed. Pick this variant when a
+the box - no scanner-side change needed. Pick this variant when a
 wearable coin-cell tag matters more than reflash-over-USB convenience;
 stick with `apps/tag` on ESP32-S3 otherwise.
 
 Build system is **Zephyr / west** (not ESP-IDF); see the
 [Zephyr getting-started guide](https://docs.zephyrproject.org/latest/develop/getting_started/index.html).
-The bootloader is **MCUboot** with ECDSA-P256 signing — the signing
+The bootloader is **MCUboot** with ECDSA-P256 signing - the signing
 key lives in `../../keys/` (see
 [`../../keys/README.md`](../../keys/README.md) for the
 regen command; the repo ships none).
 
 For interop the master HMAC key must match byte-for-byte across every
-tag variant and the Scanner — the 16 bytes live in
+tag variant and the Scanner - the 16 bytes live in
 `apps/*/components/bmt_auth/bmt_auth.c` (`BMT_TAG_MASTER_KEY`) and
 must be identical in every app that uses it.
 
@@ -44,10 +44,10 @@ west build -b xiao_ble/nrf52840 -d build . --pristine
 
 ---
 
-## 2. Flash — READ THIS SECTION CAREFULLY
+## 2. Flash - READ THIS SECTION CAREFULLY
 
 The bootloader is **MCUboot** with ECDSA-P256 signature verification.
-**Do NOT flash the app's raw `zephyr.uf2`** — that file is **UNSIGNED**;
+**Do NOT flash the app's raw `zephyr.uf2`** - that file is **UNSIGNED**;
 MCUboot silently rejects it and the board never boots the app.
 
 Symptoms of flashing an unsigned file (easy to mistake for "board is
@@ -98,7 +98,7 @@ not clear the bootloader's stuck state; only a cold boot does.
 > is measured (~88 mA vs the expected ~12-20 uA).
 >
 > Cause: current was measured on the BAT+ rail **while USB was still
-> connected** — the charger IC was pushing charge current through the
+> connected** - the charger IC was pushing charge current through the
 > same wire being measured, overloading and destroying the die.
 >
 > **LESSON: always unplug USB before wiring a multimeter into the

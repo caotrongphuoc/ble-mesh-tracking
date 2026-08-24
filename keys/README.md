@@ -1,6 +1,6 @@
 # `keys/`
 
-Cryptographic signing keys. The repo ships none — every deployment
+Cryptographic signing keys. The repo ships none - every deployment
 must generate its own. Both `.pem` files are `.gitignore`d.
 
 | File | Used by | Referenced in |
@@ -43,4 +43,4 @@ for the Beacon build flow.
   offline once a board is fielded.
 - **MCUboot**: the corresponding public key is baked into the
   MCUboot bootloader build. Losing the key means no more OTA updates
-  for boards running that bootloader — regenerate before shipping.
+  for boards running that bootloader - regenerate before shipping.

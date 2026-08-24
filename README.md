@@ -16,11 +16,11 @@ Room-level indoor tracking on ESP32 / ESP32-S3 with BLE Mesh and a self-hosted T
 
 Tags send BLE beacons. Scanners read signal strength. A relay forwards mesh packets. The gateway pushes raw data to ThingsBoard over MQTTS. A ThingsBoard rule chain turns RSSI into a room name.
 
-New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). For the ThingsBoard side in depth — device profiles, rule chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust, verification, common problems — see [docs/04-thingsboard.md](docs/04-thingsboard.md).
+New to the project? Start with [docs/00-quickstart.md](docs/00-quickstart.md) (one-page). For the ThingsBoard side in depth - device profiles, rule chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust, verification, common problems - see [docs/04-thingsboard.md](docs/04-thingsboard.md).
 
 ## Documentation
 
-Read in order — each doc assumes the previous ones:
+Read in order - each doc assumes the previous ones:
 
 | # | File | Description |
 |---|---|---|
@@ -35,7 +35,7 @@ Read in order — each doc assumes the previous ones:
 
 ### Other references
 
-- [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) — optional coin-cell tag variants on nRF52840 (build via Zephyr / west).
+- [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) - optional coin-cell tag variants on nRF52840 (build via Zephyr / west).
 
 ## Hardware
 

@@ -8,15 +8,15 @@ Raw BLE is point-to-point. A far scanner would need direct radio contact with th
 
 ## Roles
 
-- **Provisioner** — the gateway. Finds unprovisioned nodes, gives them keys, assigns their address, binds their models to an AppKey. Only one in the network.
-- **Node** — everyone else. Holds keys, sends and forwards messages.
+- **Provisioner** - the gateway. Finds unprovisioned nodes, gives them keys, assigns their address, binds their models to an AppKey. Only one in the network.
+- **Node** - everyone else. Holds keys, sends and forwards messages.
 
 We do not use Friend / Low Power nodes.
 
 ## Keys
 
-- **NetKey** — encrypts the Network Layer. Every node must have the same NetKey or packets get silently dropped.
-- **AppKey** — encrypts the Access Layer. The gateway binds it to our vendor model. Any node that sends or receives vendor messages needs this AppKey too.
+- **NetKey** - encrypts the Network Layer. Every node must have the same NetKey or packets get silently dropped.
+- **AppKey** - encrypts the Access Layer. The gateway binds it to our vendor model. Any node that sends or receives vendor messages needs this AppKey too.
 
 Both are random per network. The gateway generates them once (`bmt_mesh_generate_keys_if_needed()`), the stack saves them to NVS (`CONFIG_BLE_MESH_SETTINGS=y`), and they survive reboots.
 
@@ -73,8 +73,8 @@ Declared in each app's `bmt_types.h` and must match byte-for-byte across gateway
 
 To hand over AppKeys and bind models, the mesh spec uses two extra models:
 
-- **Config Server** on every node — processes `APP_KEY_ADD`, `MODEL_APP_BIND`, `DEFAULT_TTL_GET`.
-- **Config Client** on the provisioner — sends those requests.
+- **Config Server** on every node - processes `APP_KEY_ADD`, `MODEL_APP_BIND`, `DEFAULT_TTL_GET`.
+- **Config Client** on the provisioner - sends those requests.
 
 Our gateway's `bmt_mesh.c` sends two per node during configuration: `APP_KEY_ADD` then `MODEL_APP_BIND`. Only after both ACKs come back does the gateway set `config_done = true`.
 
@@ -99,7 +99,7 @@ sequenceDiagram
     U-->>G: Provisioning Complete (PROV_COMPLETE_EVT)
     G->>G: bmt_node_table_save()
 
-    Note over U: Node has NetKey — cannot decode<br/>the vendor AppKey layer yet
+    Note over U: Node has NetKey - cannot decode<br/>the vendor AppKey layer yet
 
     G->>U: Config: APP_KEY_ADD
     U-->>G: ACK
@@ -108,7 +108,7 @@ sequenceDiagram
     G->>G: config_done = true
 ```
 
-Only nodes with `config_done = true` can send or receive vendor opcodes (`TAG_STATUS`, `RESET_CMD`, `OTA_TRIGGER`, …). See [operation.md](05-operation.md) for what happens if a node reboots mid-config, and for the self-heal path when the gateway restarts.
+Only nodes with `config_done = true` can send or receive vendor opcodes (`TAG_STATUS`, `RESET_CMD`, `OTA_TRIGGER`, ...). See [operation.md](05-operation.md) for what happens if a node reboots mid-config, and for the self-heal path when the gateway restarts.
 
 ## Publishing and TTL
 
@@ -127,6 +127,6 @@ TTL 7 allows up to 7 hops. Our mesh is much smaller so this is generous.
 
 ## Persistence
 
-`CONFIG_BLE_MESH_SETTINGS=y` saves NetKey, AppKey, devkey, sequence numbers, and node list to NVS. Without it every reboot generates a fresh NetKey and the mesh dies. Sequence numbers matter too — nodes reject packets with a seq lower than expected as replays.
+`CONFIG_BLE_MESH_SETTINGS=y` saves NetKey, AppKey, devkey, sequence numbers, and node list to NVS. Without it every reboot generates a fresh NetKey and the mesh dies. Sequence numbers matter too - nodes reject packets with a seq lower than expected as replays.
 
 Related docs: [operation.md](05-operation.md) for runtime, [algorithms.md](03-algorithms.md) for the math on top.

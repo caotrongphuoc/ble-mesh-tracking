@@ -10,7 +10,7 @@ firmware expects.
 |---|---|
 | [`docker-compose.yml`](docker-compose.yml) | ThingsBoard CE 3.7, PostgreSQL, and the `bmt-ota-server` nginx container (HTTPS 8443) serving `firmware/`. |
 | [`ota-nginx.conf`](ota-nginx.conf) | nginx config for the OTA fileserver. |
-| [`dashboard/`](dashboard/) | `indoor_tracking.json` — dashboard export, ready to import. |
+| [`dashboard/`](dashboard/) | `indoor_tracking.json` - dashboard export, ready to import. |
 | [`rulechain/`](rulechain/) | `ble_tag_zone_detection.json` (zone algorithm, default chain for `ble_tag` profile) and `ble_mesh_node.json` (persists OTA attributes, default chain for `ble_mesh_node` profile). |
 | [`tls/`](tls/) | Dev CA + server cert (CN = SAN = `bmt-tb.local`; firmware verifies CN). `gen_certs.sh` regenerates them. |
 
@@ -18,7 +18,7 @@ firmware expects.
 
 - One-page end-to-end setup (host + firmware + ThingsBoard):
   [`../docs/00-quickstart.md`](../docs/00-quickstart.md).
-- Detailed ThingsBoard reference — setup, device profiles, rule
+- Detailed ThingsBoard reference - setup, device profiles, rule
   chain, dashboard aliases, `ZONE_MAP`, MQTT topics, TLS trust,
   HTTPS OTA server, troubleshooting:
   [`../docs/04-thingsboard.md`](../docs/04-thingsboard.md).
