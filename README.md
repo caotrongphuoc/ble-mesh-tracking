@@ -9,7 +9,7 @@
 
 # BLE Mesh Tracking
 
-<center><img width="1920" height="900" alt="BLE Mesh Tracking" src="docs/images/ble-mesh-tracking-banner.png" />
+<center><img width="1280" height="640" alt="BLE Mesh Tracking" src="banner_ble_mesh_tracking_1280x640.png" />
 </center>
 
 <hr>
