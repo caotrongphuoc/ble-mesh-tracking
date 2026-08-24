@@ -13,7 +13,7 @@
 
 # BLE Mesh Tracking - Room-level Indoor Tracking on ESP32
 
-<center><img width="1280" height="640" alt="BLE Mesh Tracking" src="docs/images/banner_ble_mesh_tracking_1280x640.png" />
+<center><img width="1280" height="640" alt="BLE Mesh Tracking" src="resources/images/banner/banner-ble-mesh-tracking.png" />
 </center>
 
 <hr>
@@ -56,9 +56,9 @@ The project puts several embedded engineering ideas into practice:
 
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/images/hardware_tag_xiao_nrf52840.png" alt="Tag - Seeed XIAO nRF52840" width="240"/></td>
-    <td align="center"><img src="docs/images/hardware_gateway_relay_esp32s3.png" alt="Gateway and Relay - ESP32-S3-DevKitC-1" width="240"/></td>
-    <td align="center"><img src="docs/images/hardware_scanner_esp32.png" alt="Scanner - ESP32-DevKitC" width="240"/></td>
+    <td align="center"><img src="resources/images/board/board-tag-xiao-nrf52840.png" alt="Tag - Seeed XIAO nRF52840" width="240"/></td>
+    <td align="center"><img src="resources/images/board/board-gateway-relay-esp32s3-devkitc-1.png" alt="Gateway and Relay - ESP32-S3-DevKitC-1" width="240"/></td>
+    <td align="center"><img src="resources/images/board/board-scanner-esp32-devkitc-v4.png" alt="Scanner - ESP32-DevKitC" width="240"/></td>
   </tr>
   <tr>
     <td align="center"><strong>Tag</strong><br/>Seeed XIAO nRF52840<br/><em>(coin-cell variant)</em></td>
@@ -72,14 +72,14 @@ The project puts several embedded engineering ideas into practice:
 
 | Node | Board | What it does |
 |---|---|---|
-| Tag | ESP32-S3 or nRF52840 XIAO (coin-cell) | Sends a BLE beacon every 500 ms. |
+| Tag | nRF52840 XIAO (coin-cell) | Sends a BLE beacon every 500 ms. |
 | Scanner x3 | ESP32 | Reads tag RSSI and sends `TAG_STATUS` over mesh. |
 | Relay | ESP32-S3 | Forwards mesh packets between far scanners and the gateway. |
 | Gateway | ESP32-S3 | Provisions mesh, forwards data to ThingsBoard, runs OTA. |
 
 </div>
 
-The Gateway and Relay run on the same **ESP32-S3-DevKitC-1** board with different firmware. Coin-cell battery variants of the Tag on **nRF52840** (XIAO and ProMicro) are documented in the two Beacon READMEs linked in the Documentation table.
+The Gateway and Relay run on the same **ESP32-S3-DevKitC-1** board with different firmware. The Tag uses the coin-cell **Seeed XIAO nRF52840** (Zephyr / MCUboot); the ProMicro nRF52840 build in [apps/Beacon_ProMicroNrf52840/](apps/Beacon_ProMicroNrf52840/) is a pin-compatible alternative, and an ESP32-S3 reference build lives at [apps/tag/](apps/tag/) for bench testing.
 
 ### II. Firmware Layout
 
