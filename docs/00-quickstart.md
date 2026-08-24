@@ -103,29 +103,55 @@ Regenerating TLS certs with `tls/gen_certs.sh` refreshes both firmware `ca.pem` 
 
 ## 6. Build and flash
 
-Find the serial ports first: Linux `ls /dev/ttyUSB*`, Windows Device Manager under "Ports (COM & LPT)".
+Two flash flows: ESP-IDF for the gateway/relay/scanner (and optional bench tag), then Zephyr + UF2 for the nRF52840 XIAO tag.
 
-All four apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway - that first boot is what burns the signing/encryption eFuses, and it is permanent per chip. Read [secure-boot.md](07-secure-boot.md) before you flash real hardware, and generate your own `keys/bmt_fleet_rsa3072.pem` first (not committed to the repo).
+Find serial ports first: Linux `ls /dev/ttyUSB*`, Windows Device Manager under "Ports (COM & LPT)".
+
+### 6a. Gateway, Relay, Scanner (ESP-IDF)
+
+The three ESP-IDF apps have Secure Boot V2 and Flash Encryption on. **Every board needs `erase-flash` on its first flash**, not just the gateway - that first boot burns the signing / encryption eFuses, and it is permanent per chip. Read [secure-boot.md](07-secure-boot.md) before flashing real hardware; the RSA-3072 key you generated in [step 3](#3-generate-signing-keys) is what signs these images.
 
 ```
 cd apps/gateway && idf.py -p <port> erase-flash flash
 cd apps/scanner && idf.py -p <port> erase-flash flash
 cd apps/relay   && idf.py -p <port> erase-flash flash
-cd apps/tag     && idf.py -p <port> erase-flash flash
 ```
 
-After that first flash, plain `idf.py -p <port> flash` is enough for the same board - it stays signed/encrypted with the same key.
+After that first flash, plain `idf.py -p <port> flash` is enough for the same board - it stays signed / encrypted with the same key.
 
 Each build copies its `.bin` into `firmware/`. Override with `idf.py -DBMT_OTA_DIR=/some/dir build`.
 
 Linux permission denied on `/dev/ttyUSB*`: `sudo usermod -aG dialout $USER`, then log out and back in.
+
+### 6b. Tag - nRF52840 XIAO (Zephyr + MCUboot)
+
+The primary Tag runs on the coin-cell **Seeed XIAO nRF52840** with a signed MCUboot image. Build produces a `.hex` and a merged UF2:
+
+```
+cd apps/Beacon_XiaoNrf52840
+west build -b xiao_ble/nrf52840 -d build . --pristine
+```
+
+Sign and flash via UF2 - **do NOT flash the raw `zephyr.uf2`**, MCUboot rejects it silently and the app never boots. Full flow (including the sanity-check table for signed-vs-unsigned file size, entering the bootloader by double-tapping RESET, and the "board looks dead" recovery) is in [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
+
+The ECDSA-P256 key you generated in [step 3](#3-generate-signing-keys) is what signs the MCUboot image.
+
+### 6c. Optional: bench tag on ESP32-S3 (ESP-IDF)
+
+Only needed if you want the ESP32-S3 reference build for A/B testing beacon output. Same flash flow as the other ESP-IDF apps:
+
+```
+cd apps/tag && idf.py -p <port> erase-flash flash
+```
+
+Skip this if you are only deploying the XIAO tag.
 
 ## 7. Run
 
 1. Power up the gateway first. Gateway is in AUTO mode and provisions each node on its own.
 2. Power up the relay, wait for it to fully provision, **then** power up scanners **one at a time**, waiting for each to finish before powering the next. Provisioning is event-driven: the gateway handles one node's provision/config sequence (`APP_KEY_ADD` -> `MODEL_APP_BIND`) at a time, and powering multiple unprovisioned nodes together can cause some of them to miss their config step and never reach "fully configured".
 3. Open the gateway serial monitor at 115200: `idf.py -p <port> monitor`. Press `1` to see the node table - confirm every node shows `Config done: YES` before moving to the next one.
-4. Power up the tag(s) last. Tags do not provision (they only beacon), so order relative to them does not matter.
+4. Power up the tag last. Plug the XIAO tag into USB (or a charged LiPo / LIR coin cell on the B+ pin - see [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md) for battery notes). Tags only beacon; they do not provision, so order relative to them does not matter.
 5. Open the Indoor Tracking dashboard in ThingsBoard.
 
 If a node never reaches "fully configured", power-cycle just that node - it will send a fresh unprovisioned beacon and the gateway re-provisions it (see [operation.md](05-operation.md#self-healing)).
