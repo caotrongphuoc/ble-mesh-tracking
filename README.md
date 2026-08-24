@@ -63,7 +63,7 @@ New to the repo? Pick the trail that matches what you want to do:
 - **Hardening for production.** [docs/07-secure-boot.md](docs/07-secure-boot.md) covers Secure Boot V2 + Flash Encryption + signing-key regeneration; switch to `CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE` before shipping.
 - **Building the coin-cell nRF52840 tag.** [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) (Seeed XIAO) or [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) (ProMicro / nice!nano) - Zephyr + MCUboot, signed UF2 flash flow.
 
-> First-time build tip: the signing keys are **not** in the repo (see [docs/07-secure-boot.md#signing-keys](docs/07-secure-boot.md#signing-keys)). Run the two `espsecure.py` / `imgtool keygen` commands from that section into a fresh `keys/` folder before the first `idf.py build`, otherwise the build fails with `keys/bmt_fleet_rsa3072.pem: No such file or directory`.
+> First-time build tip: the signing keys are **not** in the repo (see [keys/README.md](keys/README.md)). Run the two `espsecure.py` / `imgtool keygen` commands from that page into a fresh `keys/` folder before the first `idf.py build`, otherwise the build fails with `keys/bmt_fleet_rsa3072.pem: No such file or directory`.
 
 ### I. Hardware
 
