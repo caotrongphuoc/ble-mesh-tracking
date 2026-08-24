@@ -1,7 +1,5 @@
 <div align="center">
 
-[![build](https://github.com/caotrongphuoc/ble-mesh-tracking/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/caotrongphuoc/ble-mesh-tracking/actions/workflows/build.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
 ![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0.1-red?style=flat-square)
 ![Target](https://img.shields.io/badge/target-ESP32%20%7C%20ESP32--S3-informational?style=flat-square)
 
@@ -37,7 +35,6 @@ Read in order — each doc assumes the previous ones:
 
 ### Other references
 
-- [CHANGELOG.md](CHANGELOG.md) — release history (Keep-a-Changelog + SemVer).
 - [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) — optional coin-cell tag variants on nRF52840 (build via Zephyr / west).
 
 ## Hardware
@@ -103,12 +100,6 @@ sequenceDiagram
     TB-->>D: WebSocket push<br/>(attribute + timeseries update)
     D->>D: Highlight room on floor plan<br/>update RSSI chart
 ```
-
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for third-party attributions.
-
-You are free to use, modify, and redistribute this project for any purpose, including commercial, as long as you keep the copyright and license notices. The Apache-2.0 patent grant applies.
 
 ## Contact
 
