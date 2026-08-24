@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.22)
 # the build wall-clock). Rebuilding without editing anything keeps the
 # same version (no pointless OTA even though the .bin bytes may match);
 # the version only bumps when a real .c / .h edit lands. bmt_ota.c
-# strncmp's two YYYYMMDDHHMMSS strings to tell which side is NEWER —
+# strncmp's two YYYYMMDDHHMMSS strings to tell which side is NEWER - 
 # blocks accidental downgrades.
 set(PROJECT_VER "00000000000000")
 file(GLOB_RECURSE BMT_VER_SRC_FILES

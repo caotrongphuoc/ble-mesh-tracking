@@ -7,7 +7,7 @@ and the K clamp behavior. Constants must match the C source below.
 import pytest
 
 
-# Constants — MUST match bmt_tag_table.c
+# Constants - MUST match bmt_tag_table.c
 Q_FIXED = 0.1
 R_ALPHA = 0.1
 R_MIN = 1.0
@@ -36,7 +36,7 @@ class Kalman:
 
 
 def test_converges_on_constant_signal():
-    """Feed the same value 30 times — filter should sit on it."""
+    """Feed the same value 30 times - filter should sit on it."""
     kf = Kalman(initial_rssi=-70.0)
     for _ in range(30):
         out = kf.update(-70.0)
@@ -70,7 +70,7 @@ def test_outlier_does_not_swing_filter():
 
 
 def test_kalman_gain_stays_in_valid_range():
-    """K must stay strictly inside (0, 1) — the clamps on r prevent
+    """K must stay strictly inside (0, 1) - the clamps on r prevent
     degenerate cases (K=0 = frozen, K=1 = no filtering)."""
     kf = Kalman(initial_rssi=-70.0)
     for rssi in [-70, -75, -60, -80, -50, -70, -90, -70]:

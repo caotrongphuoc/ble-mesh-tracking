@@ -24,7 +24,7 @@ ON_TAP*.txt
 # Local deployment notes with real secrets
 deploy-config.txt
 
-# Cryptographic material — every deployment generates its own.
+# Cryptographic material - every deployment generates its own.
 # See keys/README.md, thingsboard/tls/gen_certs.sh
 keys/*.pem
 thingsboard/tls/ca.key
@@ -36,9 +36,9 @@ thingsboard/tls/server.pem
 apps/gateway/components/bmt_mqtt/ca.pem
 components/bmt_ota/ota_ca.pem
 
-# OTA payloads — build locally, CMake POST_BUILD copies them here
+# OTA payloads - build locally, CMake POST_BUILD copies them here
 firmware/*.bin
-# nRF52840 Beacon signed images — build locally with make_uf2.ps1
+# nRF52840 Beacon signed images - build locally with make_uf2.ps1
 *.uf2
 *.hex
 __pycache__/

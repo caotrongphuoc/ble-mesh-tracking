@@ -10,10 +10,10 @@
  * sysbuild/CMakeLists.txt).
  *
  * DO NOT share a file with the app: "chosen { zephyr,code-partition }"
- * must DIFFER between the two — MCUboot must link into boot_partition
+ * must DIFFER between the two - MCUboot must link into boot_partition
  * (0x27000) while the app must link into slot0_partition (0x33000).
  * Sharing (a single chosen line) would make MCUboot link into
- * slot0_partition and overwrite the app itself — this actually
+ * slot0_partition and overwrite the app itself - this actually
  * happened during a test build (0x33000 collision between the two
  * .hex files).
  */

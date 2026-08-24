@@ -9,15 +9,15 @@
  * sysbuild/CMakeLists.txt).
  *
  * DO NOT share a file with the app: "chosen { zephyr,code-partition }"
- * must DIFFER between the two — MCUboot must link into boot_partition
+ * must DIFFER between the two - MCUboot must link into boot_partition
  * (0x26000) while the app must link into slot0_partition (0x32000).
  * Sharing would make MCUboot link into slot0 and overwrite the app
  * itself.
  *
- * (Note the 0x26000 base — DIFFERENT from XIAO at 0x27000. See the
+ * (Note the 0x26000 base - DIFFERENT from XIAO at 0x27000. See the
  * full explanation in promicro_nrf52840_nrf52840_uf2.overlay.)
  *
- * This file ONLY declares partitions; no ADC / zephyr,user node —
+ * This file ONLY declares partitions; no ADC / zephyr,user node - 
  * MCUboot does not read the battery, adding one would only bloat the
  * bootloader.
  */

@@ -1,5 +1,5 @@
 /*
- * [SECURITY + POWER] MCUboot partition layout + battery-read setup —
+ * [SECURITY + POWER] MCUboot partition layout + battery-read setup - 
  * Tag ProMicro nRF52840 (nice!nano v2-compatible, e.g. "Nologo
  * ProMicro nRF52840").
  *
@@ -17,16 +17,16 @@
  *    divider brought out to P0.31 (AIN7), P0.14 must be driven LOW
  *    to close the measurement path.
  *    ProMicro / nice!nano v2: battery wires DIRECTLY into VDDH, no
- *    external divider — read the voltage via the SAADC's internal
+ *    external divider - read the voltage via the SAADC's internal
  *    VDDHDIV5 input (= VDDH / 5). No enable pin required, and none
  *    of the Seeed over-voltage warnings for P0.14 apply.
  *
  * Layout (similar to XIAO but shifted down by 0x1000):
  *   0x00000 - 0x26000  reserved         (old SoftDevice region, unused)
  *   0x26000 - 0x32000  boot_partition   (MCUboot, 48 KB)
- *   0x32000 - 0xEC000  slot0_partition  (app, ~744 KB — single-slot)
+ *   0x32000 - 0xEC000  slot0_partition  (app, ~744 KB - single-slot)
  *   0xEC000 - 0xF4000  storage_partition (32 KB)
- *   0xF4000 - 0x100000 uf2_partition    (Adafruit bootloader — UNTOUCHED)
+ *   0xF4000 - 0x100000 uf2_partition    (Adafruit bootloader - UNTOUCHED)
  */
 
 /delete-node/ &reserved_partition_0;
@@ -39,7 +39,7 @@
 		zephyr,code-partition = &slot0_partition;
 	};
 
-	/* [POWER] Battery read via the internal VDDHDIV5 (VDDH / 5) —
+	/* [POWER] Battery read via the internal VDDHDIV5 (VDDH / 5) - 
 	 * see the top of file. No external io-channel to declare.
 	 *
 	 * [POWER] ext-vcc-gpios = SOFT SWITCH that gates the external
@@ -47,7 +47,7 @@
 	 * MOSFET between the regulator and the external 3.3 V VCC pin,
 	 * controlled by P0.13:
 	 *     P0.13 HIGH -> VCC ON  |  P0.13 LOW -> VCC OFF
-	 * (nice!nano v1 was inverted — v2 and this clone are
+	 * (nice!nano v1 was inverted - v2 and this clone are
 	 * active-high.)
 	 *
 	 * The Zephyr promicro_nrf52840 board definition does NOT
@@ -60,7 +60,7 @@
 	 *
 	 * => Matches what we saw: current measured 1.8-1.9 mA and
 	 *    would NOT budge no matter what we changed (log off, USB
-	 *    buffer resized, uart0 / i2c0 / i2c1 / spi2 disabled) —
+	 *    buffer resized, uart0 / i2c0 / i2c1 / spi2 disabled) - 
 	 *    because the leak was on external hardware, not something
 	 *    firmware could touch.
 	 *
@@ -107,23 +107,23 @@
 	};
 };
 
-/* [POWER] USB NOTE — do NOT disable here; disable via Kconfig.
+/* [POWER] USB NOTE - do NOT disable here; disable via Kconfig.
  *
  * The board includes <boards/common/usb/cdc_acm_serial.dtsi>, which
  * creates board_cdc_acm_uart under &zephyr_udc0 and points chosen
  * zephyr,console at it. The USB stack draws ~0.8 mA continuously
  * (nearly half of the total), so it must be dropped in the production
- * build — but drop it with **CONFIG_BOARD_SERIAL_BACKEND_CDC_ACM=n**
+ * build - but drop it with **CONFIG_BOARD_SERIAL_BACKEND_CDC_ACM=n**
  * in prj.conf, NOT by disabling the usbd node here.
  *
  * Reason: overlays under boards/ apply to EVERY build. Disabling the
  * usbd node here would break the debug.conf build (re-enables console
- * to read logs) — CONFIG_CONSOLE=y with no UART device to output to
+ * to read logs) - CONFIG_CONSOLE=y with no UART device to output to
  * leaves you with no COM port. Been caught by this before. Controlling
  * it through Kconfig lets each build enable / disable independently.
  */
 
-/* [POWER TEST] Disable uart0 / i2c0 / i2c1 / spi2 — the board enables
+/* [POWER TEST] Disable uart0 / i2c0 / i2c1 / spi2 - the board enables
  * these four peripherals with real pinctrl assignments, but the app
  * never touches them, so they may be FLOATING. Suspected as the
  * source of the stubborn ~1.9 mA that would not drop even after
@@ -158,7 +158,7 @@
 	status = "okay";
 
 	/* Channel 0 maps to the SAADC's internal VDDHDIV5 = VDDH / 5
-	 * (no GPIO — the LiPo cell wires straight into VDDH on this
+	 * (no GPIO - the LiPo cell wires straight into VDDH on this
 	 * board).
 	 *
 	 * Gain 1/2 + internal 0.6 V reference -> ADC input range =

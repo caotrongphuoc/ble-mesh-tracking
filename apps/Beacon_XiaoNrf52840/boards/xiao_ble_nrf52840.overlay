@@ -1,21 +1,21 @@
 /*
- * [SECURITY] MCUboot partition layout — Tag nRF52840.
+ * [SECURITY] MCUboot partition layout - Tag nRF52840.
  *
  * XIAO nRF52840 ships from the factory with the Adafruit UF2
  * bootloader (no SWD / J-Link is exposed; the only way to reflash
  * is UF2 mass storage). That bootloader lives at a FIXED high
  * address (0xF4000-0x100000, see nrf52840_partition_uf2_sdv7.dtsi
  * in Zephyr) and is jumped to directly by the CPU from
- * UICR.BOOTLOADERADDR at power-on — DO NOT touch this region, it
+ * UICR.BOOTLOADERADDR at power-on - DO NOT touch this region, it
  * is the only recovery path if MCUboot / app is broken (you can
  * still drag-and-drop a fresh UF2 as usual).
  *
  * Once the Adafruit bootloader finishes it jumps to address
  * 0x27000 (the "Application" address hardcoded in the bootloader,
- * intended for SoftDevice s140 v7 — Zephyr does not use SoftDevice,
+ * intended for SoftDevice s140 v7 - Zephyr does not use SoftDevice,
  * but must still boot at that fixed offset). So instead of putting
  * the app directly at 0x27000 as before, place MCUboot
- * (boot_partition) there — MCUboot becomes the "second-stage"
+ * (boot_partition) there - MCUboot becomes the "second-stage"
  * bootloader, chain-loaded by the Adafruit bootloader, then
  * verifies the signature and jumps to slot0_partition (the real
  * app).
@@ -23,12 +23,12 @@
  * New layout:
  *   0x00000 - 0x27000  reserved         (unused, kept for historical meaning)
  *   0x27000 - 0x33000  boot_partition   (MCUboot, 48 KB)
- *   0x33000 - 0xEC000  slot0_partition  (app, ~741 KB — single-slot
+ *   0x33000 - 0xEC000  slot0_partition  (app, ~741 KB - single-slot
  *                                        mode; no slot1 yet because
  *                                        BLE OTA is not implemented,
  *                                        updates = full UF2 reflash)
  *   0xEC000 - 0xF4000  storage_partition (32 KB, kept at old address)
- *   0xF4000 - 0x100000 uf2_partition    (Adafruit bootloader — UNTOUCHED)
+ *   0xF4000 - 0x100000 uf2_partition    (Adafruit bootloader - UNTOUCHED)
  */
 
 /delete-node/ &reserved_partition_0;
@@ -42,7 +42,7 @@
 	};
 
 	/* [POWER] Read battery via the ON-BOARD battery measurement
-	 * path (for a cell wired into BAT+ / BAT- — LIR2032 3.6 V or
+	 * path (for a cell wired into BAT+ / BAT- - LIR2032 3.6 V or
 	 * LiPo).
 	 *
 	 * Different from reading VDD (only valid for a CR2032 wired
@@ -54,9 +54,9 @@
 	 *
 	 * P0.14 (VBAT_ENABLE, active-low) must be driven LOW to
 	 * "close" the divider into the measurement path (see
-	 * bmt_battery.c). Kept LOW for the whole lifetime — the
+	 * bmt_battery.c). Kept LOW for the whole lifetime - the
 	 * divider leaks ~2.6 uA continuously, acceptable. MUST NOT be
-	 * HIGH: P0.31 can then overshoot to 3.6 V (pin limit) — the
+	 * HIGH: P0.31 can then overshoot to 3.6 V (pin limit) - the
 	 * official Seeed warning. */
 	zephyr,user {
 		io-channels = <&adc 7>;
@@ -97,10 +97,10 @@
 	};
 };
 
-/* [POWER] Disable SPI2 (xiao_spi) — the board enables it by
+/* [POWER] Disable SPI2 (xiao_spi) - the board enables it by
  * default but the firmware uses no SPI. (Historical note: first
  * disable attempt was thought to have hung the board, but the real
- * cause was flashing an UNSIGNED app image — MCUboot refused it.
+ * cause was flashing an UNSIGNED app image - MCUboot refused it.
  * Disabling SPI2 is harmless. Remember to flash with the
  * signed-merge output, see _fw_backup.) */
 &xiao_spi {
@@ -120,7 +120,7 @@
 		zephyr,gain = "ADC_GAIN_1_6";
 		zephyr,reference = "ADC_REF_INTERNAL";
 		/* The on-board divider has a source impedance of ~342 k
-		 * (1037k || 510k) — VERY HIGH for the SAADC. Acquisition
+		 * (1037k || 510k) - VERY HIGH for the SAADC. Acquisition
 		 * time MUST be 40 us (the SAADC maximum) so the
 		 * sample-and-hold cap can charge fully -> accurate
 		 * reading. At the DEFAULT 10 us, readings are off by

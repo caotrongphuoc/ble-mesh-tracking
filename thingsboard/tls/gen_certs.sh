@@ -2,7 +2,7 @@
 # ============================================================================
 # BMT MQTTS certificate generator
 # ----------------------------------------------------------------------------
-# MUST run once on a fresh clone before `docker compose up` — the repo
+# MUST run once on a fresh clone before `docker compose up` - the repo
 # does not ship any key material. Also run whenever certs expire or
 # after changing HOSTNAME below.
 #
@@ -27,7 +27,7 @@ export MSYS2_ARG_CONV_EXCL="*"
 
 # ---- CONFIG: change the hostname here if needed ----
 HOSTNAME="bmt-tb.local"
-DAYS=3650              # 10 years — no expiry surprises during a project
+DAYS=3650              # 10 years - no expiry surprises during a project
 # ----------------------------------------------------
 
 echo "=== BMT MQTTS cert generator ==="
@@ -85,7 +85,7 @@ echo "[+] Copied ca.pem -> $FW_OTA_CA"
 echo ""
 echo "=== DONE ==="
 echo "Files:"
-echo "  ca.pem / ca.key         -> this directory (CA — keep ca.key private)"
+echo "  ca.pem / ca.key         -> this directory (CA - keep ca.key private)"
 echo "  server.pem / server.key -> mounted by docker-compose into ThingsBoard + nginx"
 echo "  ca.pem                  -> also copied into both firmware EMBED_TXTFILES paths"
 echo ""

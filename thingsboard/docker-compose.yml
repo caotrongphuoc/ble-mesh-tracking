@@ -46,11 +46,11 @@ services:
     restart: unless-stopped
 
   # [OTA] HTTPS server that serves firmware .bin files for ESP32 to
-  # download — replaces the manual `python -m http.server` step
+  # download - replaces the manual `python -m http.server` step
   # before every OTA. Mounts the repo's firmware/ directory
   # (read-only): build the app, the .bin lands there, nodes can
   # download it.
-  # [SECURITY] Only HTTPS (8443) — the old plain HTTP (8081) was
+  # [SECURITY] Only HTTPS (8443) - the old plain HTTP (8081) was
   # dropped: anyone on the LAN could pull the .bin and read
   # plaintext secrets (WiFi password, ThingsBoard token, ...)
   # without physical access to the board. Reuses the same CA / cert

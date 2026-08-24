@@ -46,7 +46,7 @@ def test_truncation_takes_first_two_bytes_little_endian():
 
 def test_golden_vector():
     """One frozen (key, data) -> tag value. Bumping this test means
-    someone changed the algorithm — make sure it was on purpose."""
+    someone changed the algorithm - make sure it was on purpose."""
     tag = hmac16(KEY, b"BMT/tag/24byte-adv-payload-example")
     # Regenerate this constant only if the algorithm intentionally changed:
     #   python3 -c "import tests.test_hmac16_reference as t; \

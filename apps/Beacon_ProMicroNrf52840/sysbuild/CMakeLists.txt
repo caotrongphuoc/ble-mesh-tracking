@@ -8,7 +8,7 @@
 # target).
 #
 # NOTE: partitions on the ProMicro variant start at 0x26000 (different
-# from XIAO at 0x27000) — see the explanation in
+# from XIAO at 0x27000) - see the explanation in
 # boards/promicro_nrf52840_nrf52840_uf2.overlay.
 set(mcuboot_EXTRA_DTC_OVERLAY_FILE
     ${CMAKE_CURRENT_LIST_DIR}/../boards/mcuboot_partitions.overlay
