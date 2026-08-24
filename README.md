@@ -56,23 +56,30 @@ The project puts several embedded engineering ideas into practice:
 
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/images/banner_ble_mesh_tracking_1280x640.png" alt="BLE Mesh Tracking hardware" width="900"/></td>
+    <td align="center"><img src="docs/images/hardware_tag_xiao_nrf52840.png" alt="Tag - Seeed XIAO nRF52840" width="240"/></td>
+    <td align="center"><img src="docs/images/hardware_gateway_relay_esp32s3.png" alt="Gateway and Relay - ESP32-S3-DevKitC-1" width="240"/></td>
+    <td align="center"><img src="docs/images/hardware_scanner_esp32.png" alt="Scanner - ESP32-DevKitC" width="240"/></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Tag</strong><br/>Seeed XIAO nRF52840<br/><em>(coin-cell variant)</em></td>
+    <td align="center"><strong>Gateway + Relay</strong><br/>ESP32-S3-DevKitC-1</td>
+    <td align="center"><strong>Scanner</strong> (x3)<br/>ESP32-DevKitC-V4</td>
   </tr>
 </table>
-<p align="center"><strong><em>Figure 1:</em></strong> Node roles across the deployed mesh</p>
+<p align="center"><strong><em>Figure 1:</em></strong> Boards used for each node role</p>
 
 <div align="center">
 
 | Node | Board | What it does |
 |---|---|---|
-| Tag | ESP32-S3 | Sends a BLE beacon every 500 ms. |
+| Tag | ESP32-S3 or nRF52840 XIAO (coin-cell) | Sends a BLE beacon every 500 ms. |
 | Scanner x3 | ESP32 | Reads tag RSSI and sends `TAG_STATUS` over mesh. |
 | Relay | ESP32-S3 | Forwards mesh packets between far scanners and the gateway. |
 | Gateway | ESP32-S3 | Provisions mesh, forwards data to ThingsBoard, runs OTA. |
 
 </div>
 
-Coin-cell battery variants of the Tag on **nRF52840** are documented in the two Beacon READMEs linked in the Documentation table.
+The Gateway and Relay run on the same **ESP32-S3-DevKitC-1** board with different firmware. Coin-cell battery variants of the Tag on **nRF52840** (XIAO and ProMicro) are documented in the two Beacon READMEs linked in the Documentation table.
 
 ### II. Firmware Layout
 
