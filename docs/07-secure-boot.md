@@ -65,41 +65,8 @@ This repo ships with `CONFIG_SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT=y` and `CO
 
 By design, once the secure-boot eFuse is burned the bootloader rejects an unsigned or wrongly-signed image at boot rather than running it - that is the whole point of Secure Boot. If you are not sure whether a board has already gone through first boot, watch its serial log while re-flashing: the exact rejection message is printed by the ROM bootloader. (Capture that message from your own board and paste it here - it is the most useful thing to have when debugging a failed flash, and it is board/ROM specific enough that it is worth recording the real string rather than a paraphrase.)
 
-## Signing keys
+## Out of scope: the MCUboot / ECDSA key
 
-Both signing keys live at repo root under `keys/`. **Neither is committed** (`.gitignore`d), and the folder itself does not exist in a fresh clone - create it before the first build:
-
-```
-mkdir -p keys
-```
-
-| File | Used by | Referenced in |
-|---|---|---|
-| `bmt_fleet_rsa3072.pem` | ESP-IDF Secure Boot V2 (all four ESP-IDF apps) | `apps/{gateway,scanner,relay,tag}/sdkconfig` -> `CONFIG_SECURE_BOOT_SIGNING_KEY` |
-| `bmt_tag_ecdsa_p256.pem` | MCUboot (nRF52840 Beacon variants) | `apps/Beacon_*/sysbuild.conf` -> `SB_CONFIG_BOOT_SIGNATURE_KEY_FILE` |
-
-The MCUboot key is independent of Secure Boot V2 - the two live side by side because both bootloaders read them from the same `keys/` folder.
-
-### Generate `bmt_fleet_rsa3072.pem` (Secure Boot V2)
-
-```
-espsecure.py generate_signing_key --version 2 --scheme rsa3072 \
-    keys/bmt_fleet_rsa3072.pem
-```
-
-Requires ESP-IDF to be sourced (`. $IDF_PATH/export.sh`) so `espsecure.py` is on PATH.
-
-### Generate `bmt_tag_ecdsa_p256.pem` (MCUboot)
-
-```
-imgtool keygen -t ecdsa-p256 -k keys/bmt_tag_ecdsa_p256.pem
-```
-
-`imgtool` ships with Zephyr / MCUboot; it is on PATH after `west init` + `west update` on a Zephyr workspace. Full Beacon build flow in [../apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) and [../apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
-
-### Consequences of losing a key
-
-- **Secure Boot V2**: the first flash burns a hash of the corresponding public key into eFuse; from then on, only images signed by this same key can boot on that board. Losing the key means no more updates for boards already burned. Keep the key offline once a board is fielded.
-- **MCUboot**: the corresponding public key is baked into the MCUboot bootloader build. Losing the key means no more OTA updates for boards running that bootloader - regenerate before shipping.
+The nRF52840 Beacon variants (Zephyr / MCUboot bootloader) use a separate ECDSA P-256 signing key that lives alongside the Secure Boot key in [`keys/`](../keys/) as `bmt_tag_ecdsa_p256.pem`. It is unrelated to the ESP-IDF Secure Boot V2 setup above. Neither key is committed - see [`keys/README.md`](../keys/README.md) for the regen command.
 
 Related: [quickstart.md](00-quickstart.md), [thingsboard.md#tls-trust-chain](04-thingsboard.md#tls-trust-chain), [operation.md#checklists](05-operation.md#checklists).

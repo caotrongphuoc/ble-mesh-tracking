@@ -23,9 +23,9 @@ stick with `apps/tag` on ESP32-S3 otherwise.
 Build system is **Zephyr / west** (not ESP-IDF); see the
 [Zephyr getting-started guide](https://docs.zephyrproject.org/latest/develop/getting_started/index.html).
 The bootloader is **MCUboot** with ECDSA-P256 signing - the signing
-key lives in `../../keys/`; the repo ships none. See
-[`../../docs/07-secure-boot.md#signing-keys`](../../docs/07-secure-boot.md#signing-keys)
-for the regen command.
+key lives in `../../keys/` (see
+[`../../keys/README.md`](../../keys/README.md) for the
+regen command; the repo ships none).
 
 For interop the master HMAC key must match byte-for-byte across every
 tag variant and the Scanner - the 16 bytes live in
