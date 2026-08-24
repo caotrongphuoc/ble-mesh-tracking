@@ -69,4 +69,4 @@ By design, once the secure-boot eFuse is burned the bootloader rejects an unsign
 
 The nRF52840 Beacon variants (Zephyr / MCUboot bootloader) use a separate ECDSA P-256 signing key that lives alongside the Secure Boot key in [`keys/`](../keys/) as `bmt_tag_ecdsa_p256.pem`. It is unrelated to the ESP-IDF Secure Boot V2 setup above. Neither key is committed — see [`keys/README.md`](../keys/README.md) for the regen command.
 
-Related: [quickstart.md](00-quickstart.md), [thingsboard.md#tls-trust-chain](04-thingsboard.md#tls-trust-chain), [operation.md#checklists](05-operation.md#checklists), [../CHANGELOG.md](../CHANGELOG.md).
+Related: [quickstart.md](00-quickstart.md), [thingsboard.md#tls-trust-chain](04-thingsboard.md#tls-trust-chain), [operation.md#checklists](05-operation.md#checklists).
