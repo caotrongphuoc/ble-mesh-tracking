@@ -122,48 +122,12 @@ identical binaries, beacon HMAC key rotation works.
 
 ### End-to-end flow
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant OP as Operator<br/>(UART or TB RPC)
-    participant G as Gateway
-    participant S as Scanner
-    participant R as Relay
-    participant N as nginx OTA<br/>(HTTPS 8443)
-    participant TB as ThingsBoard
-
-    OP->>G: 'u' or {"method":"ota_scanner"}
-    Note over G: s_running CAS<br/>rejects concurrent runs
-
-    par Scanners - NimBLE beacon
-        loop 15 s window
-            G-->>S: BLE advert<br/>marker + HMAC-16
-        end
-        S->>S: Verify HMAC (rejects rogue triggers)
-    and Relays - mesh unicast
-        G->>R: OTA_TRIGGER (per node, up to 5 retries)
-        R-->>G: mesh ACK
-    end
-
-    Note over S,R: Node bring-up
-
-    par
-        S->>N: HTTPS GET Scanner.bin<br/>(verify CN=bmt-tb.local)
-        N-->>S: firmware image
-        S->>S: Version + SHA256 compare<br/>flash inactive slot
-        S->>S: Reboot into new slot
-    and
-        R->>N: HTTPS GET Relay.bin
-        N-->>R: firmware image
-        R->>R: Flash + reboot
-    end
-
-    Note over S,R: 5 s after reboot, report_pending_task fires
-
-    S->>G: OTA_RESULT (status=0 success / status=1 fail)
-    R->>G: OTA_RESULT
-    G->>TB: publish ota_result attribute<br/>per bmt_node_<MAC>
-```
+<table align="center">
+  <tr>
+    <td align="center"><img src="../resources/images/design-sequence/sequence-ota-end-to-end.png" alt="OTA end-to-end flow: trigger, signed BLE beacon for scanners, mesh unicast for relays, node download and flash, result report" width="1000"/></td>
+  </tr>
+</table>
+<p align="center"><strong><em>Figure 1:</em></strong> OTA end-to-end flow</p>
 
 Gateway self-OTA (`g`) is the simpler path: gateway pulls its own
 `.bin` from nginx directly and reports the result to ThingsBoard on
