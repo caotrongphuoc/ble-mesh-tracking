@@ -5,10 +5,10 @@
 </div>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/language-C-red?style=flat-square&logo=c" alt="Language">
-  <img src="https://img.shields.io/badge/mcu-ESP32%20%7C%20ESP32--S3-red?style=flat-square" alt="MCU">
-  <img src="https://img.shields.io/badge/framework-ESP--IDF%20v6.0.1-red?style=flat-square" alt="Framework">
-  <img src="https://img.shields.io/badge/backend-ThingsBoard%20CE-red?style=flat-square" alt="Backend">
+  <img src="https://img.shields.io/badge/language-C-blue?style=flat-square&logo=c" alt="Language">
+  <img src="https://img.shields.io/badge/mcu-ESP32%20%7C%20ESP32--S3-blue?style=flat-square" alt="MCU">
+  <img src="https://img.shields.io/badge/framework-ESP--IDF%20v6.0.1-blue?style=flat-square" alt="Framework">
+  <img src="https://img.shields.io/badge/backend-ThingsBoard%20CE-blue?style=flat-square" alt="Backend">
 </p>
 
 # BLE Mesh Tracking - Room-level Indoor Tracking on ESP32
