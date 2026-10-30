@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include "bmt_ota.h"
 #include "bmt_ota_key.h"
 
@@ -164,7 +164,8 @@ static void key_rotate_task(void* arg)
 
 void bmt_ota_start_key_rotation(void)
 {
-	assert(xTaskCreate(key_rotate_task, "bmt_key_rot", 3072, NULL, 3, NULL) == pdPASS);
+	if (xTaskCreate(key_rotate_task, "bmt_key_rot", 3072, NULL, 3, NULL) != pdPASS)
+		abort();
 }
 
 uint16_t bmt_ota_key_hmac16(const uint8_t* data, size_t len)

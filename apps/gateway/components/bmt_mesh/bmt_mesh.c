@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include "bmt_mesh.h"
 
 #include <inttypes.h>
@@ -362,8 +362,9 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble_mesh_prov_c
 			bmt_node_table_save();
 			bmt_node_table_print();
 			uint32_t cfg_arg = addr | (is_scan ? BMT_CFG_ARG_SCAN : 0);
-			assert(xTaskCreate(node_config_task, is_scan ? "scan_cfg" : "relay_cfg", 3072,
-			                   (void*)cfg_arg, 5, NULL) == pdPASS);
+			if (xTaskCreate(node_config_task, is_scan ? "scan_cfg" : "relay_cfg", 3072,
+			                (void*)cfg_arg, 5, NULL) != pdPASS)
+				abort();
 			break;
 		}
 
@@ -647,7 +648,8 @@ esp_err_t bmt_mesh_init(void)
 
 void bmt_mesh_start_node_ping(void)
 {
-	assert(xTaskCreate(node_ping_task, "bmt_node_ping", 4096, NULL, 3, NULL) == pdPASS);
+	if (xTaskCreate(node_ping_task, "bmt_node_ping", 4096, NULL, 3, NULL) != pdPASS)
+		abort();
 }
 
 esp_err_t bmt_mesh_publish(uint16_t dst, uint32_t opcode, const void* data, uint16_t len)

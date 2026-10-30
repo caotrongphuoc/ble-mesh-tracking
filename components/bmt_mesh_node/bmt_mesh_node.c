@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include "bmt_mesh_node.h"
 
 #include "esp_log.h"
@@ -194,6 +194,7 @@ static void reset_reboot_fallback_task(void* arg)
 void bmt_mesh_local_reset(void)
 {
 	s_reboot_after_reset = true;
-	assert(xTaskCreate(reset_reboot_fallback_task, "bmt_rst_fb", 2048, NULL, 3, NULL) == pdPASS);
+	if (xTaskCreate(reset_reboot_fallback_task, "bmt_rst_fb", 2048, NULL, 3, NULL) != pdPASS)
+		abort();
 	esp_ble_mesh_node_local_reset();
 }

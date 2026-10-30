@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include "bmt_factory_reset.h"
 
 #include "driver/gpio.h"
@@ -84,6 +84,7 @@ void bmt_factory_reset_init(void)
 	};
 	gpio_config(&io_conf);
 
-	assert(xTaskCreate(factory_reset_task, "bmt_factory_rst", 2560, NULL, 3, NULL) == pdPASS);
+	if (xTaskCreate(factory_reset_task, "bmt_factory_rst", 2560, NULL, 3, NULL) != pdPASS)
+		abort();
 	ESP_LOGI(TAG, "Factory reset watcher started (hold BOOT for 10 s to trigger)");
 }

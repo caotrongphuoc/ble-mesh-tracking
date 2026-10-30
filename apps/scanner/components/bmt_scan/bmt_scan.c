@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include "bmt_scan.h"
 
 #include <stdio.h>
@@ -272,7 +272,9 @@ esp_err_t bmt_scan_start(void)
 	if (err != ESP_OK)
 		return err;
 
-	assert(xTaskCreate(radio_manager_task, "bmt_radio", 3072, NULL, 6, NULL) == pdPASS);
-	assert(xTaskCreate(timeout_check_task, "bmt_timeout", 2048, NULL, 3, NULL) == pdPASS);
+	if (xTaskCreate(radio_manager_task, "bmt_radio", 3072, NULL, 6, NULL) != pdPASS)
+		abort();
+	if (xTaskCreate(timeout_check_task, "bmt_timeout", 2048, NULL, 3, NULL) != pdPASS)
+		abort();
 	return ESP_OK;
 }

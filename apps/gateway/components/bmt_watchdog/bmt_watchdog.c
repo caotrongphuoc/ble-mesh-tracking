@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include "bmt_watchdog.h"
 
 #include <inttypes.h>
@@ -116,5 +116,6 @@ static void data_watchdog_task(void* arg)
 
 void bmt_watchdog_start(void)
 {
-	assert(xTaskCreate(data_watchdog_task, "bmt_wdg", 3584, NULL, 2, NULL) == pdPASS);
+	if (xTaskCreate(data_watchdog_task, "bmt_wdg", 3584, NULL, 2, NULL) != pdPASS)
+		abort();
 }

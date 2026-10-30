@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include "bmt_ota.h"
 #include "bmt_ota_key.h"
 
@@ -259,5 +259,6 @@ static void gateway_auto_check_task(void* arg)
 
 void bmt_ota_start_auto_check(void)
 {
-	assert(xTaskCreate(gateway_auto_check_task, "bmt_ota_chk", 3072, NULL, 3, NULL) == pdPASS);
+	if (xTaskCreate(gateway_auto_check_task, "bmt_ota_chk", 3072, NULL, 3, NULL) != pdPASS)
+		abort();
 }
