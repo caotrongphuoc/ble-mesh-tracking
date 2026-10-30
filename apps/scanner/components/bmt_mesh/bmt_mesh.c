@@ -13,7 +13,7 @@
 #include "bmt_tag_table.h"
 #include "bmt_auth.h"
 #include "bmt_ota.h"
-#include "bmt_scan_core.h"
+#include "bmt_scanner_id.h"
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
@@ -111,13 +111,13 @@ esp_err_t bmt_mesh_init(void)
 	uint8_t mac[6];
 	esp_read_mac(mac, ESP_MAC_BT);
 	memcpy(&s_scan_uuid[4], mac, 6);
-	s_scan_uuid[15] = bmt_scan_core_scanner_id();
+	s_scan_uuid[15] = bmt_scanner_id();
 
 	ESP_LOGI(TAG, "MAC  : %02X:%02X:%02X:%02X:%02X:%02X",
 	         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	ESP_LOGI(TAG, "UUID : SCAN+%02X%02X%02X%02X%02X%02X+...+%02X",
 	         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
-	         bmt_scan_core_scanner_id());
+	         bmt_scanner_id());
 
 	esp_err_t err = bmt_mesh_node_start(&s_provision, &s_composition, &s_vnd_models[0], on_vnd_msg);
 	if (err != ESP_OK)
@@ -125,9 +125,9 @@ esp_err_t bmt_mesh_init(void)
 
 	if (bmt_mesh_is_provisioned())
 		ESP_LOGI(TAG, "[MESH] NVS restore OK | scanner_id=0x%02X | app_idx=0x%04X",
-		         bmt_scan_core_scanner_id(), bmt_mesh_app_idx());
+		         bmt_scanner_id(), bmt_mesh_app_idx());
 	else
-		ESP_LOGI(TAG, "Scanner ID=0x%02X | Waiting provision...", bmt_scan_core_scanner_id());
+		ESP_LOGI(TAG, "Scanner ID=0x%02X | Waiting provision...", bmt_scanner_id());
 	return ESP_OK;
 }
 
@@ -155,7 +155,7 @@ void bmt_mesh_publish_tags(void)
 			dist_dm = 0;
 
 		bmt_tag_report_t report = {
-		    .scanner_id = bmt_scan_core_scanner_id(),
+		    .scanner_id = bmt_scanner_id(),
 		    .battery = t->battery,
 		    .tag_id = t->tag_id,
 		    .rssi = (int8_t)t->rssi_filtered,

@@ -17,7 +17,7 @@
 #include "bmt_tag_table.h"
 #include "bmt_mesh.h"
 #include "bmt_ota.h"
-#include "bmt_scan_core.h"
+#include "bmt_scanner_id.h"
 
 static const char* TAG = "BMT_SCAN";
 #define BMT_OTA_BEACON_COOLDOWN_US (20 * 1000 * 1000)
@@ -247,7 +247,7 @@ static void radio_manager_task(void* arg)
 		if (s_has_new_data)
 		{
 			bmt_mesh_publish_tags();
-			bmt_tag_table_print(bmt_scan_core_scanner_id());
+			bmt_tag_table_print(bmt_scanner_id());
 			s_has_new_data = false;
 		}
 		vTaskDelay(pdMS_TO_TICKS(BMT_MESH_PUBLISH_DURATION_MS - 100));

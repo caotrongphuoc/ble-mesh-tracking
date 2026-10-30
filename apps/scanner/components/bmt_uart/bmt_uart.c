@@ -14,7 +14,7 @@
 #include "bmt_types.h"
 #include "bmt_mesh.h"
 #include "bmt_ota.h"
-#include "bmt_scan_core.h"
+#include "bmt_scanner_id.h"
 
 static void print_version_uptime(void)
 {
@@ -40,7 +40,7 @@ static void uart_cmd_task(void* arg)
 	uart_param_config(UART_NUM_0, &cfg);
 
 	printf("\n===== BMT SCAN NODE (modular) =====\n");
-	printf("Scanner ID : 0x%02X\n", bmt_scan_core_scanner_id());
+	printf("Scanner ID : 0x%02X\n", bmt_scanner_id());
 	printf("Node type  : 0x%02X (scanner)\n", BMT_NODE_TYPE);
 	/* Print the MAC at boot - needed to know which board this is when
 	 * filling in ZONE_MAP on ThingsBoard (which MAC maps to room_1/2/3). */
@@ -88,7 +88,7 @@ static void uart_cmd_task(void* arg)
 				uint8_t new_id = id_char - '0';
 				if (r > 0 && new_id >= 1 && new_id <= 8)
 				{
-					bmt_scan_core_set_scanner_id(new_id);
+					bmt_scanner_id_set(new_id);
 					printf("%d\n[UART] Scanner ID set to 0x%02X\n"
 					       "[UART] Press 'r' to reset and apply the new UUID\n",
 					       new_id, new_id);
@@ -102,7 +102,7 @@ static void uart_cmd_task(void* arg)
 
 		case '1':
 			printf("\n===== SCANNER STATUS =====\n");
-			printf("Scanner ID : 0x%02X\n", bmt_scan_core_scanner_id());
+			printf("Scanner ID : 0x%02X\n", bmt_scanner_id());
 			printf("MAC        : ");
 			{
 				const uint8_t* uuid = bmt_mesh_uuid();

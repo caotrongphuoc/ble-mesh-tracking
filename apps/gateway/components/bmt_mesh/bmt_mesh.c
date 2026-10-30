@@ -23,7 +23,6 @@
 #include "bmt_mac_cache.h"
 #include "bmt_mqtt.h"
 #include "bmt_node_table.h"
-#include "bmt_ota.h"
 #include "bmt_scan_list.h"
 #include "bmt_thingsboard.h"
 #include "bmt_types.h"
@@ -57,6 +56,13 @@ static volatile uint16_t s_cfg_wait_addr = 0;
 static volatile uint32_t s_cfg_wait_opcode = 0;
 
 static SemaphoreHandle_t s_cfg_mutex = NULL;
+
+static bmt_mesh_scan_configured_cb_t s_on_scan_configured = NULL;
+
+void bmt_mesh_set_scan_configured_cb(bmt_mesh_scan_configured_cb_t cb)
+{
+	s_on_scan_configured = cb;
+}
 
 static bool wait_cfg_ack(uint16_t addr, uint32_t opcode)
 {
@@ -173,7 +179,7 @@ void bmt_mesh_generate_keys_if_needed(void)
 	}
 }
 /* Task arg: node address in the low 16 bits, BMT_CFG_ARG_SCAN set for a
- * scanner (gets the OTA-beacon key pushed once configured). */
+ * scanner (s_on_scan_configured runs once it is configured). */
 #define BMT_CFG_ARG_SCAN (1u << 16)
 
 static void node_config_task(void* arg)
@@ -236,7 +242,8 @@ static void node_config_task(void* arg)
 	if (is_scan)
 	{
 		ESP_LOGI(TAG, "%s Scan node 0x%04x fully configured!", tag, addr);
-		bmt_ota_push_beacon_key_to_node(addr);
+		if (s_on_scan_configured)
+			s_on_scan_configured(addr);
 	}
 	else
 	{

@@ -6,6 +6,11 @@
 #include "esp_err.h"
 void bmt_mesh_generate_keys_if_needed(void);
 
+/* Called once a scanner finished APP_KEY_ADD + MODEL_APP_BIND (from the
+ * config task). main.c wires it to bmt_ota_push_beacon_key_to_node. */
+typedef void (*bmt_mesh_scan_configured_cb_t)(uint16_t addr);
+void bmt_mesh_set_scan_configured_cb(bmt_mesh_scan_configured_cb_t cb);
+
 /* Initialise the mesh: register callbacks, add NetKey/AppKey if not
  * already present, bind the AppKey to the local vendor model. Call
  * after bluetooth_init(). */

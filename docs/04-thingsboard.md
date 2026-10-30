@@ -212,7 +212,9 @@ the [ThingsBoard Gateway API](https://thingsboard.io/docs/reference/gateway-mqtt
 Topic constants and JSON building live in
 [`apps/gateway/components/bmt_thingsboard/bmt_thingsboard.c`](../apps/gateway/components/bmt_thingsboard/bmt_thingsboard.c);
 the client init and event handler in
-[`apps/gateway/components/bmt_mqtt/bmt_mqtt.c`](../apps/gateway/components/bmt_mqtt/bmt_mqtt.c).
+[`apps/gateway/components/bmt_mqtt/bmt_mqtt.c`](../apps/gateway/components/bmt_mqtt/bmt_mqtt.c);
+the RPC -> OTA dispatch (`on_tb_rpc`) in
+[`apps/gateway/main/main.c`](../apps/gateway/main/main.c).
 
 The gateway authenticates with an access token (not username /
 password). Get it from the TB UI on the `bmt_gateway` device page

@@ -1,5 +1,6 @@
-
 #include <assert.h>
+#include <string.h>
+
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
@@ -25,6 +26,46 @@
 static const char* TAG = "BMT_GW";
 
 #define BMT_WDT_TIMEOUT_S 60
+
+static void on_tb_connected(void)
+{
+	bmt_tb_pub_gateway_online();
+	bmt_tb_reconnect_all_devices();
+}
+
+/* ThingsBoard RPC -> OTA. */
+static void on_tb_rpc(const char* payload)
+{
+	if (strstr(payload, "ota_scanner"))
+	{
+		if (bmt_ota_is_running())
+			ESP_LOGW(TAG, "[RPC] OTA already running");
+		else
+		{
+			ESP_LOGI(TAG, "[RPC] OTA Scanner triggered");
+			bmt_ota_trigger_all_scanners();
+		}
+	}
+	else if (strstr(payload, "ota_relay"))
+	{
+		if (bmt_ota_is_running())
+			ESP_LOGW(TAG, "[RPC] OTA already running");
+		else
+		{
+			ESP_LOGI(TAG, "[RPC] OTA Relay triggered");
+			bmt_ota_trigger_all_relays();
+		}
+	}
+	else if (strstr(payload, "ota_gateway"))
+	{
+		ESP_LOGI(TAG, "[RPC] OTA Gateway triggered");
+		bmt_ota_gateway_self_update();
+	}
+	else
+	{
+		ESP_LOGW(TAG, "[RPC] Unknown method: %s", payload);
+	}
+}
 
 static void wdt_feed_task(void* arg)
 {
@@ -69,10 +110,13 @@ void app_main(void)
 	bmt_ota_beacon_key_init();
 	bmt_ota_start_key_rotation();
 
-	bmt_mqtt_start_worker();
+	bmt_mqtt_start_worker(bmt_tb_pub_tag_report);
 
 	bmt_wifi_init();
-	bmt_mqtt_init();
+	bmt_mqtt_init(&(bmt_mqtt_handlers_t){
+	    .on_connected = on_tb_connected,
+	    .on_rpc = on_tb_rpc,
+	});
 	vTaskDelay(pdMS_TO_TICKS(2000));
 
 	err = bluetooth_init();
@@ -82,6 +126,7 @@ void app_main(void)
 		return;
 	}
 
+	bmt_mesh_set_scan_configured_cb(bmt_ota_push_beacon_key_to_node);
 	err = bmt_mesh_init();
 	if (err != ESP_OK)
 	{

@@ -8,7 +8,7 @@
 #include "nvs.h"
 #include "psa/crypto.h"
 
-#include "bmt_scan_core.h"
+#include "bmt_config.h"
 
 static const char* TAG = "BMT_AUTH";
 

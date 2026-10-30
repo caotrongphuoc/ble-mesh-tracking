@@ -12,8 +12,6 @@
 #include "freertos/task.h"
 
 #include "bmt_config.h"
-#include "bmt_ota.h"
-#include "bmt_thingsboard.h"
 
 static const char* TAG = "BMT_MQTT";
 
@@ -24,6 +22,8 @@ extern const uint8_t bmt_ca_pem_end[] asm("_binary_ca_pem_end");
 
 static esp_mqtt_client_handle_t s_client = NULL;
 static bool s_connected = false;
+static bmt_mqtt_handlers_t s_handlers;
+static bmt_mqtt_tag_report_cb_t s_on_tag_report;
 typedef struct
 {
 	bmt_tag_report_t report;
@@ -98,12 +98,13 @@ static void mqtt_worker_task(void* arg)
 	while (1)
 	{
 		if (xQueueReceive(s_queue, &item, portMAX_DELAY) == pdTRUE)
-			bmt_tb_pub_tag_report(&item.report, item.has_mac ? item.scanner_mac : NULL);
+			s_on_tag_report(&item.report, item.has_mac ? item.scanner_mac : NULL);
 	}
 }
 
-void bmt_mqtt_start_worker(void)
+void bmt_mqtt_start_worker(bmt_mqtt_tag_report_cb_t on_tag_report)
 {
+	s_on_tag_report = on_tag_report;
 	s_queue = xQueueCreate(BMT_MQTT_QUEUE_SIZE, sizeof(bmt_tag_report_item_t));
 	if (!s_queue)
 	{
@@ -122,8 +123,8 @@ static void mqtt_event_handler(void* args, esp_event_base_t base, int32_t id, vo
 		ESP_LOGI(TAG, "MQTT connected to ThingsBoard");
 		esp_mqtt_client_subscribe(s_client, "v1/devices/me/rpc/request/+", 1);
 		ESP_LOGI(TAG, "Subscribed to RPC topic");
-		bmt_tb_pub_gateway_online();
-		bmt_tb_reconnect_all_devices();
+		if (s_handlers.on_connected)
+			s_handlers.on_connected();
 		break;
 
 	case MQTT_EVENT_DISCONNECTED:
@@ -148,35 +149,8 @@ static void mqtt_event_handler(void* args, esp_event_base_t base, int32_t id, vo
 		memcpy(payload, ev->data, plen);
 		ESP_LOGI(TAG, "[RPC] Received: %s", payload);
 
-		if (strstr(payload, "ota_scanner"))
-		{
-			if (bmt_ota_is_running())
-				ESP_LOGW(TAG, "[RPC] OTA already running");
-			else
-			{
-				ESP_LOGI(TAG, "[RPC] OTA Scanner triggered");
-				bmt_ota_trigger_all_scanners();
-			}
-		}
-		else if (strstr(payload, "ota_relay"))
-		{
-			if (bmt_ota_is_running())
-				ESP_LOGW(TAG, "[RPC] OTA already running");
-			else
-			{
-				ESP_LOGI(TAG, "[RPC] OTA Relay triggered");
-				bmt_ota_trigger_all_relays();
-			}
-		}
-		else if (strstr(payload, "ota_gateway"))
-		{
-			ESP_LOGI(TAG, "[RPC] OTA Gateway triggered");
-			bmt_ota_gateway_self_update();
-		}
-		else
-		{
-			ESP_LOGW(TAG, "[RPC] Unknown method: %s", payload);
-		}
+		if (s_handlers.on_rpc)
+			s_handlers.on_rpc(payload);
 		break;
 	}
 	default:
@@ -184,8 +158,9 @@ static void mqtt_event_handler(void* args, esp_event_base_t base, int32_t id, vo
 	}
 }
 
-void bmt_mqtt_init(void)
+void bmt_mqtt_init(const bmt_mqtt_handlers_t* handlers)
 {
+	s_handlers = *handlers;
 	esp_mqtt_client_config_t cfg = {
 	    .broker.address.uri = BMT_TB_HOST,
 	    .broker.verification.certificate = (const char*)bmt_ca_pem_start,
