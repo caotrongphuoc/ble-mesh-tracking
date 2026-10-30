@@ -30,8 +30,7 @@ imgtool keygen -t ecdsa-p256 -k keys/bmt_tag_ecdsa_p256.pem
 
 `imgtool` ships with Zephyr / MCUboot; it is on PATH after
 `west init` + `west update` on a Zephyr workspace. See
-[`apps/Beacon_ProMicroNrf52840/README.md`](../apps/Beacon_ProMicroNrf52840/README.md)
-and [`apps/Beacon_XiaoNrf52840/README.md`](../apps/Beacon_XiaoNrf52840/README.md)
+[`apps/beacon_nrf52840/README.md`](../apps/beacon_nrf52840/README.md)
 for the Beacon build flow.
 
 ## Consequences of losing a key

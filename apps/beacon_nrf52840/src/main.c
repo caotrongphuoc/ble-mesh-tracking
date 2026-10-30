@@ -1,9 +1,9 @@
 #include <zephyr/kernel.h>
+#include <zephyr/devicetree.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/logging/log.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/drivers/gpio.h>
 
 #include "bmt_auth.h"
 #include "bmt_beacon.h"
@@ -11,13 +11,16 @@
 
 LOG_MODULE_REGISTER(bmt_main, LOG_LEVEL_INF);
 
+#if DT_NODE_HAS_PROP(DT_PATH(zephyr_user), ext_vcc_gpios)
+#include <zephyr/drivers/gpio.h>
+
 /* [POWER] Soft switch that cuts power to the external VCC pin
- * (P0.13) - full explanation in
+ * (ProMicro P0.13) - full explanation in
  * boards/promicro_nrf52840_nrf52840_uf2.overlay.
  * Summary: the 3.3 V branch routed to the external pin is powered
  * by default (Zephyr does not declare a control pin, so it stays
  * in its reset state), wasting ~1 mA even when the app powers
- * nothing external. */
+ * nothing external. Boards without ext-vcc-gpios skip this. */
 static const struct gpio_dt_spec ext_vcc =
     GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), ext_vcc_gpios);
 
@@ -38,8 +41,13 @@ static void ext_vcc_off(void)
 		LOG_ERR("Failed to turn off external VCC (err %d)", err);
 		return;
 	}
-	LOG_INF("External VCC pin (P0.13) turned off");
+	LOG_INF("External VCC pin turned off");
 }
+#else
+static void ext_vcc_off(void)
+{
+}
+#endif
 
 static void bt_ready(int err)
 {

@@ -37,8 +37,7 @@
 | [docs/05-operation.md](docs/05-operation.md) | UART commands, factory reset, checklists. |
 | [docs/06-testing.md](docs/06-testing.md) | 16 test scenarios. |
 | [docs/07-secure-boot.md](docs/07-secure-boot.md) | Secure Boot V2, Flash Encryption, key regen. |
-| [apps/Beacon_XiaoNrf52840/README.md](apps/Beacon_XiaoNrf52840/README.md) | Tag firmware (XIAO nRF52840). |
-| [apps/Beacon_ProMicroNrf52840/README.md](apps/Beacon_ProMicroNrf52840/README.md) | Tag firmware (ProMicro nRF52840). |
+| [apps/beacon_nrf52840/README.md](apps/beacon_nrf52840/README.md) | Tag firmware (XIAO / ProMicro nRF52840). |
 
 ## Introduction
 
@@ -53,7 +52,7 @@ Pick the trail that fits your goal:
 - **Server side:** [docs/04-thingsboard.md](docs/04-thingsboard.md).
 - **Operate and test:** [docs/05-operation.md](docs/05-operation.md), [docs/06-testing.md](docs/06-testing.md).
 - **Harden for production:** [docs/07-secure-boot.md](docs/07-secure-boot.md).
-- **Coin-cell nRF52840 tag:** [XIAO](apps/Beacon_XiaoNrf52840/README.md) or [ProMicro](apps/Beacon_ProMicroNrf52840/README.md).
+- **Coin-cell nRF52840 tag (XIAO or ProMicro):** [apps/beacon_nrf52840/README.md](apps/beacon_nrf52840/README.md).
 
 > Before the first `idf.py build`, generate the two signing keys per [keys/README.md](keys/README.md) - the build fails without them.
 
@@ -86,7 +85,7 @@ Four ESP-IDF apps under [apps/](apps/) plus the Zephyr-based nRF52840 Tag. Share
 | **gateway** | ESP-IDF | Provisions the mesh, bridges to ThingsBoard over MQTTS, runs OTA. |
 | **scanner** | ESP-IDF | Reads tag beacons, verifies HMAC, sends `TAG_STATUS` over mesh. |
 | **relay** | ESP-IDF | Forwards mesh packets at Network Layer between far scanners and the gateway. |
-| **Beacon_XiaoNrf52840** | Zephyr / MCUboot | Primary Tag: 24-byte BLE beacon every 500 ms with HMAC-16. |
+| **beacon_nrf52840** | Zephyr / MCUboot | Primary Tag: 24-byte BLE beacon every 500 ms with HMAC-16. |
 | **tag** *(bench)* | ESP-IDF | Same wire protocol as the Zephyr Tag; used for A/B testing. |
 
 </div>

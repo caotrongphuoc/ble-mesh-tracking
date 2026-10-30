@@ -3,7 +3,7 @@
 # requiring the whole nRF Connect SDK.
 manifest:
   self:
-    path: apps/Beacon_XiaoNrf52840
+    path: apps/beacon_nrf52840
   remotes:
     - name: zephyrproject
       url-base: https://github.com/zephyrproject-rtos

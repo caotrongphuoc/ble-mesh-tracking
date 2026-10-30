@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Produce a UF2 file that is flashable on ProMicro nRF52840 (Linux/macOS).
+# Produce a UF2 file that is flashable on the XIAO or ProMicro nRF52840
+# (Linux/macOS). The board is read from the build tree.
 #
 # WHY THIS SCRIPT IS NEEDED (cannot just flash zephyr.uf2 directly):
 #   The bootloader is MCUboot with signature verification. The file
@@ -24,12 +25,30 @@ fi
 
 PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FAMILY="0xADA52840"                              # nRF52840 - Adafruit UF2 family ID
-OUT_UF2="${PROJ}/tag_ProMicro_SIGNED.uf2"
 UF2CONV="${ZEPHYR_BASE}/scripts/build/uf2conv.py"
+
+CACHE="${PROJ}/build/CMakeCache.txt"
+[[ -f "${CACHE}" ]] || { echo "Not found: ${CACHE}  (did you run 'west build' first?)" >&2; exit 1; }
+BOARD="$(sed -n 's/^BOARD:[A-Z]*=//p' "${CACHE}")"
+
+# Per board: UF2 name, expected MCUboot / app start (see boards/mcuboot_*.overlay),
+# how to enter the bootloader.
+case "${BOARD}" in
+    xiao_ble*)
+        OUT_UF2="${PROJ}/tag_Xiao_SIGNED.uf2"; MCU_START=0x27000; APP_START=0x33000
+        HOW_TO_FLASH="double-tap the RESET button to enter the bootloader, then copy the file above onto the XIAO-SENSE drive"
+        ;;
+    promicro_nrf52840*)
+        OUT_UF2="${PROJ}/tag_ProMicro_SIGNED.uf2"; MCU_START=0x26000; APP_START=0x32000
+        HOW_TO_FLASH="short RST to GND twice quickly to enter the bootloader, then copy the file above onto the mass-storage drive"
+        ;;
+    *)
+        echo "Unsupported board '${BOARD}' in ${CACHE}" >&2; exit 1
+        ;;
+esac
 
 APP_DOMAIN="$(basename "${PROJ}")"
 APP_HEX="${PROJ}/build/${APP_DOMAIN}/zephyr/zephyr.signed.hex"
-[[ -f "${APP_HEX}" ]] || APP_HEX="${PROJ}/build/beacon/zephyr/zephyr.signed.hex"
 MCU_HEX="${PROJ}/build/mcuboot/zephyr/zephyr.hex"
 MERGED="${PROJ}/build/merged.hex"
 
@@ -45,8 +64,8 @@ if mb.maxaddr() >= app.minaddr():
     raise SystemExit("ERROR: mcuboot and app addresses OVERLAP!")
 m = IntelHex(); m.merge(mb, overlap="replace"); m.merge(app, overlap="replace")
 m.write_hex_file(r"${MERGED}")
-print("  mcuboot       0x%05x - 0x%05x  (expected to start at 0x26000)" % (mb.minaddr(), mb.maxaddr()))
-print("  app (signed)  0x%05x - 0x%05x  (expected to start at 0x32000)" % (app.minaddr(), app.maxaddr()))
+print("  mcuboot       0x%05x - 0x%05x  (expected to start at ${MCU_START})" % (mb.minaddr(), mb.maxaddr()))
+print("  app (signed)  0x%05x - 0x%05x  (expected to start at ${APP_START})" % (app.minaddr(), app.maxaddr()))
 PY
 
 python3 "${UF2CONV}" -c -f "${FAMILY}" -o "${OUT_UF2}" "${MERGED}"
@@ -55,4 +74,4 @@ size=$(stat -c%s "${OUT_UF2}" 2>/dev/null || stat -f%z "${OUT_UF2}")
 echo ""
 echo "OK -> ${OUT_UF2}  (${size} bytes)"
 echo ""
-echo "Flash: short RST to GND twice quickly to enter the bootloader, then copy the file above onto the mass-storage drive (mounts under /media/\$USER/ on Linux, /Volumes/ on macOS)."
+echo "Flash (${BOARD}): ${HOW_TO_FLASH} (mounts under /media/\$USER/ on Linux, /Volumes/ on macOS)."

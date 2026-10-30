@@ -16,7 +16,7 @@ Common flow first, then OS-specific notes. Assumes you have a workstation on the
 
 - **2x ESP32-S3-DevKitC-1** - one flashed as gateway, one as relay.
 - **3x ESP32-DevKitC-V4** - the three scanners.
-- **1x Seeed XIAO nRF52840** - the coin-cell Tag (primary). ProMicro nRF52840 works too; see [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md).
+- **1x Seeed XIAO nRF52840** - the coin-cell Tag (primary). ProMicro nRF52840 works too, same app; see [apps/beacon_nrf52840/README.md](../apps/beacon_nrf52840/README.md).
 - *Optional bench tag:* one extra **ESP32-S3-DevKitC-1** if you want to run [apps/tag/](../apps/tag/) side by side with the XIAO to compare beacon output.
 
 **Cables and power:**
@@ -128,11 +128,11 @@ Linux permission denied on `/dev/ttyUSB*`: `sudo usermod -aG dialout $USER`, the
 The primary Tag runs on the coin-cell **Seeed XIAO nRF52840** with a signed MCUboot image. Build produces a `.hex` and a merged UF2:
 
 ```
-cd apps/Beacon_XiaoNrf52840
+cd apps/beacon_nrf52840
 west build -b xiao_ble/nrf52840 -d build . --pristine
 ```
 
-Sign and flash via UF2 - **do NOT flash the raw `zephyr.uf2`**, MCUboot rejects it silently and the app never boots. Full flow (including the sanity-check table for signed-vs-unsigned file size, entering the bootloader by double-tapping RESET, and the "board looks dead" recovery) is in [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md).
+Sign and flash via UF2 - **do NOT flash the raw `zephyr.uf2`**, MCUboot rejects it silently and the app never boots. Full flow (including the sanity-check table for signed-vs-unsigned file size, entering the bootloader by double-tapping RESET, and the "board looks dead" recovery) is in [apps/beacon_nrf52840/README.md](../apps/beacon_nrf52840/README.md). For a ProMicro use `-b promicro_nrf52840/nrf52840/uf2` instead.
 
 The ECDSA-P256 key you generated in [step 3](#3-generate-signing-keys) is what signs the MCUboot image.
 
@@ -151,7 +151,7 @@ Skip this if you are only deploying the XIAO tag.
 1. Power up the gateway first. Gateway is in AUTO mode and provisions each node on its own.
 2. Power up the relay, wait for it to fully provision, **then** power up scanners **one at a time**, waiting for each to finish before powering the next. Provisioning is event-driven: the gateway handles one node's provision/config sequence (`APP_KEY_ADD` -> `MODEL_APP_BIND`) at a time, and powering multiple unprovisioned nodes together can cause some of them to miss their config step and never reach "fully configured".
 3. Open the gateway serial monitor at 115200: `idf.py -p <port> monitor`. Press `1` to see the node table - confirm every node shows `Config done: YES` before moving to the next one.
-4. Power up the tag last. Plug the XIAO tag into USB (or a charged LiPo / LIR coin cell on the B+ pin - see [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md) for battery notes). Tags only beacon; they do not provision, so order relative to them does not matter.
+4. Power up the tag last. Plug the XIAO tag into USB (or a charged LiPo / LIR coin cell on the B+ pin - see [apps/beacon_nrf52840/README.md](../apps/beacon_nrf52840/README.md#6-battery-notes-both-boards) for battery notes). Tags only beacon; they do not provision, so order relative to them does not matter.
 5. Open the Indoor Tracking dashboard in ThingsBoard.
 
 If a node never reaches "fully configured", power-cycle just that node - it will send a fresh unprovisioned beacon and the gateway re-provisions it (see [operation.md](05-operation.md#self-healing)).

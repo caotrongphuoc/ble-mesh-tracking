@@ -3,20 +3,22 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Initialise the on-board battery-measurement path (P0.14 enable
- * + P0.31 ADC via the on-board voltage divider) for a cell wired
- * to BAT+ / BAT- (LIR2032 / LiPo). See bmt_battery.c for details. */
+/* Initialise the board's battery-measurement path and start the
+ * periodic read. The ADC channel comes from the zephyr,user node in
+ * boards/<board>.overlay; board-specific setup lives in
+ * bmt_battery_<board>.c. */
 int bmt_battery_init(void);
 
-/* Read the actual battery voltage at BAT+ (compensating for the
- * divider ratio), in mV. Returns < 0 on error. */
+/* Read the actual battery voltage (compensating for the board's
+ * divider), in mV. Returns < 0 on error. */
 int bmt_battery_read_mv(void);
 
 /* Estimate remaining battery percentage from voltage using a Li-ion
  * lookup curve (interpolated, see BATT_CURVE in bmt_battery.c). 0-100. */
 uint8_t bmt_battery_percent(int mv);
 
-/* true when the charger IC is charging (P0.17 LOW). */
+/* true when the charger IC is charging. Always false on boards that
+ * do not expose a charge-status pin (ProMicro). */
 bool bmt_battery_is_charging(void);
 
 /* Cached % from the most recent periodic read - used by the beacon

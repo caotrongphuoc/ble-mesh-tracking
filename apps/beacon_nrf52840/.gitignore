@@ -1,0 +1,10 @@
+# editors
+*.swp
+*~
+
+# build
+/build*/
+
+# .uf2 - chi giu ban chinh thuc (tag_<Board>_SIGNED.uf2), bo ban debug/test
+tag_*_DEBUG.uf2
+tag_*_TEST.uf2

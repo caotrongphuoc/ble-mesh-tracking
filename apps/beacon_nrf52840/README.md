@@ -1,24 +1,34 @@
-# Beacon - ProMicro nRF52840 (nice!nano v2 compatible)
+# Beacon - nRF52840 (XIAO / ProMicro)
 
-BLE beacon tag firmware for the **ProMicro nRF52840** board (e.g. the
-"Nologo ProMicro nRF52840" from hshop) - compatible with the
-nice!nano v2.
+BLE beacon tag firmware for two nRF52840 boards, built from one Zephyr app:
 
-Sister app: [`../Beacon_XiaoNrf52840`](../Beacon_XiaoNrf52840) for
-the XIAO nRF52840. **The beacon and auth logic is identical
-byte-for-byte**; only the hardware-dependent parts differ (partition
-layout, battery-read path, power configuration).
+| Board | `west build -b` |
+|---|---|
+| **Seeed XIAO nRF52840** | `xiao_ble/nrf52840` |
+| **ProMicro nRF52840** (e.g. "Nologo ProMicro nRF52840" from hshop, nice!nano v2 compatible) | `promicro_nrf52840/nrf52840/uf2` |
+
+The beacon and auth logic is shared; only the hardware-dependent parts
+are per board:
+
+| Part | Where |
+|---|---|
+| Devicetree (partitions, ADC channel, disabled peripherals) | `boards/<board>.overlay` |
+| Extra Kconfig | `boards/<board>.conf` |
+| MCUboot partitions | `boards/mcuboot_<board>.overlay` (picked in `sysbuild/CMakeLists.txt`) |
+| Battery read path | `src/bmt_battery_<board>.c` (picked in `CMakeLists.txt`) |
 
 ---
 
 ## 0. Overview
 
 An **optional coin-cell variant** of [`../tag`](../tag) (ESP-IDF).
-Same wire protocol byte-for-byte (CID `0x02E5`, 24-byte payload,
-HMAC-16, TOTP-style epoch key) so ESP32 scanners recognise it out of
-the box - no scanner-side change needed. Pick this variant when a
-wearable coin-cell tag matters more than reflash-over-USB convenience;
-stick with `apps/tag` on ESP32-S3 otherwise.
+Same wire protocol (CID `0x02E5`, 24-byte payload, HMAC-16, TOTP-style
+epoch key), declared once in
+[`../../components/bmt_protocol/`](../../components/bmt_protocol/), so
+ESP32 scanners recognise it out of the box - no scanner-side change
+needed. Pick this variant when a wearable coin-cell tag matters more
+than reflash-over-USB convenience; stick with `apps/tag` on ESP32-S3
+otherwise.
 
 Build system is **Zephyr / west** (not ESP-IDF); see the
 [Zephyr getting-started guide](https://docs.zephyrproject.org/latest/develop/getting_started/index.html).
@@ -41,18 +51,23 @@ UF2 as described below.
 ## 1. Build
 
 ```powershell
+# XIAO
+west build -b xiao_ble/nrf52840 -d build . --pristine
+
+# ProMicro
 west build -b promicro_nrf52840/nrf52840/uf2 -d build . --pristine
 ```
 
-> The board target MUST end in **`/uf2`**. Only that variant uses the
-> partition layout expected by the Adafruit UF2 bootloader
-> (`nrf52840_partition_uf2_sdv6.dtsi`).
+> The ProMicro board target MUST end in **`/uf2`**. Only that variant
+> uses the partition layout expected by the Adafruit UF2 bootloader
+> (`nrf52840_partition_uf2_sdv6.dtsi`). `sysbuild/CMakeLists.txt`
+> refuses any other ProMicro target.
 
 ### The production build has NO COM port - INTENTIONAL
 
 By default USB + console + log are **stripped out** because together
-they draw ~0.8 mA continuously (nearly half of the total current) even
-after the USB cable is unplugged - see section 4.
+they draw ~0.7-0.8 mA continuously (nearly half of the total current)
+even after the USB cable is unplugged - see section 5 and `prj.conf`.
 
 Consequence after flashing: **no COM port, no log**. This is correct,
 not a bug. To confirm the tag is alive, watch the **Scanner** log
@@ -62,16 +77,16 @@ Beacon Toolkit** on iOS and look for `Test beacon`.
 ### When you need logs for debug
 
 ```powershell
-west build -b promicro_nrf52840/nrf52840/uf2 -d build_debug . --pristine `
-    -- "-DBeacon_ProMicroNrf52840_EXTRA_CONF_FILE=debug.conf"
+west build -b <board> -d build_debug . --pristine `
+    -- "-Dbeacon_nrf52840_EXTRA_CONF_FILE=debug.conf"
 ```
 
 `debug.conf` re-enables the USB CDC-ACM console and logs. **Do NOT
-measure current on this build** - it will be ~0.8 mA higher than the
-real firmware.
+measure current on this build** - it will be ~0.7-0.8 mA higher than
+the real firmware.
 
-> The `Beacon_ProMicroNrf52840_` prefix is required: this is a
-> multi-image sysbuild; without the prefix CMake configure fails with
+> The `beacon_nrf52840_` prefix is required: this is a multi-image
+> sysbuild; without the prefix CMake configure fails with
 > "CMake configure failed for Zephyr project".
 
 ---
@@ -79,18 +94,25 @@ real firmware.
 ## 2. Flash - READ THIS SECTION CAREFULLY
 
 The bootloader is **MCUboot** with ECDSA-P256 signature verification.
-This means **you cannot flash the app's raw `zephyr.uf2`**: that file
-is **UNSIGNED**; MCUboot rejects it and the board never boots the app
-(symptom: the UF2 drive disappears normally after copy, but
-**no app COM port appears**, no BLE, no log - because `mcuboot.conf`
-disables the bootloader's console).
+**Do NOT flash the app's raw `zephyr.uf2`** - that file is **UNSIGNED**;
+MCUboot silently rejects it and the board never boots the app.
 
-> The XIAO variant lost hours to this same mistake: it looked like
-> broken code or a broken board, but it was just an unsigned file.
+Symptoms of flashing an unsigned file (easy to mistake for "board is
+dead"):
+
+- The UF2 drive disappears normally after copy (looks like a
+  successful flash).
+- **But no app COM port appears**, no BLE, no log at all.
+- Reason for the silence: `mcuboot.conf` disables the bootloader's
+  console, so it rejects the app without printing anything.
+
+> This mistake cost hours on the XIAO: it looked like broken code or a
+> broken board, but it was just an unsigned file.
 
 ### How to flash: merge MCUboot + SIGNED app, then convert to UF2
 
-Run the helper script for your host OS (both do the same merge + uf2conv):
+Run the helper script for your host OS. Both read the board from
+`build/CMakeCache.txt` and do the same merge + `uf2conv.py`:
 
 ```powershell
 # Windows (PowerShell, Zephyr / nRF Connect env activated)
@@ -102,24 +124,32 @@ Run the helper script for your host OS (both do the same merge + uf2conv):
 ./make_uf2.sh
 ```
 
-It produces `tag_ProMicro_SIGNED.uf2`. Then:
+It produces `tag_Xiao_SIGNED.uf2` or `tag_ProMicro_SIGNED.uf2`. Then:
 
-1. Enter the bootloader: **short RST to GND twice quickly** (this
-   board has no reset button - different from XIAO).
-2. The USB drive appears -> copy the `.uf2` onto it.
+1. Enter the bootloader:
+   - XIAO: **double-tap RESET**; the `XIAO-SENSE` drive appears.
+   - ProMicro: **short RST to GND twice quickly** (no reset button).
+2. Copy the `.uf2` onto the drive.
 3. The drive disappears on its own = the board reset and is now
    running the firmware.
 
 ### Sanity-check the file before flashing
 
-| Check | Correct | Wrong |
-|---|---|---|
-| File size | ~321 KB (merged) | ~270 KB (app only, unsigned) |
-| First data block address | `0x26000` (MCUboot) | `0x32000` (app) |
+| Check | XIAO | ProMicro | Wrong |
+|---|---|---|---|
+| File size | ~329 KB (merged) | ~321 KB (merged) | ~270 KB (app only, unsigned) |
+| First data block address | `0x27000` (MCUboot) | `0x26000` (MCUboot) | `0x33000` / `0x32000` (app) |
+
+### If the XIAO does not boot / the bootloader is stuck
+
+If the drive does not disappear after copy, or double-tap does not
+work: **cut power completely** (unplug USB **and** disconnect the
+battery) for ~10 s, then reconnect. A soft reset (double-tap) does
+not clear the bootloader's stuck state; only a cold boot does.
 
 ---
 
-## 3. Differences vs the XIAO variant
+## 3. Board differences
 
 | | XIAO nRF52840 | ProMicro nRF52840 |
 |---|---|---|
@@ -130,15 +160,34 @@ It produces `tag_ProMicro_SIGNED.uf2`. Then:
 | Power path | battery -> BQ25101 -> external LDO -> VDD | **battery -> straight into VDDH** |
 | Battery-voltage read | external 1M/510k divider -> P0.31, P0.14 must be LOW | **internal VDDHDIV5**, no GPIO needed |
 | Charging status | read P0.17 | **none** (`is_charging()` always false) |
-| DC/DC | board enables both (reg0 + reg1) | **not enabled** - see `prj.conf` |
+| External VCC switch | none | **P0.13 driven LOW at boot** (`ext-vcc-gpios`, see `src/main.c`) |
+| DC/DC | board enables both (reg0 + reg1) | **not enabled** - see `boards/promicro_nrf52840_nrf52840_uf2.conf` |
 
-Full details and reasoning: see the comments in
-`boards/promicro_nrf52840_nrf52840_uf2.overlay`, `src/bmt_battery.c`,
-and `prj.conf`.
+Full details and reasoning: see the comments in `boards/<board>.overlay`,
+`boards/<board>.conf` and `src/bmt_battery_<board>.c`.
 
 ---
 
-## 4. Current-draw measurement (as of 2026-07-25)
+## 4. XIAO hardware status (as of 2026-07-25)
+
+> **The current XIAO board has a BLOWN CHARGER IC (BQ25101).** Symptoms:
+> the charge LED is on constantly whether powered by battery only or by
+> USB only, the board heats up on its own, and abnormally high current
+> is measured (~88 mA vs the expected ~12-20 uA).
+>
+> Cause: current was measured on the BAT+ rail **while USB was still
+> connected** - the charger IC was pushing charge current through the
+> same wire being measured, overloading and destroying the die.
+>
+> **LESSON: always unplug USB before wiring a multimeter into the
+> battery rail.**
+>
+> This board should not be powered (by battery or USB) until the
+> charger IC is replaced. Development has moved to the ProMicro board.
+
+---
+
+## 5. ProMicro current-draw measurement (as of 2026-07-25)
 
 Measurement setup: battery on the B+ pin, **USB unplugged**, DT-9205A
 on the 200 mA DC range (0.1 mA resolution), meter in series on the
@@ -146,7 +195,7 @@ B+ rail.
 
 > **ALWAYS UNPLUG USB BEFORE PUTTING A METER ON THE BATTERY RAIL.**
 > Measuring current while charging destroyed the charger IC on the
-> XIAO board - see `../Beacon_XiaoNrf52840/README.md`.
+> XIAO board - see section 4.
 
 ### Elimination log (each row = one build + flash + remeasure)
 
@@ -215,7 +264,22 @@ is real (already lost one XIAO board to a hardware incident), and
 0.9 mA already yields ~23 days on a 500 mAh LiPo - plenty for demos
 and for gathering experimental data.
 
-### Battery notes
+### Remaining (low priority)
+
+- [ ] Remeasure on the **2 mA** range (1 uA resolution instead of
+      0.1 mA) for a tighter number in reports - 0.9 mA fits inside
+      that range.
+- [ ] Verify that `bmt_battery_promicro_nrf52840.c` reads the real
+      battery voltage correctly (compare against a DMM).
+- [ ] ~~Try enabling DC/DC via devicetree~~ - **skipped**: at 0.9 mA
+      the MCU is no longer the dominant consumer, enabling DC/DC
+      cannot help; and ZMK community data on clone boards shows it
+      can actually INCREASE current (see
+      `boards/promicro_nrf52840_nrf52840_uf2.conf`).
+
+---
+
+## 6. Battery notes (both boards)
 
 - **DO NOT connect a CR primary cell (CR2032 / CR2477, etc.) to the
   B+ pin.** "CR" cells are primary lithium - **not rechargeable**;
@@ -228,15 +292,3 @@ and for gathering experimental data.
   LIR2032: went 100% -> 53% in ~10 minutes, then charging popped it
   back to 100% immediately (obviously not fully charged in seconds).
   Use a **LiPo cell** - ~0.1-0.3 ohm internal, no such artefact.
-
-### Remaining (low priority)
-
-- [ ] Remeasure on the **2 mA** range (1 uA resolution instead of
-      0.1 mA) for a tighter number in reports - 0.9 mA fits inside
-      that range.
-- [ ] Verify that `bmt_battery.c` reads the real battery voltage
-      correctly (compare against a DMM).
-- [ ] ~~Try enabling DC/DC via devicetree~~ - **skipped**: at 0.9 mA
-      the MCU is no longer the dominant consumer, enabling DC/DC
-      cannot help; and ZMK community data on clone boards shows it
-      can actually INCREASE current (see `prj.conf`).

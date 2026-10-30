@@ -17,7 +17,7 @@ The full step-by-step sequence (Tag ADV → HMAC verify → mesh → MQTTS → r
 
 | Node | Board | Notes |
 |---|---|---|
-| Tag | ESP32-S3 | Battery-powered beacon. Coin-cell variant on nRF52840 available - see [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) and [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md). |
+| Tag | ESP32-S3 | Battery-powered beacon. Coin-cell variant on nRF52840 available - see [apps/beacon_nrf52840/README.md](../apps/beacon_nrf52840/README.md) (XIAO or ProMicro). |
 | Scanner x3 | ESP32 | All scanners use the same board so they share one OTA build. |
 | Relay | ESP32-S3 | Sits between far scanners and the gateway. |
 | Gateway | ESP32-S3 | Runs WiFi and BLE at the same time. 16 MB flash. |
@@ -32,13 +32,13 @@ BLE range in a typical indoor environment (drywall + concrete, no line-of-sight)
 - **Tags live on the person or asset being tracked.** No fixed placement - the whole point is that they move.
 - **Do not stack scanners in the same room.** Two scanners with a clear line-of-sight to the same tag will fight for "best signal" and cause zone flap even with hysteresis on.
 
-For a wearable coin-cell tag, use the nRF52840 Beacon variant - [apps/Beacon_ProMicroNrf52840/README.md](../apps/Beacon_ProMicroNrf52840/README.md) or [apps/Beacon_XiaoNrf52840/README.md](../apps/Beacon_XiaoNrf52840/README.md). The ESP32-S3 tag is fine for prototyping but drains faster than a coin cell can sustain.
+For a wearable coin-cell tag, use the nRF52840 Beacon variant - [apps/beacon_nrf52840/README.md](../apps/beacon_nrf52840/README.md). The ESP32-S3 tag is fine for prototyping but drains faster than a coin cell can sustain.
 
 ## Where the layers live in the repo
 
 | Layer | Where |
 |---|---|
-| Tag firmware | `apps/tag` (ESP-IDF) or `apps/Beacon_{ProMicro,Xiao}Nrf52840` (Zephyr) |
+| Tag firmware | `apps/tag` (ESP-IDF) or `apps/beacon_nrf52840` (Zephyr, XIAO or ProMicro) |
 | Scanner firmware | `apps/scanner` (ESP-IDF) |
 | Relay firmware | `apps/relay` (ESP-IDF) |
 | Gateway firmware | `apps/gateway` (ESP-IDF) |
