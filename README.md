@@ -22,10 +22,10 @@
 
 <p align="center">
   <a href="resources/videos/demo-ble-mesh-tracking.mp4">
-    <img src="resources/videos/demo-ble-mesh-tracking.gif" alt="Simulated run: a tag walks Room 1, Room 3 and Room 2, leaves coverage and comes back; scanners, mesh packets, rule chain decisions and the ThingsBoard zone update live" width="720"/>
+    <img src="resources/videos/demo-ble-mesh-tracking.gif" alt="Simulated test session: a tag walks from Room 1 to Room 3 and Room 2 on the test-site plan, the Indoor Tracking dashboard follows the zone, and the scanner and gateway serial monitors print TAG_STATUS logs" width="720"/>
   </a>
 </p>
-<p align="center"><em>Simulated run of the firmware and rule chain logic (preview at 2x speed; click for the real-time MP4).</em></p>
+<p align="center"><em>Simulated session using the firmware and rule chain logic. Preview shows the first 48 s; click for the full MP4, including the out-of-range case.</em></p>
 
 ## Documentation
 
