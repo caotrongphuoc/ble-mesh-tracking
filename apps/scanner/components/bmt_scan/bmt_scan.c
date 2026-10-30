@@ -78,7 +78,6 @@ static bool parse_tag_payload(uint8_t* adv_data, uint8_t adv_len, bmt_tag_payloa
 					         p.minor, p.sequence, p.mac16);
 					goto next_field;
 				}
-				/* This field used to hold major (PERSON/ASSET); it now holds battery % 0-100 */
 				out->battery = (uint8_t)p.battery;
 				out->tag_id = p.minor;
 				out->tx_power = p.tx_power;

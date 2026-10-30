@@ -19,7 +19,7 @@
 typedef struct
 {
 	bool active;
-	uint8_t battery; /* tag battery % (0-100); previously held tag_type PERSON/ASSET */
+	uint8_t battery; /* tag battery % (0-100) */
 	uint16_t tag_id;
 	int8_t tx_power;
 	int8_t rssi_raw;

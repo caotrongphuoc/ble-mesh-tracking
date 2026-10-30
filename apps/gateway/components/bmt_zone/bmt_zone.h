@@ -13,7 +13,7 @@ typedef struct
 {
 	bool active;
 	uint16_t tag_id;
-	uint8_t battery; /* latest battery % (0-100). Was tag_type before. */
+	uint8_t battery; /* latest battery % (0-100) */
 	int8_t rssi_by_scanner[BMT_MAX_SCANNERS];
 	uint32_t ts_by_scanner[BMT_MAX_SCANNERS];
 	bool valid_by_scanner[BMT_MAX_SCANNERS];

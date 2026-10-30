@@ -48,7 +48,7 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event,
 		if (s_reboot_after_reset)
 		{
 			/* Mesh NVS reset has REALLY completed (this event proves it)
-			 * - reboot is now safe; no more blind 500 ms delay. */
+			 * - reboot is safe now, without guessing a fixed delay. */
 			ESP_LOGW(TAG, "[RESET] Local reset COMPLETE - rebooting now");
 			s_reboot_after_reset = false;
 			vTaskDelay(pdMS_TO_TICKS(300));
@@ -97,7 +97,7 @@ static void mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event,
 	if (opcode == BMT_OP_VND_RESET_CMD)
 	{
 		/* Reuse bmt_mesh_local_reset() - reboots exactly when the mesh
-		 * reset really completes via event, no more blind fixed delay. */
+		 * reset really completes (PROV_RESET event), not after a guessed delay. */
 		ESP_LOGW(TAG, "[VND] RESET_CMD from 0x%04x - resetting mesh, will reboot when done...", src);
 		vTaskDelay(pdMS_TO_TICKS(300));
 		bmt_mesh_local_reset();
