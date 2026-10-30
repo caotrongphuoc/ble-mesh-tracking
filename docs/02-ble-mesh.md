@@ -48,12 +48,15 @@ Gateway saves the new address in `bmt_node_table_save()`.
 A 16-byte secret both sides know before they meet:
 
 ```c
-static const uint8_t BMT_MESH_STATIC_OOB_VAL[16] = { 0x8E, 0x2F, ... };
+/* components/bmt_protocol/bmt_protocol_mesh.h */
+#define BMT_MESH_STATIC_OOB_INIT { 0x8E, 0x2F, ... }
 ```
+
+Declared once and used by the gateway and every node, so the two sides cannot drift apart.
 
 Provisioner passes it via `esp_ble_mesh_provisioner_set_static_oob_value()`. Node passes it as `static_val` in `esp_ble_mesh_prov_t`. Both derive a check number from the secret during authentication; a rogue device without the same 16 bytes fails and provisioning aborts.
 
-For real deployment, change these bytes.
+For real deployment, change these bytes (one place: `BMT_MESH_STATIC_OOB_INIT`).
 
 ## Vendor model
 

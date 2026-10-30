@@ -367,7 +367,7 @@ Short bullet lists to catch mistakes before they cost a re-flash trip.
 - [ ] `components/bmt_https_ota/ota_ca.pem` matches `thingsboard/tls/ca.pem` on the server too - same CA, different embed location.
 - [ ] `BMT_TB_CN` and `BMT_OTA_SERVER_CN` both match the CN inside the server cert (`openssl x509 -in server.pem -text | grep CN`).
 - [ ] `BMT_TAG_MASTER_KEY` regenerated (not the dev default). Same value in tag AND scanner (both derive the epoch key from it - see [algorithms.md](03-algorithms.md#4a-tag-key-totp-style-epoch-derivation)).
-- [ ] `BMT_MESH_STATIC_OOB_VAL` regenerated (not the dev default). Same value in gateway AND scanner AND relay.
+- [ ] `BMT_MESH_STATIC_OOB_INIT` in `components/bmt_protocol/bmt_protocol_mesh.h` regenerated (not the dev default) - shared by gateway, scanner and relay.
 - [ ] `CONFIG_BLE_MESH_SETTINGS=y` in gateway `sdkconfig`.
 - [ ] Firmware `PROJECT_VER` shows the deployment build time. Sanity: it must be later than every previously flashed version.
 - [ ] `keys/bmt_fleet_rsa3072.pem` generated yourself and backed up outside the repo before the first `erase-flash`. See [secure-boot.md](07-secure-boot.md) - the eFuse burn on first boot is permanent per board.

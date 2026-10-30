@@ -114,9 +114,7 @@ static void cfg_abort_cleanup(uint16_t addr)
 		bmt_node_table_save();
 	}
 }
-static const uint8_t BMT_MESH_STATIC_OOB_VAL[16] = {
-    0x8E, 0x2F, 0x71, 0xC4, 0x3A, 0x95, 0xD6, 0x0B,
-    0x47, 0xE8, 0x1C, 0x63, 0xAF, 0x29, 0x5D, 0x92};
+static const uint8_t BMT_MESH_STATIC_OOB_VAL[16] = BMT_MESH_STATIC_OOB_INIT;
 static esp_ble_mesh_cfg_srv_t s_cfg_server = {
     .net_transmit = ESP_BLE_MESH_TRANSMIT(2, 20),
     .relay = ESP_BLE_MESH_RELAY_ENABLED,

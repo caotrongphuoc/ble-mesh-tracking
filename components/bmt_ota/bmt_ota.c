@@ -18,7 +18,7 @@
 #include "freertos/task.h"
 
 #include "bmt_https_ota.h"
-#include "bmt_mesh.h" /* bmt_mesh_report_ota_result - provided by each app */
+#include "bmt_mesh_node.h" /* bmt_mesh_report_ota_result */
 
 static const char* TAG = "BMT_OTA";
 
