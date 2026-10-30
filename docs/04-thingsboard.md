@@ -279,8 +279,9 @@ copies of the same `thingsboard/tls/ca.pem`:
 
 - `apps/gateway/components/bmt_mqtt/ca.pem` - for MQTTS. Symbols
   `bmt_ca_pem_start/end`.
-- `components/bmt_ota/ota_ca.pem` - for the shared OTA client used by
-  gateway / scanner / relay. Symbols `bmt_ota_ca_pem_start/end`.
+- `components/bmt_ota/ota_ca.pem` - for OTA over HTTPS. Embedded by the
+  shared `components/bmt_ota` (relay / scanner) and by the gateway's own
+  `apps/gateway/components/bmt_ota`. Symbols `bmt_ota_ca_pem_start/end`.
 
 `gen_certs.sh` writes both.
 
