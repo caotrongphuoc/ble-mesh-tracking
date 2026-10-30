@@ -13,8 +13,11 @@
 
 # BLE Mesh Tracking - Room-level Indoor Tracking on ESP32
 
-<center><img width="1280" height="640" alt="BLE Mesh Tracking" src="resources/images/banner/banner-ble-mesh-tracking.png" />
-</center>
+<p align="center">
+  <a href="resources/images/banner/banner-ble-mesh-tracking-2x1.png">
+    <img src="resources/images/banner/banner-ble-mesh-tracking.gif" alt="BLE Mesh Tracking: animated floor plan with scanners pulsing, the tag beaconing and data flowing from tag to scanners, gateway, ThingsBoard CE and OTA; click for the static 2:1 cover" width="1280" height="640"/>
+  </a>
+</p>
 
 <hr>
 
