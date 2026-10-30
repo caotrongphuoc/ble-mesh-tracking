@@ -174,12 +174,20 @@ void bmt_mesh_generate_keys_if_needed(void)
 		ESP_LOGI(TAG, "[SECURITY] Mesh keys already exist, skip generate");
 	}
 }
-static void scan_config_task(void* arg)
+/* Task arg: node address in the low 16 bits, BMT_CFG_ARG_SCAN set for a
+ * scanner (gets the OTA-beacon key pushed once configured). */
+#define BMT_CFG_ARG_SCAN (1u << 16)
+
+static void node_config_task(void* arg)
 {
 	uint16_t addr = (uint16_t)(uint32_t)arg;
+	bool is_scan = ((uint32_t)arg & BMT_CFG_ARG_SCAN) != 0;
+	const char* tag = is_scan ? "[SCN_CFG]" : "[RLY_CFG]";
+	char step[32];
+
 	if (s_cfg_mutex)
 		xSemaphoreTake(s_cfg_mutex, portMAX_DELAY); /* serialize: at most one config task at a time */
-	ESP_LOGI(TAG, "[SCN_CFG] Configuring scan node 0x%04x...", addr);
+	ESP_LOGI(TAG, "%s Configuring %s node 0x%04x...", tag, is_scan ? "scan" : "relay", addr);
 	vTaskDelay(pdMS_TO_TICKS(2000));
 
 	esp_ble_mesh_client_common_param_t c = {0};
@@ -194,13 +202,11 @@ static void scan_config_task(void* arg)
 	s.app_key_add.net_idx = s_net_key_idx;
 	s.app_key_add.app_idx = s_app_key_idx;
 	memcpy(s.app_key_add.app_key, s_app_key, 16);
-	if (!cfg_send_retry("[SCN_CFG] Step1 APP_KEY_ADD", addr, ESP_BLE_MESH_MODEL_OP_APP_KEY_ADD, &c, &s))
+	snprintf(step, sizeof(step), "%s Step1 APP_KEY_ADD", tag);
+	if (!cfg_send_retry(step, addr, ESP_BLE_MESH_MODEL_OP_APP_KEY_ADD, &c, &s))
 	{
 		cfg_abort_cleanup(addr);
-		if (s_cfg_mutex)
-			xSemaphoreGive(s_cfg_mutex);
-		vTaskDelete(NULL);
-		return;
+		goto out;
 	}
 
 	memset(&c, 0, sizeof(c));
@@ -216,13 +222,11 @@ static void scan_config_task(void* arg)
 	s.model_app_bind.model_app_idx = s_app_key_idx;
 	s.model_app_bind.model_id = BMT_VND_MODEL_ID;
 	s.model_app_bind.company_id = BMT_CID_ESPRESSIF;
-	if (!cfg_send_retry("[SCN_CFG] Step2 MODEL_APP_BIND", addr, ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND, &c, &s))
+	snprintf(step, sizeof(step), "%s Step2 MODEL_APP_BIND", tag);
+	if (!cfg_send_retry(step, addr, ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND, &c, &s))
 	{
 		cfg_abort_cleanup(addr);
-		if (s_cfg_mutex)
-			xSemaphoreGive(s_cfg_mutex);
-		vTaskDelete(NULL);
-		return;
+		goto out;
 	}
 
 	int idx = bmt_node_table_find(addr);
@@ -231,74 +235,18 @@ static void scan_config_task(void* arg)
 		bmt_node_table_get(idx)->config_done = true;
 		bmt_node_table_save();
 	}
-	ESP_LOGI(TAG, "[SCN_CFG] Scan node 0x%04x fully configured!", addr);
-
-	bmt_ota_push_beacon_key_to_node(addr);
-
+	if (is_scan)
+	{
+		ESP_LOGI(TAG, "%s Scan node 0x%04x fully configured!", tag, addr);
+		bmt_ota_push_beacon_key_to_node(addr);
+	}
+	else
+	{
+		ESP_LOGI(TAG, "%s Relay 0x%04x fully configured - RESET_CMD enabled!", tag, addr);
+	}
 	bmt_node_table_print();
-	if (s_cfg_mutex)
-		xSemaphoreGive(s_cfg_mutex);
-	vTaskDelete(NULL);
-}
-static void relay_config_task(void* arg)
-{
-	uint16_t addr = (uint16_t)(uint32_t)arg;
-	if (s_cfg_mutex)
-		xSemaphoreTake(s_cfg_mutex, portMAX_DELAY); /* serialize: at most one config task at a time */
-	ESP_LOGI(TAG, "[RLY_CFG] Configuring relay node 0x%04x...", addr);
-	vTaskDelay(pdMS_TO_TICKS(2000));
 
-	esp_ble_mesh_client_common_param_t c = {0};
-	esp_ble_mesh_cfg_client_set_state_t s = {0};
-	c.opcode = ESP_BLE_MESH_MODEL_OP_APP_KEY_ADD;
-	c.model = &s_root_models[1];
-	c.ctx.net_idx = s_net_key_idx;
-	c.ctx.app_idx = 0xFFFF;
-	c.ctx.addr = addr;
-	c.ctx.send_ttl = 7;
-	c.msg_timeout = 8000;
-	s.app_key_add.net_idx = s_net_key_idx;
-	s.app_key_add.app_idx = s_app_key_idx;
-	memcpy(s.app_key_add.app_key, s_app_key, 16);
-	if (!cfg_send_retry("[RLY_CFG] Step1 APP_KEY_ADD", addr, ESP_BLE_MESH_MODEL_OP_APP_KEY_ADD, &c, &s))
-	{
-		cfg_abort_cleanup(addr);
-		if (s_cfg_mutex)
-			xSemaphoreGive(s_cfg_mutex);
-		vTaskDelete(NULL);
-		return;
-	}
-
-	memset(&c, 0, sizeof(c));
-	memset(&s, 0, sizeof(s));
-	c.opcode = ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND;
-	c.model = &s_root_models[1];
-	c.ctx.net_idx = s_net_key_idx;
-	c.ctx.app_idx = 0xFFFF;
-	c.ctx.addr = addr;
-	c.ctx.send_ttl = 7;
-	c.msg_timeout = 5000;
-	s.model_app_bind.element_addr = addr;
-	s.model_app_bind.model_app_idx = s_app_key_idx;
-	s.model_app_bind.model_id = BMT_VND_MODEL_ID;
-	s.model_app_bind.company_id = BMT_CID_ESPRESSIF;
-	if (!cfg_send_retry("[RLY_CFG] Step2 MODEL_APP_BIND", addr, ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND, &c, &s))
-	{
-		cfg_abort_cleanup(addr);
-		if (s_cfg_mutex)
-			xSemaphoreGive(s_cfg_mutex);
-		vTaskDelete(NULL);
-		return;
-	}
-
-	int idx = bmt_node_table_find(addr);
-	if (idx >= 0)
-	{
-		bmt_node_table_get(idx)->config_done = true;
-		bmt_node_table_save();
-	}
-	ESP_LOGI(TAG, "[RLY_CFG] Relay 0x%04x fully configured - RESET_CMD enabled!", addr);
-	bmt_node_table_print();
+out:
 	if (s_cfg_mutex)
 		xSemaphoreGive(s_cfg_mutex);
 	vTaskDelete(NULL);
@@ -397,29 +345,20 @@ static void mesh_prov_cb(esp_ble_mesh_prov_cb_event_t event, esp_ble_mesh_prov_c
 		}
 		bmt_node_t* n = bmt_node_table_get(idx);
 
-		if (bmt_uuid_is_relay(uuid))
+		bool is_relay = bmt_uuid_is_relay(uuid);
+		bool is_scan = !is_relay && bmt_uuid_is_scan(uuid);
+		if (is_relay || is_scan)
 		{
-			n->is_relay = true;
-			n->is_scan = false;
-			n->config_done = false; /* wait for relay_config_task to finish */
-			snprintf(n->name, sizeof(n->name), "Relay_0x%04x", addr);
-			ESP_LOGI(TAG, "Node 0x%04x = RELAY, launching config task...", addr);
+			n->is_relay = is_relay;
+			n->is_scan = is_scan;
+			n->config_done = false; /* wait for node_config_task to finish */
+			snprintf(n->name, sizeof(n->name), is_scan ? "Scan_0x%04x" : "Relay_0x%04x", addr);
+			ESP_LOGI(TAG, "Node 0x%04x = %s, launching config task...", addr, is_scan ? "SCAN" : "RELAY");
 			bmt_node_table_save();
 			bmt_node_table_print();
-			assert(xTaskCreate(relay_config_task, "relay_cfg", 3072, (void*)(uint32_t)addr, 5, NULL) == pdPASS);
-			break;
-		}
-
-		if (bmt_uuid_is_scan(uuid))
-		{
-			n->is_scan = true;
-			n->is_relay = false;
-			n->config_done = false;
-			snprintf(n->name, sizeof(n->name), "Scan_0x%04x", addr);
-			ESP_LOGI(TAG, "Node 0x%04x = SCAN, launching config task...", addr);
-			bmt_node_table_save();
-			bmt_node_table_print();
-			assert(xTaskCreate(scan_config_task, "scan_cfg", 3072, (void*)(uint32_t)addr, 5, NULL) == pdPASS);
+			uint32_t cfg_arg = addr | (is_scan ? BMT_CFG_ARG_SCAN : 0);
+			assert(xTaskCreate(node_config_task, is_scan ? "scan_cfg" : "relay_cfg", 3072,
+			                   (void*)cfg_arg, 5, NULL) == pdPASS);
 			break;
 		}
 
