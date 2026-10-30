@@ -21,7 +21,7 @@
 ## Demo
 
 <p align="center">
-  <img src="resources/videos/demo-ble-mesh-tracking.gif" alt="Simulated test session: a tag walks from Room 1 to Room 3 and Room 2 on the test-site plan, the Indoor Tracking dashboard follows the zone, and the scanner and gateway serial monitors print TAG_STATUS logs" width="720"/>
+  <img src="resources/videos/demo-ble-mesh-tracking.gif" alt="Simulated test session: a tag walks from Room 1 to Room 3 and Room 2, leaves coverage and comes back; the Indoor Tracking dashboard follows the zone, and the scanner and gateway serial monitors print TAG_STATUS logs" width="720"/>
 </p>
 <p align="center"><em>Simulated session</em></p>
 
