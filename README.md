@@ -104,7 +104,7 @@ Four ESP-IDF apps under [apps/](apps/) plus the Zephyr-based nRF52840 Tag. Each 
 
 ### III. Data Flow
 
-> **Note:** For the step-by-step Mermaid version, see [Data flow](docs/01-architecture.md#data-flow).
+> **Note:** For the detailed tag report path, see [Data flow](docs/01-architecture.md#data-flow).
 
 <table align="center">
   <tr>
