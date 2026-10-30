@@ -76,7 +76,7 @@ Gateway and Relay share the same ESP32-S3 hardware with different firmware. [app
 
 ### II. Firmware Layout
 
-Four ESP-IDF apps under [apps/](apps/) plus the Zephyr-based nRF52840 Tag. Shared modules under `components/bmt_*/`.
+Four ESP-IDF apps under [apps/](apps/) plus the Zephyr-based nRF52840 Tag. Each app keeps its own modules under `apps/<app>/components/bmt_*/`; code shared across apps lives in [components/](components/).
 
 <div align="center">
 
@@ -85,12 +85,22 @@ Four ESP-IDF apps under [apps/](apps/) plus the Zephyr-based nRF52840 Tag. Share
 | **gateway** | ESP-IDF | Provisions the mesh, bridges to ThingsBoard over MQTTS, runs OTA. |
 | **scanner** | ESP-IDF | Reads tag beacons, verifies HMAC, sends `TAG_STATUS` over mesh. |
 | **relay** | ESP-IDF | Forwards mesh packets at Network Layer between far scanners and the gateway. |
-| **beacon_nrf52840** | Zephyr / MCUboot | Primary Tag: 24-byte BLE beacon every 500 ms with HMAC-16. |
+| **beacon_nrf52840** | Zephyr / MCUboot | Primary Tag (XIAO or ProMicro): 24-byte BLE beacon every ~1 s with HMAC-16 and battery %. |
 | **tag** *(bench)* | ESP-IDF | Same wire protocol as the Zephyr Tag; used for A/B testing. |
 
 </div>
 
-Shared OTA code: [components/bmt_ota/](components/bmt_ota/).
+<div align="center">
+
+| Shared component | Used by | Role |
+|---|---|---|
+| [bmt_protocol](components/bmt_protocol/) | all apps + nRF Tag | Wire protocol: CID, opcodes, payload structs, Static OOB. |
+| [bmt_https_ota](components/bmt_https_ota/) | gateway, relay, scanner | HTTPS download + SHA / version guard + flash; embeds the OTA CA. |
+| [bmt_ota](components/bmt_ota/) | relay, scanner | Node OTA client: WiFi bring-up, pending flag, result report. |
+| [bmt_mesh_node](components/bmt_mesh_node/) | relay, scanner | Mesh node state, config server, `RESET_CMD`, OTA result publish. |
+| [bmt_factory_reset](components/bmt_factory_reset/) | gateway, relay, scanner | Hold BOOT 10 s to erase NVS. |
+
+</div>
 
 ### III. Data Flow
 
@@ -105,8 +115,8 @@ sequenceDiagram
     participant TB as ThingsBoard CE<br/>(Docker)
     participant D as Dashboard<br/>(browser)
 
-    loop Every 500 ms
-        T->>S: BLE ADV 24 B<br/>UUID + major + minor + tx_power + seq + HMAC-16
+    loop Every ~1 s
+        T->>S: BLE ADV 24 B<br/>UUID + battery + minor + tx_power + seq + HMAC-16
     end
     Note over T,S: HMAC key derived from<br/>master + epoch (1 h, TOTP-style)
 

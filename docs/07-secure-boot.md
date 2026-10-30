@@ -1,6 +1,6 @@
 # Secure Boot and Flash Encryption
 
-Applies to `apps/gateway`, `apps/relay`, `apps/scanner`, `apps/tag` (all ESP32 / ESP32-S3). Not `apps/beacon` - separate board, still experimental, out of scope.
+Applies to `apps/gateway`, `apps/relay`, `apps/scanner`, `apps/tag` (all ESP32 / ESP32-S3). Not `apps/beacon_nrf52840` - separate board (MCUboot signing, see its README), still experimental, out of scope.
 
 ## Why
 

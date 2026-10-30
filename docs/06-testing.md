@@ -26,8 +26,9 @@ together can cause some of them to miss
    → `[CFG] APP_KEY_ADD ACK` → `[CFG] MODEL_APP_BIND ACK` →
    `[RLY_CFG] Relay 0x00xx fully configured`.
 3. Same for each scanner (`[SCAN]` prefix), one at a time.
-4. Power on the tag. Its log: `ADV OK seq=0` and increments every
-   500 ms.
+4. Power on the tag. Bench ESP32 tag log: `ADV OK seq=0`, incrementing
+   every 500 ms (the nRF52840 tag has no log in production - check the
+   scanner log instead).
 5. Scanner log shows `Tag 0x0001 | RSSI=... | Filt=...`.
 6. Gateway log shows `[VND] src=0x00xx MAC=... tag=0x0001 rssi=...`.
 7. Press `1` on gateway UART: all nodes `ACTIVE` (scanner) or

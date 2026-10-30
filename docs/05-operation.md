@@ -241,7 +241,7 @@ exactly as flashed). Gone after a reset:
   time.
 - Reset the **gateway**: bring the mesh back up in order - gateway
   first, then relay, then scanners one at a time, tag last - exactly
-  like a fresh flash ([quickstart.md](00-quickstart.md#6-run)).
+  like a fresh flash ([quickstart.md](00-quickstart.md#7-run)).
 
 This is distinct from the UART resets above: `9` (gateway) and `r`
 (scanner / relay) do a software-triggered mesh reset while connected
@@ -250,19 +250,23 @@ fallback when a node is deployed with no serial cable attached.
 
 ## Source layout
 
-Each app has one `main/main.c` and a set of components under
-`components/bmt_*/`. Each component has its own `.c`, `.h`, and
-`CMakeLists.txt`.
+Each ESP-IDF app has one `main/main.c` and a set of app-local components
+under `apps/<app>/components/bmt_*/`. Code shared across apps lives in
+`components/` at the repo root (see [Shared `components/`](#shared-components)).
+Each component has its own `.c`, `.h`, and `CMakeLists.txt`.
 
 ### `apps/gateway/`
 
 - `main/main.c` - boot order: NVS, node table, mesh keys, HMAC OTA
   key, MQTT worker, WiFi, MQTT, Bluetooth, mesh, UART, ping,
-  watchdog, OTA auto-check.
+  watchdog, OTA auto-check. Also wires the modules together: MQTT
+  connect / RPC handlers (`on_tb_rpc` routes `ota_scanner`,
+  `ota_relay`, `ota_gateway`) and the scanner-configured hook that
+  pushes the OTA-beacon key.
 - `bmt_config` - WiFi, ThingsBoard IP, token, CN, OTA URLs, device
   profile names.
-- `bmt_types` - opcodes and structs shared with scanner and relay.
-- `bmt_mesh` - provisioner, config task, mesh callbacks, key
+- `bmt_types` - pulls in the shared wire protocol (`bmt_protocol_mesh.h`).
+- `bmt_mesh` - provisioner, node config task, mesh callbacks, key
   management.
 - `bmt_node_table` - provisioned nodes (addr, UUID, MAC, type,
   online). Save and load to NVS.
@@ -271,57 +275,89 @@ Each app has one `main/main.c` and a set of components under
 - `bmt_zone` - local zone guess for debug only. The real zone lives
   on ThingsBoard.
 - `bmt_wifi` - WiFi STA with auto-reconnect.
-- `bmt_mqtt` - MQTT(S) client, tag report queue, RPC routing. Also
-  bundles `ca.pem`.
+- `bmt_mqtt` - MQTT(S) transport and tag report queue. Bundles
+  `ca.pem`. Higher layers plug in through handlers set in `main.c`.
 - `bmt_thingsboard` - payload format for the ThingsBoard Gateway API.
-- `bmt_ota` - gateway self-OTA, mesh OTA for scanner and relay, HMAC
-  OTA beacon, 24 h key rotation.
+- `bmt_ota` - gateway self-OTA (via `bmt_https_ota`), mesh OTA
+  distribution for scanner and relay, HMAC OTA beacon.
+  `bmt_ota_key.c` holds the OTA-beacon key and its 24 h rotation.
 - `bmt_watchdog` - data watchdog and full-mesh reset.
 - `bmt_uart` - UART command menu (see [UART commands](#uart-commands)
   above).
-- `bmt_factory_reset` - holds BOOT button (GPIO0) 10s, erases NVS,
-  reboots. Does not touch firmware.
+
+Shared: `bmt_protocol`, `bmt_https_ota`, `bmt_factory_reset`.
 
 ### `apps/scanner/`
 
 - `main/main.c` - calls `bmt_scan_core_init()`.
-- `bmt_scan_core` - boot order. Keeps a legacy `scanner_id` in NVS.
-  The real ID is the chip MAC.
-- `bmt_config` - WiFi (only for OTA) and firmware URL.
-- `bmt_types` - opcodes and structs.
+- `bmt_scan_core` - boot order only (scanner ID, auth, Bluetooth,
+  mesh, scan, UART, OTA).
+- `bmt_scanner_id` - legacy `scanner_id` (1-8) in NVS, set with UART
+  `i`. The real ID is the chip MAC.
+- `bmt_config` - WiFi (only for OTA), firmware URL, NVS namespace.
+- `bmt_types` - shared wire protocol plus scanner-only iBeacon
+  constants.
 - `bmt_auth` - HMAC-16 via PSA API. Two keys: one for tag beacons,
   one for the OTA beacon. The gateway can rotate the OTA-beacon key
   over mesh.
 - `bmt_scan` - BLE GAP scan and radio time-sharing with mesh.
 - `bmt_tag_table` - up to 20 visible tags. Drops replays. Times out
   after 5 seconds.
-- `bmt_mesh` - mesh node. UUID contains the chip MAC. Handles
-  `RESET_CMD`, `OTA_TRIGGER`, `OTA_KEY_PUSH`.
-- `bmt_ota` - WiFi OTA started by a mesh trigger.
+- `bmt_mesh` - scanner composition and UUID (contains the chip MAC).
+  Handles `OTA_TRIGGER` and `OTA_KEY_PUSH`; publishes `TAG_STATUS`.
+  Common node logic is in `bmt_mesh_node`.
 - `bmt_uart` - UART commands `r`, `1`, `i`.
-- `bmt_factory_reset` - same as gateway.
+
+Shared: `bmt_protocol`, `bmt_mesh_node`, `bmt_ota`, `bmt_https_ota`,
+`bmt_factory_reset`.
 
 ### `apps/relay/`
 
 - `main/main.c` - inits Bluetooth, mesh, UART.
 - `bmt_config` - fixed Relay UUID (`RELAY...02`), WiFi, OTA URL.
-- `bmt_types` - opcodes and structs.
-- `bmt_mesh` - mesh node with Relay feature on. Forwards at the
-  Network Layer. Also binds AppKey to handle `RESET_CMD` and
-  `OTA_TRIGGER`.
-- `bmt_ota` - same as scanner.
+- `bmt_types` - shared wire protocol.
+- `bmt_mesh` - relay composition (Relay feature on, Health server).
+  Forwards at the Network Layer. Handles `OTA_TRIGGER`; common node
+  logic (incl. `RESET_CMD`) is in `bmt_mesh_node`.
 - `bmt_uart` - UART commands `r`, `1`, plus a 30-second health log.
-- `bmt_factory_reset` - same as gateway.
 
-### `apps/tag/`
+Shared: same as scanner.
+
+### `apps/tag/` (bench, ESP32-S3)
 
 - `main/main.c` - `bmt_auth_init()`, `bmt_beacon_start()`, UART.
-- `bmt_config` - UUID, `tag_id`, tag type (`PERSON` or `ASSET`), TX
-  power.
+- `bmt_config` - UUID, `tag_id`, fixed battery value (USB-powered),
+  TX power.
 - `bmt_auth` - 16-bit HMAC for each ADV.
-- `bmt_beacon` - 24-byte ADV (CID `0x02E5`) with UUID, major, minor,
-  TX power, sequence, HMAC. Sends every 500 ms.
+- `bmt_beacon` - 24-byte ADV (CID `0x02E5`, layout from
+  `bmt_protocol.h`) with UUID, battery, minor, TX power, sequence,
+  HMAC. Sends every 500 ms.
 - `bmt_uart` - status output (sequence, last HMAC, advertising state).
+
+Shared: `bmt_protocol` only.
+
+### `apps/beacon_nrf52840/` (Zephyr)
+
+One app for XIAO and ProMicro nRF52840. Per-board parts live in
+`boards/<board>.overlay` / `.conf`, `boards/mcuboot_<board>.overlay`
+and `src/bmt_battery_<board>.c`. See its
+[README](../apps/beacon_nrf52840/README.md).
+
+### Shared `components/`
+
+- `bmt_protocol` - wire protocol in one place: CID, vendor opcodes,
+  tag ADV / tag report / OTA result structs (size-checked with
+  `_Static_assert`), Static OOB value. Plain C, also used by the
+  Zephyr tag.
+- `bmt_https_ota` - HTTPS download with SHA / version guard, then
+  flash. Embeds `ota_ca.pem`.
+- `bmt_ota` - node OTA client (scanner + relay): WiFi bring-up,
+  pending flag, result report.
+- `bmt_mesh_node` - node side of the mesh (scanner + relay):
+  provisioning state, config server, `RESET_CMD`, publish to the
+  gateway.
+- `bmt_factory_reset` - holds BOOT button (GPIO0) 10 s, erases NVS,
+  reboots. Does not touch firmware.
 
 ### `thingsboard/`
 

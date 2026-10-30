@@ -38,7 +38,7 @@ distance = 10 ^ ((tx_power - rssi_filtered) / (10 * n))
 
 Where: `bmt_tag_table_update()`.
 
-Each tag ADV carries a 1-byte sequence that increments every 500 ms. On a new packet:
+Each tag ADV carries a 1-byte sequence that increments with every ADV (~1 s on the nRF52840 tag, 500 ms on the bench ESP32 tag). On a new packet:
 
 - Same seq - duplicate. Log and skip.
 - `diff <= -10` or `diff > BMT_MAX_SEQ_JUMP (30)` - tag reboot or replay attack. Reset filter, log warn.

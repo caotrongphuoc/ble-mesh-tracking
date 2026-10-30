@@ -4,7 +4,7 @@ BLE Mesh Tracking is a room-level indoor tracking system. It uses BLE Mesh for t
 
 ## Data flow
 
-The full step-by-step sequence (Tag ADV → HMAC verify → mesh → MQTTS → rule chain → dashboard) is rendered as a Mermaid diagram in the [root README](../README.md#data-flow). It is kept there so the project landing page can show it without a click. This doc focuses on the layered rules and the physical layout.
+The full step-by-step sequence (Tag ADV → HMAC verify → mesh → MQTTS → rule chain → dashboard) is rendered as a Mermaid diagram in the [root README](../README.md#iii-data-flow). It is kept there so the project landing page can show it without a click. This doc focuses on the layered rules and the physical layout.
 
 ## Rules
 
@@ -42,7 +42,7 @@ For a wearable coin-cell tag, use the nRF52840 Beacon variant - [apps/beacon_nrf
 | Scanner firmware | `apps/scanner` (ESP-IDF) |
 | Relay firmware | `apps/relay` (ESP-IDF) |
 | Gateway firmware | `apps/gateway` (ESP-IDF) |
-| Shared OTA logic | `components/bmt_ota` (used by scanner + relay) |
+| Shared code | `components/` - `bmt_protocol` (wire format), `bmt_https_ota` (HTTPS OTA core), `bmt_ota` + `bmt_mesh_node` (scanner + relay), `bmt_factory_reset` |
 | Server stack | `thingsboard/docker-compose.yml` (ThingsBoard + PostgreSQL + nginx OTA) |
 | Rule chain + dashboard | `thingsboard/rulechain/*.json`, `thingsboard/dashboard/*.json` |
 | TLS material | `thingsboard/tls/` (self-signed CA, server cert; regen with `gen_certs.sh`) |
