@@ -138,7 +138,7 @@ static esp_ble_mesh_model_op_t s_vnd_ops[] = {
 };
 
 static esp_ble_mesh_model_t s_vnd_models[] = {
-    ESP_BLE_MESH_VENDOR_MODEL(BMT_CID_ESP, BMT_VND_MODEL_ID, s_vnd_ops, &s_vnd_pub, &s_vnd_client),
+    ESP_BLE_MESH_VENDOR_MODEL(BMT_CID_ESPRESSIF, BMT_VND_MODEL_ID, s_vnd_ops, &s_vnd_pub, &s_vnd_client),
 };
 
 static esp_ble_mesh_model_t s_root_models[] = {
@@ -151,7 +151,7 @@ static esp_ble_mesh_elem_t s_elements[] = {
 };
 
 static esp_ble_mesh_comp_t s_composition = {
-    .cid = BMT_CID_ESP,
+    .cid = BMT_CID_ESPRESSIF,
     .element_count = ARRAY_SIZE(s_elements),
     .elements = s_elements,
 };
@@ -215,7 +215,7 @@ static void scan_config_task(void* arg)
 	s.model_app_bind.element_addr = addr;
 	s.model_app_bind.model_app_idx = s_app_key_idx;
 	s.model_app_bind.model_id = BMT_VND_MODEL_ID;
-	s.model_app_bind.company_id = BMT_CID_ESP;
+	s.model_app_bind.company_id = BMT_CID_ESPRESSIF;
 	if (!cfg_send_retry("[SCN_CFG] Step2 MODEL_APP_BIND", addr, ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND, &c, &s))
 	{
 		cfg_abort_cleanup(addr);
@@ -281,7 +281,7 @@ static void relay_config_task(void* arg)
 	s.model_app_bind.element_addr = addr;
 	s.model_app_bind.model_app_idx = s_app_key_idx;
 	s.model_app_bind.model_id = BMT_VND_MODEL_ID;
-	s.model_app_bind.company_id = BMT_CID_ESP;
+	s.model_app_bind.company_id = BMT_CID_ESPRESSIF;
 	if (!cfg_send_retry("[RLY_CFG] Step2 MODEL_APP_BIND", addr, ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND, &c, &s))
 	{
 		cfg_abort_cleanup(addr);
@@ -682,7 +682,7 @@ esp_err_t bmt_mesh_init(void)
 	}
 
 	err = esp_ble_mesh_provisioner_bind_app_key_to_local_model(
-	    0x0001, s_app_key_idx, BMT_VND_MODEL_ID, BMT_CID_ESP);
+	    0x0001, s_app_key_idx, BMT_VND_MODEL_ID, BMT_CID_ESPRESSIF);
 	if (err == ESP_OK)
 	{
 		ESP_LOGI(TAG, "AppKey bound to local vendor model: 0x%04x", s_app_key_idx);

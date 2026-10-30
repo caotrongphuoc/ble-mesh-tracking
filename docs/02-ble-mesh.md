@@ -67,7 +67,7 @@ We define one vendor model (ID `0x0000` under Espressif CID `0x02E5`) carrying o
 | `OTA_RESULT` | `bmt_ota_result_t` | node -> gateway | OTA success or failure. |
 | `OTA_KEY_PUSH` | 16 bytes | gateway -> scanner | New HMAC beacon key. |
 
-Declared in each app's `bmt_types.h` and must match byte-for-byte across gateway/scanner/relay.
+Declared once in [components/bmt_protocol/](../components/bmt_protocol/) (`bmt_protocol.h` for opcode bytes and structs, `bmt_protocol_mesh.h` for the ESP-IDF opcode macros), shared by every app including the nRF52840 beacons. `_Static_assert` guards the struct sizes.
 
 ## Config Client and Config Server
 

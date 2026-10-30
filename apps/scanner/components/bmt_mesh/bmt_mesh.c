@@ -73,7 +73,7 @@ static esp_ble_mesh_model_op_t s_vnd_ops[] = {
 };
 
 static esp_ble_mesh_model_t s_vnd_models[] = {
-    ESP_BLE_MESH_VENDOR_MODEL(BMT_CID_ESP, BMT_VND_MODEL_ID,
+    ESP_BLE_MESH_VENDOR_MODEL(BMT_CID_ESPRESSIF, BMT_VND_MODEL_ID,
                               s_vnd_ops, &s_vnd_pub, NULL),
 };
 
@@ -86,7 +86,7 @@ static esp_ble_mesh_elem_t s_elements[] = {
 };
 
 static esp_ble_mesh_comp_t s_composition = {
-    .cid = BMT_CID_ESP,
+    .cid = BMT_CID_ESPRESSIF,
     .element_count = ARRAY_SIZE(s_elements),
     .elements = s_elements,
 };

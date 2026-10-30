@@ -13,10 +13,8 @@ static const char* TAG = "BMT_MAIN";
 void app_main(void)
 {
 	ESP_LOGI(TAG, "=== BLE Tag v3.0-modular Starting ===");
-	ESP_LOGI(TAG, "Major=0x%04X (%s)  Minor=0x%04X  TXPwrRef=%ddBm",
-	         BMT_TAG_MAJOR,
-	         BMT_TAG_MAJOR == 0x0001 ? "PERSON" : "ASSET",
-	         BMT_TAG_MINOR, BMT_TAG_TX_POWER);
+	ESP_LOGI(TAG, "Battery=%u%%  Minor=0x%04X  TXPwrRef=%ddBm",
+	         BMT_TAG_BATTERY, BMT_TAG_MINOR, BMT_TAG_TX_POWER);
 
 	esp_err_t err = nvs_flash_init();
 	if (err == ESP_ERR_NVS_NO_FREE_PAGES ||

@@ -63,7 +63,7 @@ static void build_adv_data(void)
 	bmt_tag_adv_payload_t p;
 
 	memcpy(p.uuid, BMT_SYSTEM_UUID, 16);
-	p.major = BMT_TAG_MAJOR;
+	p.battery = BMT_TAG_BATTERY;
 	p.minor = BMT_TAG_MINOR;
 	p.tx_power = BMT_TAG_TX_POWER;
 	p.sequence = s_sequence;
@@ -123,8 +123,8 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
 		if (param->adv_start_cmpl.status == ESP_BT_STATUS_SUCCESS)
 		{
 			s_adv_active = true;
-			ESP_LOGD(TAG, "ADV OK seq=%u major=0x%04X minor=0x%04X",
-			         s_sequence, BMT_TAG_MAJOR, BMT_TAG_MINOR);
+			ESP_LOGD(TAG, "ADV OK seq=%u battery=%u%% minor=0x%04X",
+			         s_sequence, BMT_TAG_BATTERY, BMT_TAG_MINOR);
 		}
 		else
 		{

@@ -10,7 +10,6 @@ static const uint8_t BMT_SYSTEM_UUID[16] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 #define BMT_TAG_MINOR 0x0001   /* tag ID - change per device */
 #define BMT_TAG_TX_POWER (-53) /* calibrate: measure RSSI at 1 m, then set */
-/* (BMT_TAG_MAJOR PERSON/ASSET removed - the payload now uses those 2 bytes for battery %.) */
 
 /* [POWER] Random ADV interval range - avoids collisions with other
  * tags. Raised from 450-550 ms to ~900-1100 ms to reduce battery

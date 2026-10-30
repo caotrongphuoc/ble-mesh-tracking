@@ -11,16 +11,10 @@
 
 #include "bmt_config.h"
 #include "bmt_auth.h"
-#include "bmt_types.h"
+#include "bmt_protocol.h"
 #include "bmt_battery.h"
 
 LOG_MODULE_REGISTER(bmt_beacon, LOG_LEVEL_INF);
-
-/* Espressif Company ID (0x02E5) - kept so existing Scanners (ESP32)
- * still recognise the tag, even though the Tag now runs a Nordic
- * chip. Scanner filters by this CID in the manufacturer data; the
- * actual chip vendor is unrelated. */
-#define BMT_CID_ESPRESSIF 0x02E5
 
 static uint8_t s_sequence = 0;
 static bool s_adv_active = false;
@@ -39,10 +33,8 @@ static void build_adv_data(void)
 	bmt_tag_adv_payload_t p;
 
 	memcpy(p.uuid, BMT_SYSTEM_UUID, 16);
-	/* This field used to be major (PERSON / ASSET); now carries
-	 * battery % (0-100). Reads the cached value (bmt_battery
-	 * refreshes it every 30 s) instead of hitting the ADC on every
-	 * ADV - lighter on the battery. */
+	/* Cached value (bmt_battery refreshes it every 30 s) instead of
+	 * hitting the ADC on every ADV - lighter on the battery. */
 	p.battery = bmt_battery_last_percent();
 	p.minor = BMT_TAG_MINOR;
 	p.tx_power = BMT_TAG_TX_POWER;

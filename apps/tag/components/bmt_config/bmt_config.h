@@ -9,7 +9,7 @@
 static const uint8_t BMT_SYSTEM_UUID[16] = {
     0xAB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-#define BMT_TAG_MAJOR 0x0001   /* change per tag category */
+#define BMT_TAG_BATTERY 100    /* bench tag is USB-powered: report a fixed 100% */
 #define BMT_TAG_MINOR 0x0001   /* change per physical device */
 #define BMT_TAG_TX_POWER (-53) /* calibrate: measure RSSI at 1 m, then set */
 

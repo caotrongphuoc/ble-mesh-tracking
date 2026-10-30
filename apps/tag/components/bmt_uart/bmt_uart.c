@@ -48,8 +48,7 @@ static void uart_task(void* arg)
 			       BMT_SYSTEM_UUID[10], BMT_SYSTEM_UUID[11],
 			       BMT_SYSTEM_UUID[12], BMT_SYSTEM_UUID[13],
 			       BMT_SYSTEM_UUID[14], BMT_SYSTEM_UUID[15]);
-			printf("Major     : 0x%04X (%s)\n", BMT_TAG_MAJOR,
-			       BMT_TAG_MAJOR == 0x0001 ? "PERSON" : "ASSET");
+			printf("Battery   : %u%% (fixed, USB-powered)\n", BMT_TAG_BATTERY);
 			printf("Minor     : 0x%04X  (Tag ID = %u)\n",
 			       BMT_TAG_MINOR, BMT_TAG_MINOR);
 			printf("TX Power  : %d dBm  (measured power ref - calibrate!)\n",

@@ -15,3 +15,6 @@ target_sources(app PRIVATE
     src/bmt_beacon.c
     src/bmt_battery.c
 )
+
+# Wire protocol shared with the ESP-IDF apps (plain C header).
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../components/bmt_protocol)

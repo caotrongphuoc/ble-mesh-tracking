@@ -347,7 +347,7 @@ Short bullet lists to catch mistakes before they cost a re-flash trip.
 - [ ] Any new `esp_err_t`-returning call is checked, or the return is deliberately ignored with `(void)`.
 - [ ] New heap allocations (`malloc`, `calloc`, `xTaskCreate`) have a matching free path or documented lifetime.
 - [ ] New static shared state has either a mutex, an atomic, or a comment explaining why it does not need one.
-- [ ] Any change to `bmt_types.h` was mirrored across gateway + scanner + relay (same struct layout + opcode number).
+- [ ] Any change to `components/bmt_protocol/` is flashed to every node type together (tag, scanner, relay, gateway) - old and new layouts do not interoperate.
 
 ### Pre-commit docs
 
