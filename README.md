@@ -21,11 +21,9 @@
 ## Demo
 
 <p align="center">
-  <a href="resources/videos/demo-ble-mesh-tracking.mp4">
-    <img src="resources/videos/demo-ble-mesh-tracking.gif" alt="Simulated test session: a tag walks from Room 1 to Room 3 and Room 2 on the test-site plan, the Indoor Tracking dashboard follows the zone, and the scanner and gateway serial monitors print TAG_STATUS logs" width="720"/>
-  </a>
+  <img src="resources/videos/demo-ble-mesh-tracking.gif" alt="Simulated test session: a tag walks from Room 1 to Room 3 and Room 2 on the test-site plan, the Indoor Tracking dashboard follows the zone, and the scanner and gateway serial monitors print TAG_STATUS logs" width="720"/>
 </p>
-<p align="center"><em>Simulated session using the firmware and rule chain logic. Preview shows the first 48 s; click for the full MP4, including the out-of-range case.</em></p>
+<p align="center"><em>Simulated session.</em></p>
 
 ## Documentation
 
