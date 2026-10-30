@@ -83,33 +83,12 @@ Our gateway's `bmt_mesh.c` sends two per node during configuration: `APP_KEY_ADD
 
 ## Full flow: unprovisioned beacon to `config_done`
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as Unprovisioned Node
-    participant G as Gateway (Provisioner)
-
-    Note over U: Boot with no NetKey
-    loop Every ~1 s
-        U-->>G: Unprovisioned beacon<br/>UUID = "SCAN"+MAC or "RELAY"
-    end
-    G->>G: Prefix match ("SCAN" / "RELAY")
-
-    G->>U: Provisioning Invite
-    G->>U: Public keys, derive session key
-    Note over G,U: Static OOB authentication<br/>(16-byte shared secret)
-    G->>U: Provisioning Data (NetKey + primary address)
-    U-->>G: Provisioning Complete (PROV_COMPLETE_EVT)
-    G->>G: bmt_node_table_save()
-
-    Note over U: Node has NetKey - cannot decode<br/>the vendor AppKey layer yet
-
-    G->>U: Config: APP_KEY_ADD
-    U-->>G: ACK
-    G->>U: Config: MODEL_APP_BIND (vendor model ↔ AppKey)
-    U-->>G: ACK
-    G->>G: config_done = true
-```
+<table align="center">
+  <tr>
+    <td align="center"><img src="../resources/images/design-sequence/sequence-provisioning-to-config-done.png" alt="Provisioning to config_done: discovery, provisioning with Static OOB, configuration with APP_KEY_ADD and MODEL_APP_BIND, ready for vendor messages" width="1000"/></td>
+  </tr>
+</table>
+<p align="center"><strong><em>Figure 1:</em></strong> Unprovisioned beacon to <code>config_done</code></p>
 
 Only nodes with `config_done = true` can send or receive vendor opcodes (`TAG_STATUS`, `RESET_CMD`, `OTA_TRIGGER`, ...). See [operation.md](05-operation.md) for what happens if a node reboots mid-config, and for the self-heal path when the gateway restarts.
 
