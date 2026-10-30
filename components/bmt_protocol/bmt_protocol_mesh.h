@@ -15,8 +15,8 @@
 /* [SECURITY] Static OOB value for provisioning - Gateway (provisioner)
  * and every node must use the same 16 bytes. A macro initializer rather
  * than an array so including this header never leaves an unused copy. */
-#define BMT_MESH_STATIC_OOB_INIT                        \
-	{                                                   \
-	    0x8E, 0x2F, 0x71, 0xC4, 0x3A, 0x95, 0xD6, 0x0B, \
-	    0x47, 0xE8, 0x1C, 0x63, 0xAF, 0x29, 0x5D, 0x92, \
+#define BMT_MESH_STATIC_OOB_INIT                            \
+	{                                                       \
+		0x8E, 0x2F, 0x71, 0xC4, 0x3A, 0x95, 0xD6, 0x0B,     \
+		    0x47, 0xE8, 0x1C, 0x63, 0xAF, 0x29, 0x5D, 0x92, \
 	}

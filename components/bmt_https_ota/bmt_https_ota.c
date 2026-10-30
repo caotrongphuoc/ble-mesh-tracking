@@ -7,7 +7,7 @@
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 
-/* [SECURITY] CA embedded in firmware to verify the HTTPS OTA server - 
+/* [SECURITY] CA embedded in firmware to verify the HTTPS OTA server -
  * shares one CA with MQTTS (same physical server). Over plain HTTP
  * anyone on the LAN could download the .bin and read plaintext secrets
  * (WiFi pass, TB token, ...) without touching a board. */

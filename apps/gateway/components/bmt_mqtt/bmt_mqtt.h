@@ -11,7 +11,7 @@
  * Both run in the MQTT event task. */
 typedef struct
 {
-	void (*on_connected)(void);        /* after (re)connect + RPC subscribe */
+	void (*on_connected)(void);          /* after (re)connect + RPC subscribe */
 	void (*on_rpc)(const char* payload); /* RPC request body, null-terminated, max 127 chars */
 } bmt_mqtt_handlers_t;
 

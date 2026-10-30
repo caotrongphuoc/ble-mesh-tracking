@@ -11,15 +11,15 @@
 #define BMT_PROV_COMPLETE_BIT BIT0
 
 /* Config Server state shared by every node (relay + GATT proxy on). */
-#define BMT_MESH_NODE_CFG_SRV_INIT                           \
-	{                                                        \
-	    .net_transmit = ESP_BLE_MESH_TRANSMIT(2, 20),        \
-	    .relay = ESP_BLE_MESH_RELAY_ENABLED,                 \
-	    .relay_retransmit = ESP_BLE_MESH_TRANSMIT(2, 20),    \
-	    .beacon = ESP_BLE_MESH_BEACON_ENABLED,               \
-	    .gatt_proxy = ESP_BLE_MESH_GATT_PROXY_ENABLED,       \
-	    .friend_state = ESP_BLE_MESH_FRIEND_NOT_SUPPORTED,   \
-	    .default_ttl = 7,                                    \
+#define BMT_MESH_NODE_CFG_SRV_INIT                         \
+	{                                                      \
+		.net_transmit = ESP_BLE_MESH_TRANSMIT(2, 20),      \
+		.relay = ESP_BLE_MESH_RELAY_ENABLED,               \
+		.relay_retransmit = ESP_BLE_MESH_TRANSMIT(2, 20),  \
+		.beacon = ESP_BLE_MESH_BEACON_ENABLED,             \
+		.gatt_proxy = ESP_BLE_MESH_GATT_PROXY_ENABLED,     \
+		.friend_state = ESP_BLE_MESH_FRIEND_NOT_SUPPORTED, \
+		.default_ttl = 7,                                  \
 	}
 
 /* Vendor message for the app: every opcode in its op table except

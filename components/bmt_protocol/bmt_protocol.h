@@ -29,12 +29,12 @@
 /* Tag -> Scanner: manufacturer-data payload after the 2-byte CID. */
 typedef struct
 {
-	uint8_t uuid[16];  /* system UUID (AB000000-...) */
-	uint16_t battery;  /* remaining battery % (0-100) */
-	uint16_t minor;    /* tag ID within the system */
-	int8_t tx_power;   /* measured power at 1 m (calibrated) */
-	uint8_t sequence;  /* 0-255, wraps -> Scanner computes loss rate */
-	uint16_t mac16;    /* truncated HMAC-SHA256 over every field above */
+	uint8_t uuid[16]; /* system UUID (AB000000-...) */
+	uint16_t battery; /* remaining battery % (0-100) */
+	uint16_t minor;   /* tag ID within the system */
+	int8_t tx_power;  /* measured power at 1 m (calibrated) */
+	uint8_t sequence; /* 0-255, wraps -> Scanner computes loss rate */
+	uint16_t mac16;   /* truncated HMAC-SHA256 over every field above */
 } bmt_tag_adv_payload_t;
 
 /* Scanner -> Gateway: BMT_OPC_TAG_STATUS mesh message. */

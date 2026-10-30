@@ -8,4 +8,3 @@
  * the right order: NVS scanner_id -> auth (HMAC key) -> bluetooth
  * -> mesh -> scan (GAP) -> uart. */
 esp_err_t bmt_scan_core_init(void);
-

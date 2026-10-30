@@ -56,7 +56,7 @@ static esp_err_t beacon_key_import(const uint8_t* key)
 	psa_set_key_type(&attr, PSA_KEY_TYPE_HMAC);
 	psa_set_key_bits(&attr, 8 * 16);
 
-	/* Import into a NEW slot first, only swap after import succeeds - 
+	/* Import into a NEW slot first, only swap after import succeeds -
 	 * rollback-safe: if the import fails, the old key
 	 * (s_beacon_hmac_key_id + raw) is still usable. */
 	psa_key_id_t new_id = 0;
