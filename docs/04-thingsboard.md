@@ -243,7 +243,7 @@ flowchart LR
 
     subgraph FW[Firmware trust stores<br/>EMBED_TXTFILES]
         MQCA[apps/gateway/.../bmt_mqtt/ca.pem]
-        OTACA[components/bmt_ota/ota_ca.pem]
+        OTACA[components/bmt_https_ota/ota_ca.pem]
     end
     CAK --> MQCA
     CAK --> OTACA
@@ -279,9 +279,10 @@ copies of the same `thingsboard/tls/ca.pem`:
 
 - `apps/gateway/components/bmt_mqtt/ca.pem` - for MQTTS. Symbols
   `bmt_ca_pem_start/end`.
-- `components/bmt_ota/ota_ca.pem` - for OTA over HTTPS. Embedded by the
-  shared `components/bmt_ota` (relay / scanner) and by the gateway's own
-  `apps/gateway/components/bmt_ota`. Symbols `bmt_ota_ca_pem_start/end`.
+- `components/bmt_https_ota/ota_ca.pem` - for OTA over HTTPS. Embedded once
+  by `components/bmt_https_ota`, which both the node-side
+  `components/bmt_ota` (relay / scanner) and the gateway's
+  `apps/gateway/components/bmt_ota` call. Symbols `bmt_ota_ca_pem_start/end`.
 
 `gen_certs.sh` writes both.
 
@@ -327,8 +328,8 @@ gating the trigger), but HTTPS closes the LAN eavesdrop path
 regardless. HTTPS reuses the existing MQTT TLS cert / key pair, so
 there is no extra cert to manage.
 
-`bmt_ota.c` (gateway self-update, and shared `components/bmt_ota` used
-by relay / scanner) verifies the server cert against the embedded
+`components/bmt_https_ota` (used by gateway self-update and by the
+relay / scanner OTA client) verifies the server cert against the embedded
 `ota_ca.pem` and checks the CN against `BMT_OTA_SERVER_CN`, same
 pattern as the MQTT client above.
 

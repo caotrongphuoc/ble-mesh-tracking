@@ -34,7 +34,7 @@ thingsboard/tls/server.csr
 thingsboard/tls/server.key
 thingsboard/tls/server.pem
 apps/gateway/components/bmt_mqtt/ca.pem
-components/bmt_ota/ota_ca.pem
+components/bmt_https_ota/ota_ca.pem
 
 # OTA payloads - build locally, CMake POST_BUILD copies them here
 firmware/*.bin

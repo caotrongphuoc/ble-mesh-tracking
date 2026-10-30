@@ -1,9 +1,19 @@
 cmake_minimum_required(VERSION 3.22)
 
+# Only the shared components the gateway uses. components/bmt_ota is the
+# node-side OTA client (WiFi bring-up + mesh result report) - the gateway
+# has its own apps/gateway/components/bmt_ota with the same name.
+set(EXTRA_COMPONENT_DIRS
+    "${CMAKE_CURRENT_LIST_DIR}/../../components/bmt_factory_reset"
+    "${CMAKE_CURRENT_LIST_DIR}/../../components/bmt_https_ota"
+    "${CMAKE_CURRENT_LIST_DIR}/../../components/bmt_protocol"
+)
+
 # [OTA] Version = MOST RECENT modification time of any source file (NOT
 # the build wall-clock). Rebuilding without editing anything keeps the
 # same version (no pointless OTA even though the .bin bytes may match);
-# the version only bumps when a real .c / .h edit lands. bmt_ota.c
+# the version only bumps when a real .c / .h edit lands - in this app
+# or in a shared component from EXTRA_COMPONENT_DIRS. bmt_https_ota.c
 # strncmp's two YYYYMMDDHHMMSS strings to tell which side is NEWER - 
 # blocks accidental downgrades.
 set(PROJECT_VER "00000000000000")
@@ -15,6 +25,14 @@ file(GLOB_RECURSE BMT_VER_SRC_FILES
     "${CMAKE_CURRENT_LIST_DIR}/components/*.h"
     "${CMAKE_CURRENT_LIST_DIR}/components/*/CMakeLists.txt"
 )
+foreach(_bmt_dir ${EXTRA_COMPONENT_DIRS})
+    file(GLOB_RECURSE _bmt_shared_files
+        "${_bmt_dir}/*.c"
+        "${_bmt_dir}/*.h"
+        "${_bmt_dir}/CMakeLists.txt"
+    )
+    list(APPEND BMT_VER_SRC_FILES ${_bmt_shared_files})
+endforeach()
 foreach(_bmt_src_file ${BMT_VER_SRC_FILES})
     file(TIMESTAMP "${_bmt_src_file}" _bmt_src_ts "%Y%m%d%H%M%S" UTC)
     if(_bmt_src_ts STRGREATER PROJECT_VER)
@@ -29,8 +47,6 @@ message(STATUS "PROJECT_VER (newest source mtime) = ${PROJECT_VER}")
 # (CMake configure does not re-run just because one file's contents
 # changed).
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BMT_VER_SRC_FILES})
-
-set(EXTRA_COMPONENT_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../components")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(Gateway)

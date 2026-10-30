@@ -364,7 +364,7 @@ Short bullet lists to catch mistakes before they cost a re-flash trip.
 - [ ] `BMT_TB_GATEWAY_TOKEN` matches the token from ThingsBoard UI. Not the demo token.
 - [ ] `BMT_OTA_GATEWAY_URL`, `BMT_OTA_SCANNER_URL`, `BMT_OTA_RELAY_URL` all start with `https://` and are reachable on port 8443 from the deployed LAN.
 - [ ] `apps/gateway/components/bmt_mqtt/ca.pem` matches `thingsboard/tls/ca.pem` on the server (`diff` returns nothing).
-- [ ] `components/bmt_ota/ota_ca.pem` matches `thingsboard/tls/ca.pem` on the server too - same CA, different embed location.
+- [ ] `components/bmt_https_ota/ota_ca.pem` matches `thingsboard/tls/ca.pem` on the server too - same CA, different embed location.
 - [ ] `BMT_TB_CN` and `BMT_OTA_SERVER_CN` both match the CN inside the server cert (`openssl x509 -in server.pem -text | grep CN`).
 - [ ] `BMT_TAG_MASTER_KEY` regenerated (not the dev default). Same value in tag AND scanner (both derive the epoch key from it - see [algorithms.md](03-algorithms.md#4a-tag-key-totp-style-epoch-derivation)).
 - [ ] `BMT_MESH_STATIC_OOB_VAL` regenerated (not the dev default). Same value in gateway AND scanner AND relay.

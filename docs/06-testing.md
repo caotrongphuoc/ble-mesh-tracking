@@ -248,7 +248,7 @@ Gateway: `Node 0x00xx (...) OTA SUCCESS` or
 Natural test: wait 24 h. Force test:
 
 1. Temporarily set `BMT_OTA_KEY_ROTATE_INTERVAL_MS` in gateway
-   `bmt_ota.c` to 60000. Rebuild, flash.
+   `bmt_ota_key.c` to 60000. Rebuild, flash.
 2. After 60 s, gateway logs
    `OTA-beacon key ROTATED ... pushing to all scanners...`.
 3. Each scanner logs
@@ -276,7 +276,7 @@ Natural test: wait 24 h. Force test:
 `esp_https_ota_begin FAILED`. Sends `OTA_RESULT status=1`. Returns
 to BLE scan.
 
-**TLS handshake fail.** Corrupt `components/bmt_ota/ota_ca.pem`
+**TLS handshake fail.** Corrupt `components/bmt_https_ota/ota_ca.pem`
 (e.g. replace the last few bytes with garbage), rebuild + flash one
 scanner, trigger. Scanner: `esp_https_ota_begin FAILED` preceded by
 `mbedtls: X509 - Certificate verification failed`. Confirms the OTA

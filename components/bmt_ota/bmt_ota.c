@@ -1,14 +1,12 @@
 #include <assert.h>
 #include "bmt_ota.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "esp_app_desc.h"
 #include "esp_err.h"
 #include "esp_event.h"
-#include "esp_http_client.h"
-#include "esp_https_ota.h"
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_system.h"
@@ -19,6 +17,7 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 
+#include "bmt_https_ota.h"
 #include "bmt_mesh.h" /* bmt_mesh_report_ota_result - provided by each app */
 
 static const char* TAG = "BMT_OTA";
@@ -26,9 +25,6 @@ static const char* TAG = "BMT_OTA";
 #define BMT_OTA_NVS_KEY_PENDING "ota_pending"
 #define BMT_OTA_DEFAULT_WIFI_TIMEOUT_MS 30000
 #define BMT_OTA_DEFAULT_AUTO_CHECK_MS (3 * 60 * 1000)
-
-extern const uint8_t bmt_ota_ca_pem_start[] asm("_binary_ota_ca_pem_start");
-extern const uint8_t bmt_ota_ca_pem_end[] asm("_binary_ota_ca_pem_end");
 
 static bmt_ota_config_t s_cfg;
 static bool s_inited = false;
@@ -93,14 +89,6 @@ static bool check_and_clear_pending(void)
 	}
 	nvs_close(h);
 	return val != 0;
-}
-
-static void print_sha256_hex(const char* label, const uint8_t* sha, size_t len)
-{
-	printf("%s", label);
-	for (size_t i = 0; i < len; i++)
-		printf("%02x", sha[i]);
-	printf("\n");
 }
 
 static void wifi_event_handler(void* arg, esp_event_base_t base,
@@ -188,80 +176,6 @@ static void ota_wifi_tear_down(void)
 	}
 }
 
-/* Return: ESP_OK = flashed OK; ESP_ERR_NOT_FOUND = skip (SHA match or
- * server version not newer - not an error); other = real failure. */
-static esp_err_t ota_check_and_flash(void)
-{
-	printf("[OTA] WiFi connected - checking firmware version...\n");
-	esp_http_client_config_t http_cfg = {
-	    .url = s_cfg.url,
-	    .timeout_ms = 120000,
-	    .keep_alive_enable = true,
-	    .cert_pem = (const char*)bmt_ota_ca_pem_start,
-	    .cert_len = (size_t)(bmt_ota_ca_pem_end - bmt_ota_ca_pem_start),
-	    .common_name = s_cfg.server_cn,
-	};
-	esp_https_ota_config_t ota_cfg = {.http_config = &http_cfg};
-	esp_https_ota_handle_t ota_handle = NULL;
-
-	esp_err_t err = esp_https_ota_begin(&ota_cfg, &ota_handle);
-	if (err != ESP_OK)
-	{
-		printf("[OTA] esp_https_ota_begin FAILED: %s\n", esp_err_to_name(err));
-		return err;
-	}
-
-	esp_app_desc_t new_desc;
-	err = esp_https_ota_get_img_desc(ota_handle, &new_desc);
-	if (err != ESP_OK)
-	{
-		printf("[OTA] esp_https_ota_get_img_desc FAILED: %s\n", esp_err_to_name(err));
-		esp_https_ota_abort(ota_handle);
-		return err;
-	}
-
-	const esp_app_desc_t* cur_desc = esp_app_get_description();
-	print_sha256_hex("[OTA] Node   SHA256: ", cur_desc->app_elf_sha256, sizeof(cur_desc->app_elf_sha256));
-	print_sha256_hex("[OTA] Server SHA256: ", new_desc.app_elf_sha256, sizeof(new_desc.app_elf_sha256));
-
-	if (memcmp(new_desc.app_elf_sha256, cur_desc->app_elf_sha256, sizeof(new_desc.app_elf_sha256)) == 0)
-	{
-		printf("[OTA] SHA256 match - node firmware is IDENTICAL to server firmware, skip.\n");
-		esp_https_ota_abort(ota_handle);
-		return ESP_ERR_NOT_FOUND;
-	}
-	printf("[OTA] SHA256 differ - node firmware DIFFERS from server firmware, checking version...\n");
-	printf("[OTA] Node   version: %s\n", cur_desc->version);
-	printf("[OTA] Server version: %s\n", new_desc.version);
-	if (strncmp(new_desc.version, cur_desc->version, sizeof(new_desc.version)) <= 0)
-	{
-		printf("[OTA] Server version is NOT newer - skip, no downgrade.\n");
-		esp_https_ota_abort(ota_handle);
-		return ESP_ERR_NOT_FOUND;
-	}
-
-	printf("[OTA] Server version is NEWER -> flashing firmware...\n");
-	while (1)
-	{
-		err = esp_https_ota_perform(ota_handle);
-		if (err != ESP_ERR_HTTPS_OTA_IN_PROGRESS)
-			break;
-	}
-	if (err == ESP_OK && esp_https_ota_is_complete_data_received(ota_handle))
-	{
-		err = esp_https_ota_finish(ota_handle);
-	}
-	else
-	{
-		esp_https_ota_abort(ota_handle);
-		if (err == ESP_OK)
-			err = ESP_FAIL;
-	}
-	if (err != ESP_OK)
-		printf("[OTA] esp_https_ota FAILED: %s\n", esp_err_to_name(err));
-	return err;
-}
-
 static void ota_wifi_task(void* arg)
 {
 	(void)arg;
@@ -276,7 +190,14 @@ static void ota_wifi_task(void* arg)
 	esp_err_t err = ota_wifi_bring_up();
 	if (err == ESP_OK)
 	{
-		err = ota_check_and_flash();
+		printf("[OTA] WiFi connected - checking firmware version...\n");
+		bmt_https_ota_cfg_t fetch = {
+		    .url = s_cfg.url,
+		    .server_cn = s_cfg.server_cn,
+		    .timeout_ms = 120000,
+		    .keep_alive = true,
+		};
+		err = bmt_https_ota_fetch_and_flash(&fetch);
 		if (err == ESP_OK)
 		{
 			printf("[OTA] ===== OTA SUCCESS - rebooting =====\n");

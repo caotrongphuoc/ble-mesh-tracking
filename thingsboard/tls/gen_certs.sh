@@ -75,7 +75,7 @@ echo "[4/4] Verification OK"
 #    subsequent firmware builds trust this server. Paths are relative to
 #    this script.
 FW_MQTT_CA="../../apps/gateway/components/bmt_mqtt/ca.pem"
-FW_OTA_CA="../../components/bmt_ota/ota_ca.pem"
+FW_OTA_CA="../../components/bmt_https_ota/ota_ca.pem"
 mkdir -p "$(dirname "$FW_MQTT_CA")" "$(dirname "$FW_OTA_CA")"
 cp ca.pem "$FW_MQTT_CA"
 cp ca.pem "$FW_OTA_CA"

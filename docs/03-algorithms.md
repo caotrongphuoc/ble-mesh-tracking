@@ -78,7 +78,7 @@ Tuning: epoch length is 1 hour by default. Shorter epochs shrink the replay wind
 
 ### 4b. OTA-beacon key: plain rotation
 
-Where: `apps/gateway/components/bmt_ota/bmt_ota.c`, `beacon_key_rotate_and_push()`.
+Where: `apps/gateway/components/bmt_ota/bmt_ota_key.c`, `beacon_key_rotate_and_push()`.
 
 The OTA-beacon key is a plain shared secret between gateway and all scanners. It rotates on wall-clock time on the gateway side:
 
@@ -127,9 +127,9 @@ Rule chain fires only on new telemetry. If a tag disappears entirely, dashboard 
 
 ## 10. OTA version compare
 
-Where: `apps/*/CMakeLists.txt` (build side), `bmt_ota.c` (compare side).
+Where: `apps/*/CMakeLists.txt` (build side), `components/bmt_https_ota/bmt_https_ota.c` (compare side).
 
-`PROJECT_VER` is computed at build time as the newest source mtime, formatted `YYYYMMDDHHMMSS`. Because the format is fixed-width, `strncmp` on version strings equals chronological compare.
+`PROJECT_VER` is computed at build time as the newest source mtime (app sources plus the shared components in `EXTRA_COMPONENT_DIRS`), formatted `YYYYMMDDHHMMSS`. Because the format is fixed-width, `strncmp` on version strings equals chronological compare.
 
 ```
 if (strncmp(new_desc.version, cur_desc->version, 14) <= 0) skip;   // not newer
