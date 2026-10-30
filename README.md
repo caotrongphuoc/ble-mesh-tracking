@@ -20,9 +20,12 @@
 
 ## Demo
 
-<div align="center">
-  <em>Demo video coming soon.</em>
-</div>
+<p align="center">
+  <a href="resources/videos/demo-ble-mesh-tracking.mp4">
+    <img src="resources/videos/demo-ble-mesh-tracking.gif" alt="Simulated run: a tag walks Room 1, Room 3 and Room 2, leaves coverage and comes back; scanners, mesh packets, rule chain decisions and the ThingsBoard zone update live" width="720"/>
+  </a>
+</p>
+<p align="center"><em>Simulated run of the firmware and rule chain logic (preview at 2x speed; click for the real-time MP4).</em></p>
 
 ## Documentation
 
